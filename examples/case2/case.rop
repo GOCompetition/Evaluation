@@ -1,0 +1,25 @@
+ 0 / End of Modification Code data, begin Bus Voltage Attributes data
+ 0 / End of Bus Voltage Attributes data, begin Adjustable Bus Shunt data
+ 0 / End of Adjustable Bus Shunt data, begin Bus Loads data
+ 0 / End of Bus Loads data, begin Adjustable Bus Load Tables
+ 0 / End of Adjustable Bus Load Tables, begin Generator Dispatch data
+       1, 1, 1.0, 1
+ 0 / End of Generator Dispatch data, begin Active Power Dispatch Tables
+       1, 0.0, 0.0, 1.0, 2, 1, 1
+ 0 / End of Active Power Dispatch Tables, begin Generation Reserve Units data
+ 0 / End of Generation Reserve Units data, begin Generation Reactive Capability data
+ 0 / End of Generation Reactive Capability data, begin Adjustable Branch Reactance data
+ 0 / End of Adjustable Branch Reactance data, begin Piecewise Linear Cost Tables
+       1,  'LINEAR 1    ',    5
+      0.0,     0.0
+     83.1,  1959.14328745804
+    166.2,  4512.57314983216
+    249.3,  7660.28958712235
+    332.4, 11402.2925993286
+ 0 / End of Piecewise Linear Cost Tables, begin Piecewise Quadratic Cost Tables
+ 0 / End of Piecewise Quadratic Cost Tables, begin Polynomial Cost Tables
+ 0 / End of Polynomial Cost Tables, begin Period Reserves data
+ 0 / End of Period Reserves data, begin Branch Flows Constraint data
+ 0 / End of Branch Flows Constraint data, begin Interface Flows data
+ 0 / End of Interface Flows data, begin Linear Constraint Dependencies data
+ 0 / End of Linear Equation Dependencies data

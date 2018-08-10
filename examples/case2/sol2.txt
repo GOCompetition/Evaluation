@@ -1,0 +1,26 @@
+--contingency
+label
+G_1_1
+--bus section
+i, v, theta, b
+1,1.05999994278,0.0,-5.0
+2,1.04499995708,-0.0601769089699,0.0
+--generator section
+i, uid, p, q
+1,1 ,0.0,0.0
+--delta section
+delta
+0.0
+--contingency
+label
+L_1_2_BL
+--bus section
+i, v, theta, b
+1,1.05999994278,0.0,-5.0
+2,1.04499995708,-0.0601769089699,0.0
+--generator section
+i, uid, p, q
+1,1 ,176.474899292,9.35432052612
+--delta section
+delta
+0.0
