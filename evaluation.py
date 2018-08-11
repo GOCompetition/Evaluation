@@ -3,6 +3,7 @@ import math
 import data
 import time
 from collections import OrderedDict
+from itertools import islice
 
 MAXOBJ = 9876543210.0
 MAXVIOL = 9876543210.0
@@ -10,6 +11,25 @@ KVPEN = 1000.0 # kV penalty (p.u. already)
 MVAPEN = 1000.0 #MVA penalty
 
 TOP_N = 10
+
+def get_ctg_num_lines(file_name):
+
+    ctg_start_str = '--con'
+    with open(file_name, 'r') as in_file:
+        lines = in_file.readlines()
+    num_lines = len(lines)
+    ctg_start_lines = [
+        i for i in range(num_lines)
+        if lines[i].startswith(ctg_start_str)]
+    num_ctgs = len(ctg_start_lines)
+    ctg_end_lines = [
+        ctg_start_lines[i + 1]
+        for i in range(num_ctgs - 1)]
+    ctg_end_lines += [num_lines]
+    ctg_num_lines = [
+        ctg_end_lines[i] - ctg_start_lines[i]
+        for i in range(num_ctgs)]
+    return ctg_num_lines
 
 class Evaluation:
     '''In per unit convention, i.e. same as the model'''
@@ -19,7 +39,6 @@ class Evaluation:
         self.volt_pen = KVPEN
         self.pow_pen = MVAPEN
         self.pvpq_pen = max(self.volt_pen, self.pow_pen)
-
         self.bus = []
         self.load = []
         self.fxsh = []
@@ -450,7 +469,7 @@ class Evaluation:
         self.gen_ctg_pow_imag = {
             i:solution2.gen_ctg_pow_imag[i] / self.base_mva
             for i in self.gen}
-        self.ctg_pow_real_change = solution2.area_ctg_pow_real_change / self.base_mva
+        self.ctg_pow_real_change = solution2.ctg_pow_real_change / self.base_mva
     
     def eval_cost(self):
         # todo: what if gen_pow_real falls outside of domain of definition
@@ -1925,12 +1944,17 @@ class Evaluation:
 
 def solution_read_sections(file_name, section_start_line_str=None, has_headers=None):
 
+    with open(file_name, 'r') as in_file:
+        lines = in_file.readlines()
+    sections = solution_read_sections_from_lines(lines, section_start_line_str, has_headers)
+    return sections
+
+def solution_read_sections_from_lines(lines, section_start_line_str=None, has_headers=None):
+
     if section_start_line_str is None:
         section_start_line_str = '--'
     if has_headers is None:
         has_headers = True
-    with open(file_name, 'r') as in_file:
-        lines = in_file.readlines()
     num_lines = len(lines)
     delimiter_str = ","
     quote_str = "'"
@@ -2034,79 +2058,72 @@ class Solution2:
     def __init__(self):
         '''items to be read from solution2.txt'''
 
-        # just a candidate for the names
+        self.ctg_label = ""
         self.bus_ctg_volt_mag = {}
         self.bus_ctg_volt_ang = {}
         self.bus_ctg_swsh_adm_imag = {}
         self.gen_ctg_pow_real = {}
         self.gen_ctg_pow_imag = {}
-        #self.swsh_ctg_adm_imag = {}
         self.ctg_pow_real_change = 0.0
 
-    def read(self, file_name):
+    def read_from_lines(self, lines):
 
-        bus = 0
-        gen = 1
+        con = 0
+        bus = 1
+        gen = 2
         delta = 3
         section_start_line_str = '--'
         has_headers = True
-        sections = solution_read_sections(file_name, section_start_line_str, has_headers)
+        sections = solution_read_sections_from_lines(lines, section_start_line_str, has_headers)
+        self.read_con_rows(sections[con])
         self.read_bus_rows(sections[bus])
         self.read_gen_rows(sections[gen])
-        #self.read_swsh_rows(sections[swsh])
-        self.read_area_rows(sections[area])
+        self.read_delta_rows(sections[delta])
+
+    def read_con_rows(self, rows):
+
+        k = 0
+        assert(len(rows) == 1)
+        r = rows[0]
+        rk = str(r[k])
+        self.ctg_label = rk
 
     def read_bus_rows(self, rows):
 
-        i = 1
-        k = 0
-        vm = 2
-        va = 3
-        b = 4
+        i = 0
+        vm = 1
+        va = 2
+        b = 3
         for r in rows:
             ri = int(r[i])
-            rk = str(r[k])
             rvm = float(r[vm])
             rva = float(r[va])
             rb = float(r[b])
-            self.bus_ctg_volt_mag[(ri,rk)] = rvm
-            self.bus_ctg_volt_ang[(ri,rk)] = rva
-            self.bus_ctg_swhsh_adm_imag[(ri,rk)] = rb
+            self.bus_ctg_volt_mag[ri] = rvm
+            self.bus_ctg_volt_ang[ri] = rva
+            self.bus_ctg_swsh_adm_imag[ri] = rb
 
     def read_gen_rows(self, rows):
 
-        i = 1
-        id = 2
-        k = 0
+        i = 0
+        id = 1
+        p = 2
         q = 3
         for r in rows:
             ri = int(r[i])
             rid = str(r[id])
-            rk = str(r[k])
-            rq = float(r[q])
-            self.gen_ctg_pow_imag[(ri,rid,rk)] = rq
-
-    def read_swsh_rows(self, rows):
-
-        i = 1
-        k = 0
-        b = 2
-        for r in rows:
-            ri = int(r[i])
-            rk = str(r[k])
-            rb = float(r[b])
-            self.swsh_ctg_adm_imag[(ri,rk)] = rb
-
-    def read_area_rows(self, rows):
-
-        z = 1
-        k = 0
-        p = 2
-        for r in rows:
-            rz = int(r[z])
-            rk = str(r[k])
             rp = float(r[p])
-            self.area_ctg_pow_real_change[(rz,rk)] = rp
+            rq = float(r[q])
+            self.gen_ctg_pow_real[(ri,rid)] = rp
+            self.gen_ctg_pow_imag[(ri,rid)] = rq
+
+    def read_delta_rows(self, rows):
+
+        p = 0
+        assert(len(rows) == 1)
+        r = rows[0]
+        rp = float(r[p])
+        self.ctg_pow_real_change = rp
 
 def trans_old(raw_name, rop_name, con_name, inl_nsame,filename):
 
@@ -2395,7 +2412,6 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
     time_elapsed = time.time() - start_time
     print "eval set data time: %u" % time_elapsed
 
-    """
     # set eval sol1
     start_time = time.time()
     e.set_solution1(s1)
@@ -2403,15 +2419,23 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
     print "eval set sol1 time: %u" % time_elapsed
 
     # get ctg structure in sol
-    ctg_start_lines, ctg_end_lines, num_ctgs = get_ctg_start_end_lines(sol2_name)
-    ctg_results = [None for k in range(num_ctgs)]
-    for k in range(num_ctgs):
-        s2.read(sol2_name, ctg_start_lines[k], ctg_end_lines[k])
-        e.set_solution2(s2)
-        e.eval_ctg()
-        ctg_results[k] = 
+    ctg_num_lines = get_ctg_num_lines(sol2_name)
+    num_ctgs = len(ctg_num_lines)
+    #ctg_results = [None for k in range(num_ctgs)]
+    ctg_num = 0
+    with open(sol2_name) as sol2_file:
+        for k in range(num_ctgs):
+            lines = list(islice(sol2_file, ctg_num_lines[k]))
+            if not lines:
+                break # error
+            # work on this ctg here
+            print lines
+            s2.read_from_lines(lines)
+            e.set_solution2(s2)
+            #e.eval_ctg()
+            #ctg_results[k] = 
         
-
+    """
     # loop over contingencies in sol2
     while True:
         ctg_found = get_next_ctg(
