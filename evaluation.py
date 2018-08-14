@@ -38,7 +38,7 @@ class Evaluation:
 
         self.volt_pen = KVPEN
         self.pow_pen = MVAPEN
-        self.pvpq_pen = max(self.volt_pen, self.pow_pen)
+        #self.pvpq_pen = max(self.volt_pen, self.pow_pen)
         self.bus = []
         self.load = []
         self.fxsh = []
@@ -46,7 +46,7 @@ class Evaluation:
         self.line = []
         self.xfmr = []
         self.area = []
-        #self.swsh = []
+        self.swsh = []
         self.ctg = []
         
         self.bus_volt_mag_min = {}
@@ -57,7 +57,9 @@ class Evaluation:
         self.bus_volt_mag_max_viol = {}
         self.bus_pow_balance_real_viol = {}
         self.bus_pow_balance_imag_viol = {}
-        self.bus_swsh_status = {}
+        self.swsh_status = {}
+        self.swsh_adm_imag_min = {}
+        self.swsh_adm_imag_max = {}
         self.bus_swsh_adm_imag_min = {}
         self.bus_swsh_adm_imag_max = {}
         self.bus_swsh_adm_imag_min_viol = {}
@@ -129,62 +131,60 @@ class Evaluation:
         self.xfmr_pow_dest_mag_max_viol = {}
         self.xfmr_status = {}
 
-        #self.swsh_bus_reg = {}
-        #self.swsh_adm_imag_init = {}
         self.swsh_adm_imag_min = {}
         self.swsh_adm_imag_max = {}
-        self.swsh_adm_imag = {}
-        self.swsh_pow_imag = {}
         self.swsh_status = {}
 
-        self.bus_ctg_volt_mag = {}
-        self.bus_ctg_volt_ang = {}
-        self.bus_ctg_volt_mag_max_viol = {}
-        self.bus_ctg_volt_mag_min_viol = {}
-        self.bus_ctg_pow_balance_real_viol = {}
-        self.bus_ctg_pow_balance_imag_viol = {}
-        self.bus_ctg_swsh_adm_imag = {}
-        self.bus_ctg_swsh_adm_imag_min_viol = {}
-        self.bus_ctg_swsh_adm_imag_max_viol = {}
+        self.ctg_label = ""
 
-        self.load_ctg_pow_real = {}
-        self.load_ctg_pow_imag = {}
+        self.ctg_bus_volt_mag = {}
+        self.ctg_bus_volt_ang = {}
+        self.ctg_bus_volt_mag_max_viol = {}
+        self.ctg_bus_volt_mag_min_viol = {}
+        self.ctg_bus_pow_balance_real_viol = {}
+        self.ctg_bus_pow_balance_imag_viol = {}
+        self.ctg_bus_swsh_adm_imag = {}
+        self.ctg_bus_swsh_adm_imag_min_viol = {}
+        self.ctg_bus_swsh_adm_imag_max_viol = {}
 
-        self.fxsh_ctg_pow_real = {}
-        self.fxsh_ctg_pow_imag = {}
+        self.ctg_load_pow_real = {}
+        self.ctg_load_pow_imag = {}
 
-        self.gen_ctg_active = {}
-        self.gen_ctg_pow_fact = {}
-        self.gen_ctg_pow_real = {}
-        self.gen_ctg_pow_imag = {}
-        self.gen_ctg_pow_real_min_viol = {}
-        self.gen_ctg_pow_real_max_viol = {}
-        self.gen_ctg_pow_imag_min_viol = {}
-        self.gen_ctg_pow_imag_max_viol = {}
+        self.ctg_fxsh_pow_real = {}
+        self.ctg_fxsh_pow_imag = {}
 
-        self.line_ctg_curr_orig_real = {}
-        self.line_ctg_curr_orig_imag = {}
-        self.line_ctg_curr_dest_real = {}
-        self.line_ctg_curr_dest_imag = {}
-        self.line_ctg_pow_orig_real = {}
-        self.line_ctg_pow_orig_imag = {}
-        self.line_ctg_pow_dest_real = {}
-        self.line_ctg_pow_dest_imag = {}
-        self.line_ctg_curr_orig_mag_max_viol = {}
-        self.line_ctg_curr_dest_mag_max_viol = {}
-        self.line_ctg_active = {}
+        self.ctg_gen_active = {}
+        self.ctg_gen_pow_fact = {}
+        self.ctg_gen_pow_real = {}
+        self.ctg_gen_pow_imag = {}
+        self.ctg_gen_pow_real_min_viol = {}
+        self.ctg_gen_pow_real_max_viol = {}
+        self.ctg_gen_pow_imag_min_viol = {}
+        self.ctg_gen_pow_imag_max_viol = {}
 
-        self.xfmr_ctg_curr_orig_real = {}
-        self.xfmr_ctg_curr_orig_imag = {}
-        self.xfmr_ctg_curr_dest_real = {}
-        self.xfmr_ctg_curr_dest_imag = {}
-        self.xfmr_ctg_pow_orig_real = {}
-        self.xfmr_ctg_pow_orig_imag = {}
-        self.xfmr_ctg_pow_dest_real = {}
-        self.xfmr_ctg_pow_dest_imag = {}
-        self.xfmr_ctg_pow_orig_mag_max_viol = {}
-        self.xfmr_ctg_pow_dest_mag_max_viol = {}
-        self.xfmr_ctg_active = {}
+        self.ctg_line_curr_orig_real = {}
+        self.ctg_line_curr_orig_imag = {}
+        self.ctg_line_curr_dest_real = {}
+        self.ctg_line_curr_dest_imag = {}
+        self.ctg_line_pow_orig_real = {}
+        self.ctg_line_pow_orig_imag = {}
+        self.ctg_line_pow_dest_real = {}
+        self.ctg_line_pow_dest_imag = {}
+        self.ctg_line_curr_orig_mag_max_viol = {}
+        self.ctg_line_curr_dest_mag_max_viol = {}
+        self.ctg_line_active = {}
+
+        self.ctg_xfmr_curr_orig_real = {}
+        self.ctg_xfmr_curr_orig_imag = {}
+        self.ctg_xfmr_curr_dest_real = {}
+        self.ctg_xfmr_curr_dest_imag = {}
+        self.ctg_xfmr_pow_orig_real = {}
+        self.ctg_xfmr_pow_orig_imag = {}
+        self.ctg_xfmr_pow_dest_real = {}
+        self.ctg_xfmr_pow_dest_imag = {}
+        self.ctg_xfmr_pow_orig_mag_max_viol = {}
+        self.ctg_xfmr_pow_dest_mag_max_viol = {}
+        self.ctg_xfmr_active = {}
 
         #self.area_ctg_affected = {}
         #self.area_ctg_pow_real_change = {}
@@ -203,7 +203,7 @@ class Evaluation:
         self.gen = [(r.i,r.id) for r in data.raw.generators.values()]
         self.line = [(r.i,r.j,r.ckt) for r in data.raw.nontransformer_branches.values()]
         self.xfmr = [(r.i,r.j,r.ckt) for r in data.raw.transformers.values()]
-        #self.swsh = [r.i for r in data.raw.switched_shunts.values()]
+        self.swsh = [r.i for r in data.raw.switched_shunts.values()]
         self.area = [r.i for r in data.raw.areas.values()]
         self.ctg = [r.label for r in data.con.contingencies.values()]
         
@@ -260,11 +260,6 @@ class Evaluation:
         self.gen_part_fact = {
             (r.i,r.id):r.r
             for r in data.inl.generator_inl_records.values()}
-        self.gen_reg_bus = {
-            (r.i,r.id):(
-                r.ireg if (r.ireg != 0)
-                else r.i)
-            for r in data.raw.generators.values()}
 
         self.line_adm_real = {
             (r.i,r.j,r.ckt):(r.r/(r.r**2.0 + r.x**2.0))
@@ -307,13 +302,9 @@ class Evaluation:
             (r.i,r.j,r.ckt):r.stat
             for r in data.raw.transformers.values()}
 
-        # bus swsh status
-        '''
+        # swsh
         self.swsh_status = {
             r.i:r.stat
-            for r in data.raw.switched_shunts.values()}
-        self.swsh_adm_imag_init = {
-            r.i:(r.binit / self.base_mva)
             for r in data.raw.switched_shunts.values()}
         self.swsh_adm_imag_max = {
             r.i:((max(0.0, r.n1 * r.b1) +
@@ -335,7 +326,6 @@ class Evaluation:
                   min(0.0, r.n7 * r.b7) +
                   min(0.0, r.n8 * r.b8)) / self.base_mva) # todo normalize ?
             for r in data.raw.switched_shunts.values()}
-        '''
 
         # todo clean up maybe
         # defines some attributes that need to be initialized above
@@ -380,37 +370,47 @@ class Evaluation:
             i:[k for k in self.xfmr if k[1] == i]
             for i in self.bus}
 
+        self.bus_swsh_adm_imag_max = {i:0.0 for i in self.bus}
+        self.bus_swsh_adm_imag_max.update(
+            {i:self.swsh_adm_imag_max[i]
+             for i in self.swsh if self.swsh_status[i]})
+        self.bus_swsh_adm_imag_min = {i:0.0 for i in self.bus}
+        self.bus_swsh_adm_imag_min.update(
+            {i:self.swsh_adm_imag_min[i]
+             for i in self.swsh if self.swsh_status[i]})
+        
         # contingency records
         # TODO - stll need gen_ctg_part_fact
         # and area_ctg_affected will need to be done more carefully
-        '''
-        self.area_ctg_affected = {(i,k):0 for i in self.area for k in self.ctg}
-        self.gen_ctg_active = {(r[0],r[1],k):self.gen_status[r] for r in self.gen for k in self.ctg}
-        self.line_ctg_active = {(r[0],r[1],r[2],k):self.line_status[r] for r in self.line for k in self.ctg}
-        self.xfmr_ctg_active = {(r[0],r[1],r[2],k):self.xfmr_status[r] for r in self.xfmr for k in self.ctg}
+        self.gen_area = {r:self.bus_area[r[0]] for r in self.gen}
+        self.area_gens = {a:set() for a in self.area}
+        for i in self.gen:
+            self.area_gens[self.gen_area[i]].add(i)
+        self.ctg_gens_out = {k:set() for k in self.ctg}
+        self.ctg_lines_out = {k:set() for k in self.ctg}
+        self.ctg_xfmrs_out = {k:set() for k in self.ctg}
+        self.ctg_areas_affected = {k:set() for k in self.ctg}
         for r in data.con.contingencies.values():
             for e in r.branch_out_events:
-                ekey = (e.i, e.j, e.ckt, r.label)
-                self.area_ctg_affected[(data.raw.buses[e.i].area, r.label)] = 1
-                self.area_ctg_affected[(data.raw.buses[e.j].area, r.label)] = 1
                 if (e.i, e.j, e.ckt) in data.raw.nontransformer_branches.keys():
-                    self.line_ctg_active[ekey] = 0
+                    self.ctg_lines_out[r.label].add((e.i, e.j, e.ckt))
+                    self.ctg_areas_affected[r.label].add(self.bus_area[e.i])
+                    self.ctg_areas_affected[r.label].add(self.bus_area[e.j])
                 if (e.i, e.j, 0, e.ckt) in data.raw.transformers.keys():
-                    self.xfmr_ctg_active[ekey] = 0
+                    self.ctg_xfmrs_out[r.label].add((e.i, e.j, e.ckt))
+                    self.ctg_areas_affected[r.label].add(self.bus_area[e.i])
+                    self.ctg_areas_affected[r.label].add(self.bus_area[e.j])
             for e in r.generator_out_events:
-                ekey = (e.i, e.id, r.label)
-                self.area_ctg_affected[(data.raw.buses[e.i].area, r.label)] = 1
-                self.gen_ctg_active[ekey] = 0
-        self.gen_area = {r:self.bus_area[r[0]] for r in self.gen}
-        self.gen_ctg_participating = {
-            (r[0],r[1],k):(
-                1 if (
-                    self.gen_ctg_active[(r[0],r[1],k)] and
-                    self.area_ctg_affected[(self.gen_area[r],k)])
-                else 0)
-            for r in self.gen
-            for k in self.ctg}
-        '''
+                self.ctg_gens_out[r.label].add((e.i, e.id))
+                self.ctg_areas_affected[r.label].add(self.bus_area[e.i])
+        #self.gen_ctg_participating = {
+        #    (r[0],r[1],k):(
+        #        1 if (
+        #            self.gen_ctg_active[(r[0],r[1],k)] and
+        #            self.area_ctg_affected[(self.gen_area[r],k)])
+        #        else 0)
+        #    for r in self.gen
+        #    for k in self.ctg}
 
         # generator real power emergency min/max
         # todo read from data
@@ -454,22 +454,81 @@ class Evaluation:
         ''' set values from the solution objects
         convert to per unit (p.u.) convention'''
 
-        self.bus_ctg_volt_mag = {
-            i:solution2.bus_ctg_volt_mag[i]
+        self.ctg_label = solution2.ctg_label
+        self.ctg_bus_volt_mag = {
+            i:solution2.bus_volt_mag[i]
             for i in self.bus}
-        self.bus_ctg_volt_ang = {
-            i:solution2.bus_ctg_volt_ang[i] * math.pi / 180.0
+        self.ctg_bus_volt_ang = {
+            i:solution2.bus_volt_ang[i] * math.pi / 180.0
             for i in self.bus}
-        self.bus_ctg_swsh_adm_imag = {
-            i:solution2.bus_ctg_swsh_adm_imag[i] / self.base_mva
+        self.ctg_bus_swsh_adm_imag = {
+            i:solution2.bus_swsh_adm_imag[i] / self.base_mva
             for i in self.bus}
-        self.gen_ctg_pow_real = {
-            i:solution2.gen_ctg_pow_real[i] / self.base_mva
+        self.ctg_gen_pow_real = {
+            i:solution2.gen_pow_real[i] / self.base_mva
             for i in self.gen}
-        self.gen_ctg_pow_imag = {
-            i:solution2.gen_ctg_pow_imag[i] / self.base_mva
+        self.ctg_gen_pow_imag = {
+            i:solution2.gen_pow_imag[i] / self.base_mva
             for i in self.gen}
-        self.ctg_pow_real_change = solution2.ctg_pow_real_change / self.base_mva
+        self.ctg_pow_real_change = solution2.pow_real_change / self.base_mva
+
+    def set_ctg_data(self):
+
+        self.ctg_gen_active = {
+            i:self.gen_status[i]
+            for i in self.gen}
+        self.ctg_gen_active.update(
+            {i:0 for i in self.ctg_gens_out[self.ctg_label]})
+        self.ctg_line_active = {
+            i:self.line_status[i]
+            for i in self.line}
+        self.ctg_line_active.update(
+            {i:0 for i in self.ctg_lines_out[self.ctg_label]})
+        self.ctg_xfmr_active = {
+            i:self.xfmr_status[i]
+            for i in self.xfmr}
+        self.ctg_xfmr_active.update(
+            {i:0 for i in self.ctg_xfmrs_out[self.ctg_label]})
+        self.ctg_gen_participating = {i:0 for i in self.gen}
+        self.ctg_gen_participating.update(
+            {i:self.ctg_gen_active[i]
+             for a in self.ctg_areas_affected[self.ctg_label]
+             for i in self.area_gens[a]})
+
+    def eval_base(self):
+        """evaluate base case violations"""
+
+        self.eval_bus_volt_viol()
+        self.eval_load_pow()
+        self.eval_fxsh_pow()
+        self.eval_gen_pow_viol()
+        self.eval_line_curr()
+        self.eval_line_pow()
+        self.eval_line_curr_viol()
+        self.eval_xfmr_curr()
+        self.eval_xfmr_pow()
+        self.eval_xfmr_pow_viol()
+        self.eval_bus_swsh_adm_imag_viol()
+        self.eval_bus_swsh_pow()
+        self.eval_bus_pow_balance()
+
+    def eval_ctg(self):
+
+        self.eval_ctg_bus_volt_viol()
+        self.eval_ctg_load_pow()
+        self.eval_ctg_fxsh_pow()
+        #self.eval_ctg_gen_pow_real()
+        self.eval_ctg_gen_pow_viol()
+        #self.eval_ctg_line_curr()
+        #self.eval_ctg_line_pow()
+        #self.eval_ctg_line_curr_viol()
+        #self.eval_ctg_xfmr_curr()
+        #self.eval_ctg_xfmr_pow()
+        #self.eval_ctg_xfmr_pow_viol()
+        self.eval_ctg_bus_swsh_adm_imag_viol()
+        self.eval_ctg_bus_swsh_pow()
+        #self.eval_ctg_bus_pow_balance()
+        #self.eval_ctg_gen_pvpq_viol()
     
     def eval_cost(self):
         # todo: what if gen_pow_real falls outside of domain of definition
@@ -770,17 +829,16 @@ class Evaluation:
     def eval_bus_swsh_adm_imag_viol(self):
 
         self.bus_swsh_adm_imag_min_viol = {
-            i:max(0.0, (self.bus_swsh_adm_imag_min[i] if self.bus_swsh_status[i] else 0.0) - self.bus_swsh_adm_imag[i])
+            i:max(0.0, self.bus_swsh_adm_imag_min[i] - self.bus_swsh_adm_imag[i])
             for i in self.bus}
         self.bus_swsh_adm_imag_max_viol = {
-            i:max(0.0, self.bus_swsh_adm_imag[i] - (self.bus_swsh_adm_imag_max[i] if self.bus_swsh_status[i] else 0.0))
-            for k in self.bus}
+            i:max(0.0, self.bus_swsh_adm_imag[i] - self.bus_swsh_adm_imag_max[i])
+            for i in self.bus}
 
     def eval_bus_swsh_pow(self):
 
         self.bus_swsh_pow_imag = {
-            i:(-self.bus_swsh_adm_imag[i] * self.bus_volt_mag[i]**2.0
-               if self.bus_swsh_status[i] else 0.0)
+            i:(-self.bus_swsh_adm_imag[i] * self.bus_volt_mag[i]**2.0)
             for i in self.bus}
 
     def eval_bus_pow_balance(self):
@@ -800,90 +858,80 @@ class Evaluation:
                 sum([self.gen_pow_imag[k] for k in self.bus_gen[i] if self.gen_status[k]]) -
                 sum([self.load_pow_imag[k] for k in self.bus_load[i] if self.load_status[k]]) -
                 sum([self.fxsh_pow_imag[k] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
-                (self.bus_swsh_pow_imag[i] if self.bus_swsh_status[i] else 0.0) -
+                self.bus_swsh_pow_imag[i] -
                 sum([self.line_pow_orig_imag[k] for k in self.bus_line_orig[i] if self.line_status[k]]) -
                 sum([self.line_pow_dest_imag[k] for k in self.bus_line_dest[i] if self.line_status[k]]) -
                 sum([self.xfmr_pow_orig_imag[k] for k in self.bus_xfmr_orig[i] if self.xfmr_status[k]]) -
                 sum([self.xfmr_pow_dest_imag[k] for k in self.bus_xfmr_dest[i] if self.xfmr_status[k]]))
             for i in self.bus}
 
-    def eval_bus_ctg_volt_viol(self):
+    def eval_ctg_bus_volt_viol(self):
 
-        self.bus_ctg_volt_mag_min_viol = {
-            i:max(0.0, self.bus_volt_mag_min[i] - self.bus_ctg_volt_mag[i])
+        self.ctg_bus_volt_mag_min_viol = {
+            i:max(0.0, self.bus_volt_mag_min[i] - self.ctg_bus_volt_mag[i])
             for i in self.bus}
-        self.bus_ctg_volt_mag_max_viol = {
-            i:max(0.0, self.bus_ctg_volt_mag[(i,k)] - self.bus_volt_mag_max[i])
+        self.ctg_bus_volt_mag_max_viol = {
+            i:max(0.0, self.ctg_bus_volt_mag[i] - self.bus_volt_mag_max[i])
             for i in self.bus}
 
-    def eval_load_ctg_pow(self):
+    def eval_ctg_load_pow(self):
 
-        self.load_ctg_pow_real = {
+        self.ctg_load_pow_real = {
             i:(self.load_const_pow_real[i] if self.load_status[i] else 0.0)
             for i in self.load}
-        self.load_ctg_pow_imag = {
+        self.ctg_load_pow_imag = {
             i:(self.load_const_pow_imag[i] if self.load_status[i] else 0.0)
             for i in self.load}
 
-    def eval_fxsh_ctg_pow(self):
+    def eval_ctg_fxsh_pow(self):
 
-        self.fxsh_ctg_pow_real = {
-            i:(self.fxsh_adm_real[i] * self.bus_ctg_volt_mag[i[0]]**2.0
+        self.ctg_fxsh_pow_real = {
+            i:(self.fxsh_adm_real[i] * self.ctg_bus_volt_mag[i[0]]**2.0
                if self.fxsh_status[i] else 0.0)
             for i in self.fxsh}
-        self.fxsh_ctg_pow_imag = {
-            i:(-self.fxsh_adm_imag[i] * self.bus_ctg_volt_mag[i[0]]**2.0
+        self.ctg_fxsh_pow_imag = {
+            i:(-self.fxsh_adm_imag[i] * self.ctg_bus_volt_mag[i[0]]**2.0
                if self.fxsh_status[i] else 0.0)
             for i in self.fxsh}
 
-    '''
-    def eval_gen_ctg_pow_real(self):
+    def eval_ctg_gen_pow_real(self):
 
         #self.gen_ctg_pow_real = {
         #    (i[0],i[1],k):0.0 # TODO: this should come from the participation factor expression
         #    for i in self.gen # TODO (also for other items): use status field
         #    for k in self.ctg} # projection of participation factor expression
-        self.gen_ctg_pow_real = {
-            (i[0],i[1],k):0.0
-            for i in self.gen
-            for k in self.ctg}
-        self.gen_ctg_pow_real.update(
-            {(i[0],i[1],k):self.gen_pow_real[i]
-             for i in self.gen
-             for k in self.ctg
-             if self.gen_ctg_active[(i[0],i[1],k)]})
-        self.gen_ctg_pow_real.update(
-            {(i[0],i[1],k):(
-                #self.gen_pow_real[i] +
-                #self.gen_part_fact[i] *
-                #self.area_ctg_pow_real_change[(self.gen_area[i],k)])
-                max(self.gen_pow_real_min[i],
+        self.ctg_gen_pow_real = {i:0.0 for i in self.gen}
+        self.ctg_gen_pow_real.update(
+            {i:self.gen_pow_real[i] for i in self.gen
+             if self.ctg_gen_active[i]})
+        self.ctg_gen_pow_real.update(
+            {i:(max(self.gen_pow_real_min[i],
                     min(self.gen_pow_real_max[i],
                         self.gen_pow_real[i] +
                         self.gen_part_fact[i] *
-                        self.area_ctg_pow_real_change[(self.gen_area[i],k)])))
-             for i in self.gen
-             for k in self.ctg
-             if self.gen_ctg_participating[(i[0],i[1],k)]})
-        print 'pg: %20.10f' % self.gen_pow_real[(144,'1')]
-        print 'alpha: %20.10f' % self.gen_part_fact[(144,'1')]
-        print 'delta: %20.10f' % self.area_ctg_pow_real_change[(1,'G_000017SENECA33U1')]
-        print 'pgk: %20.10f' % self.gen_ctg_pow_real[(144,'1','G_000017SENECA33U1')]
-    '''
+                        self.ctg_pow_real_change)))
+             for i in self.gen if self.ctg_gen_participating[i]})
+        #print 'pg: %20.10f' % self.gen_pow_real[(144,'1')]
+        #print 'alpha: %20.10f' % self.gen_part_fact[(144,'1')]
+        #print 'delta: %20.10f' % self.area_ctg_pow_real_change[(1,'G_000017SENECA33U1')]
+        #print 'pgk: %20.10f' % self.gen_ctg_pow_real[(144,'1','G_000017SENECA33U1')]
 
-    def eval_gen_ctg_pow_viol(self):
+    def eval_ctg_gen_pow_viol(self):
 
-        self.gen_ctg_pow_real_min_viol = {
-            i:max(0.0, (self.gen_pow_real_min[i] if self.gen_ctg_active[i] else 0.0) - self.gen_ctg_pow_real[i])
+        print self.gen_pow_real_min
+        print self.ctg_gen_pow_real
+        print self.ctg_gen_active
+        self.ctg_gen_pow_real_min_viol = {
+            i:max(0.0, (self.gen_pow_real_min[i] if self.ctg_gen_active[i] else 0.0) - self.ctg_gen_pow_real[i])
             for i in self.gen}
-        self.gen_ctg_pow_real_max_viol = {
-            i:max(0.0, self.gen_ctg_pow_real[i] - (self.gen_pow_real_emerg_max[i] if self.gen_ctg_active[i] else 0.0))
+        self.ctg_gen_pow_real_max_viol = {
+            i:max(0.0, self.ctg_gen_pow_real[i] - (self.gen_pow_real_max[i] if self.ctg_gen_active[i] else 0.0))
             for i in self.gen}
-        self.gen_ctg_pow_imag_min_viol = {
-            i:max(0.0, (self.gen_pow_imag_min[i] if self.gen_ctg_active[i] else 0.0) - self.gen_ctg_pow_imag[i])
+        self.ctg_gen_pow_imag_min_viol = {
+            i:max(0.0, (self.gen_pow_imag_min[i] if self.ctg_gen_active[i] else 0.0) - self.ctg_gen_pow_imag[i])
             for i in self.gen}
-        self.gen_ctg_pow_imag_max_viol = {
-            i:max(0.0, self.gen_ctg_pow_imag[i] - (self.gen_pow_imag_max[i] if self.gen_ctg_active[i] else 0.0))
+        self.ctg_gen_pow_imag_max_viol = {
+            i:max(0.0, self.ctg_gen_pow_imag[i] - (self.gen_pow_imag_max[i] if self.ctg_gen_active[i] else 0.0))
             for i in self.gen}
 
     def eval_line_ctg_curr(self):
@@ -1190,70 +1238,59 @@ class Evaluation:
             for k in self.xfmr
             for c in self.ctg}
 
-    def eval_swsh_ctg_adm_imag_viol(self):
+    def eval_ctg_bus_swsh_adm_imag_viol(self):
 
-        self.swsh_ctg_adm_imag_min_viol = {
-            (i,k):max(0.0, (self.swsh_adm_imag_min[i] if self.swsh_status[i] else 0.0) - self.swsh_ctg_adm_imag[(i,k)])
-            for i in self.swsh
-            for k in self.ctg}
-        self.swsh_ctg_adm_imag_max_viol = {
-            (i,k):max(0.0, self.swsh_ctg_adm_imag[(i,k)] - (self.swsh_adm_imag_max[i] if self.swsh_status[i] else 0.0))
-            for i in self.swsh
-            for k in self.ctg}
+        self.ctg_bus_swsh_adm_imag_max_viol = {
+            i:max(0.0, self.ctg_bus_swsh_adm_imag[i] - self.bus_swsh_adm_imag_max[i])
+            for i in self.bus}
+        self.ctg_bus_swsh_adm_imag_min_viol = {
+            i:max(0.0, self.bus_swsh_adm_imag_min[i] - self.ctg_bus_swsh_adm_imag[i])
+            for i in self.bus}
 
-    def eval_swsh_ctg_pow(self):
+    def eval_ctg_bus_swsh_pow(self):
 
-        self.swsh_ctg_pow_imag = {
-            (k,c):(-self.swsh_ctg_adm_imag[(k,c)] * self.bus_ctg_volt_mag[(k,c)]**2.0
-               if self.swsh_status[k] else 0.0)
-            for k in self.swsh
-            for c in self.ctg}
+        self.ctg_bus_swsh_pow_imag = {
+            i:(-self.ctg_bus_swsh_adm_imag[i] * self.ctg_bus_volt_mag[i]**2.0)
+            for i in self.bus}
 
-    def eval_bus_ctg_pow_balance(self):
+    def eval_ctg_bus_pow_balance(self):
 
-        self.bus_ctg_pow_balance_real_viol = {
-            (i,c):abs(
-                sum([self.gen_ctg_pow_real[(k[0],k[1],c)] for k in self.bus_gen[i] if self.gen_ctg_active[(k[0],k[1],c)]]) -
-                sum([self.load_ctg_pow_real[(k[0],k[1],c)] for k in self.bus_load[i] if self.load_status[k]]) -
-                sum([self.fxsh_ctg_pow_real[(k[0],k[1],c)] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
-                sum([self.line_ctg_pow_orig_real[(k[0],k[1],k[2],c)] for k in self.bus_line_orig[i] if self.line_ctg_active[(k[0],k[1],k[2],c)]]) -
-                sum([self.line_ctg_pow_dest_real[(k[0],k[1],k[2],c)] for k in self.bus_line_dest[i] if self.line_ctg_active[(k[0],k[1],k[2],c)]]) -
-                sum([self.xfmr_ctg_pow_orig_real[(k[0],k[1],k[2],c)] for k in self.bus_xfmr_orig[i] if self.xfmr_ctg_active[(k[0],k[1],k[2],c)]]) -
-                sum([self.xfmr_ctg_pow_dest_real[(k[0],k[1],k[2],c)] for k in self.bus_xfmr_dest[i] if self.xfmr_ctg_active[(k[0],k[1],k[2],c)]]))
-            for i in self.bus
-            for c in self.ctg}
-        self.bus_ctg_pow_balance_imag_viol = {
-            (i,c):abs(
-                sum([self.gen_ctg_pow_imag[(k[0],k[1],c)] for k in self.bus_gen[i] if self.gen_ctg_active[(k[0],k[1],c)]]) -
-                sum([self.load_ctg_pow_imag[(k[0],k[1],c)] for k in self.bus_load[i] if self.load_status[k]]) -
-                sum([self.fxsh_ctg_pow_imag[(k[0],k[1],c)] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
-                (self.swsh_ctg_pow_imag[(i,c)] if (i in self.swsh and self.swsh_status[i]) else 0.0) -
-                sum([self.line_ctg_pow_orig_imag[(k[0],k[1],k[2],c)] for k in self.bus_line_orig[i] if self.line_ctg_active[(k[0],k[1],k[2],c)]]) -
-                sum([self.line_ctg_pow_dest_imag[(k[0],k[1],k[2],c)] for k in self.bus_line_dest[i] if self.line_ctg_active[(k[0],k[1],k[2],c)]]) -
-                sum([self.xfmr_ctg_pow_orig_imag[(k[0],k[1],k[2],c)] for k in self.bus_xfmr_orig[i] if self.xfmr_ctg_active[(k[0],k[1],k[2],c)]]) -
-                sum([self.xfmr_ctg_pow_dest_imag[(k[0],k[1],k[2],c)] for k in self.bus_xfmr_dest[i] if self.xfmr_ctg_active[(k[0],k[1],k[2],c)]]))
-            for i in self.bus
-            for c in self.ctg}
+        self.ctg_bus_pow_balance_real_viol = {
+            i:abs(
+                sum([self.gen_ctg_pow_real[k] for k in self.bus_gen[i] if self.ctg_gen_active[k]]) -
+                sum([self.load_ctg_pow_real[k] for k in self.bus_load[i] if self.load_status[k]]) -
+                sum([self.fxsh_ctg_pow_real[k] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
+                sum([self.line_ctg_pow_orig_real[k] for k in self.bus_line_orig[i] if self.ctg_line_ctg[k]]) -
+                sum([self.line_ctg_pow_dest_real[k] for k in self.bus_line_dest[i] if self.ctg_line_ctg[k]]) -
+                sum([self.xfmr_ctg_pow_orig_real[k] for k in self.bus_xfmr_orig[i] if self.ctg_xfmr_ctg[k]]) -
+                sum([self.xfmr_ctg_pow_dest_real[k] for k in self.bus_xfmr_dest[i] if self.ctg_xfmr_ctg[k]]))
+            for i in self.bus}
+        self.ctg_bus_pow_balance_imag_viol = {
+            i:abs(
+                sum([self.gen_ctg_pow_imag[k] for k in self.bus_gen[i] if self.ctg_gen_active[k]]) -
+                sum([self.load_ctg_pow_imag[k] for k in self.bus_load[i] if self.load_status[k]]) -
+                sum([self.fxsh_ctg_pow_imag[k] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
+                self.ctg_bus_swsh_pow_imag[i] -
+                sum([self.line_ctg_pow_orig_imag[k] for k in self.bus_line_orig[i] if self.ctg_line_ctg[k]]) -
+                sum([self.line_ctg_pow_dest_imag[k] for k in self.bus_line_dest[i] if self.ctg_line_ctg[k]]) -
+                sum([self.xfmr_ctg_pow_orig_imag[k] for k in self.bus_xfmr_orig[i] if self.ctg_xfmr_ctg[k]]) -
+                sum([self.xfmr_ctg_pow_dest_imag[k] for k in self.bus_xfmr_dest[i] if self.ctg_xfmr_ctg[k]]))
+            for i in self.bus}
 
-    def eval_gen_ctg_pvpq_viol(self):
-        # TODO
+    def eval_ctg_gen_pvpq_viol(self):
 
-        self.gen_ctg_pvpq1_viol = {
-            (r[0],r[1],k):(
-                min(max(0.0, self.gen_pow_imag_max[r] - self.gen_ctg_pow_imag[(r[0],r[1],k)]),
-                    max(0.0, self.bus_volt_mag[self.gen_reg_bus[r]] - self.bus_ctg_volt_mag[(self.gen_reg_bus[r],k)]))
-                if self.gen_ctg_active[(r[0],r[1],k)]
+        self.ctg_gen_pvpq1_viol = {
+            i:(min(max(0.0, self.gen_pow_imag_max[i] - self.ctg_gen_pow_imag[i]),
+                   max(0.0, self.bus_volt_mag[i[0]] - self.ctg_bus_volt_mag[i[0]]))
+                if self.ctg_gen_active[i]
                 else 0.0)
-            for r in self.gen
-            for k in self.ctg}
-        self.gen_ctg_pvpq2_viol = {
-            (r[0],r[1],k):(
-                min(max(0.0, self.gen_ctg_pow_imag[(r[0],r[1],k)] - self.gen_pow_imag_min[r]),
-                    max(0.0, self.bus_ctg_volt_mag[(self.gen_reg_bus[r],k)] - self.bus_volt_mag[self.gen_reg_bus[r]]))
-                if self.gen_ctg_active[(r[0],r[1],k)]
+            for i in self.gen}
+        self.ctg_gen_pvpq1_viol = {
+            i:(min(max(0.0, self.ctg_gen_pow_imag[i] - self.gen_pow_imag_min[i]),
+                   max(0.0, self.ctg_bus_volt_mag[i[0]] - self.bus_volt_mag[i[0]]))
+                if self.ctg_gen_active[i]
                 else 0.0)
-            for r in self.gen
-            for k in self.ctg}
+            for i in self.gen}
 
     def eval_penalty(self):
 
@@ -1328,90 +1365,6 @@ class Evaluation:
         self.obj = self.cost + self.penalty
 
     def evaluate(self):
-
-        # base case
-        start_time = time.time()
-        self.eval_bus_volt_viol()
-        self.eval_load_pow()
-        self.eval_fxsh_pow()
-        self.eval_gen_pow_viol()
-        self.eval_line_curr()
-        self.eval_line_pow()
-        self.eval_line_curr_viol()
-        self.eval_xfmr_curr()
-        self.eval_xfmr_pow()
-        self.eval_xfmr_pow_viol()
-        self.eval_swsh_adm_imag_viol()
-        self.eval_swsh_pow()
-        self.eval_bus_pow_balance()
-        time_elapsed = time.time() - start_time
-        print 'eval base case time: %u' % time_elapsed
-
-        # ctg
-        start_time = time.time()
-        self.eval_bus_ctg_volt_viol()
-        time_elapsed = time.time() - start_time
-        print 'eval bus ctg volt viol: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_load_ctg_pow()
-        time_elapsed = time.time() - start_time
-        print 'eval load ctg pow: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_fxsh_ctg_pow()
-        time_elapsed = time.time() - start_time
-        print 'eval fxsh ctg pow: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_gen_ctg_pow_real()
-        time_elapsed = time.time() - start_time
-        print 'eval gen ctg pow real: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_gen_ctg_pow_viol()
-        time_elapsed = time.time() - start_time
-        print 'eval gen ctg pow viol: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_line_ctg_curr()
-        time_elapsed = time.time() - start_time
-        print 'eval line ctg curr: %u' % time_elapsed
-        #start_time = time.time()
-        #self.eval_line_ctg_curr_test()
-        #time_elapsed = time.time() - start_time
-        #print 'eval line ctg curr test: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_line_ctg_pow()
-        time_elapsed = time.time() - start_time
-        print 'eval line ctg pow: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_line_ctg_curr_viol()
-        time_elapsed = time.time() - start_time
-        print 'eval line ctg curr viol: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_xfmr_ctg_curr()
-        time_elapsed = time.time() - start_time
-        print 'eval xfmr ctg curr: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_xfmr_ctg_pow()
-        time_elapsed = time.time() - start_time
-        print 'eval xfmr ctg pow: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_xfmr_ctg_pow_viol()
-        time_elapsed = time.time() - start_time
-        print 'eval xfmr ctg pow viol: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_swsh_ctg_adm_imag_viol()
-        time_elapsed = time.time() - start_time
-        print 'eval swsh ctg adm imag viol: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_swsh_ctg_pow()
-        time_elapsed = time.time() - start_time
-        print 'eval swsh ctg pow: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_bus_ctg_pow_balance()
-        time_elapsed = time.time() - start_time
-        print 'eval bus ctg pow balance: %u' % time_elapsed
-        start_time = time.time()
-        self.eval_gen_ctg_pvpq_viol()
-        time_elapsed = time.time() - start_time
-        print 'eval gen ctg pvpq viol: %u' % time_elapsed
 
         # obj
         self.eval_cost()
@@ -1995,7 +1948,6 @@ class Solution1:
     def __init__(self):
         '''items to be read from solution1.txt'''
 
-        # just a candidate for the names
         self.bus_volt_mag = {}
         self.bus_volt_ang = {}
         self.bus_swsh_adm_imag = {}
@@ -2006,13 +1958,11 @@ class Solution1:
 
         bus = 0
         gen = 1
-        #swsh = 2
         section_start_line_str = '--'
         has_headers = True
         sections = solution_read_sections(file_name, section_start_line_str, has_headers)
         self.read_bus_rows(sections[bus])
         self.read_gen_rows(sections[gen])
-        #self.read_swsh_rows(sections[swsh])
             
     def read_bus_rows(self, rows):
 
@@ -2043,15 +1993,6 @@ class Solution1:
             self.gen_pow_real[(ri,rid)] = rp
             self.gen_pow_imag[(ri,rid)] = rq
 
-    #def read_swsh_rows(self, rows):
-    #
-    #    i = 0
-    #    b = 1
-    #    for r in rows:
-    #        ri = int(r[i])
-    #        rb = float(r[b])
-    #        self.swsh_adm_imag[ri] = rb
-
 class Solution2:
     '''In physical units, i.e. data convention, i.e. same as input and output data files'''
 
@@ -2059,14 +2000,33 @@ class Solution2:
         '''items to be read from solution2.txt'''
 
         self.ctg_label = ""
-        self.bus_ctg_volt_mag = {}
-        self.bus_ctg_volt_ang = {}
-        self.bus_ctg_swsh_adm_imag = {}
-        self.gen_ctg_pow_real = {}
-        self.gen_ctg_pow_imag = {}
-        self.ctg_pow_real_change = 0.0
+        self.bus_volt_mag = {}
+        self.bus_volt_ang = {}
+        self.bus_swsh_adm_imag = {}
+        self.gen_pow_real = {}
+        self.gen_pow_imag = {}
+        self.pow_real_change = 0.0
 
+    def display(self):
+
+        print "ctg_label: %s" % self.ctg_label
+        print "bus_volt_mag:"
+        print self.bus_volt_mag
+        print "bus_volt_ang:"
+        print self.bus_volt_ang
+        print "bus_swsh_adm_imag:"
+        print self.bus_swsh_adm_imag
+        print "gen_pow_real:"
+        print self.gen_pow_real
+        print "gen_pow_imag:"
+        print self.gen_pow_imag
+        print "pow_real_change:"
+        print self.pow_real_change
+        
     def read_from_lines(self, lines):
+        """read a sol2 object from a list of text lines
+        the lines may be selected as a single contingency from a file
+        containing multiple contingencies"""
 
         con = 0
         bus = 1
@@ -2099,9 +2059,9 @@ class Solution2:
             rvm = float(r[vm])
             rva = float(r[va])
             rb = float(r[b])
-            self.bus_ctg_volt_mag[ri] = rvm
-            self.bus_ctg_volt_ang[ri] = rva
-            self.bus_ctg_swsh_adm_imag[ri] = rb
+            self.bus_volt_mag[ri] = rvm
+            self.bus_volt_ang[ri] = rva
+            self.bus_swsh_adm_imag[ri] = rb
 
     def read_gen_rows(self, rows):
 
@@ -2114,8 +2074,8 @@ class Solution2:
             rid = str(r[id])
             rp = float(r[p])
             rq = float(r[q])
-            self.gen_ctg_pow_real[(ri,rid)] = rp
-            self.gen_ctg_pow_imag[(ri,rid)] = rq
+            self.gen_pow_real[(ri,rid)] = rp
+            self.gen_pow_imag[(ri,rid)] = rq
 
     def read_delta_rows(self, rows):
 
@@ -2123,7 +2083,7 @@ class Solution2:
         assert(len(rows) == 1)
         r = rows[0]
         rp = float(r[p])
-        self.ctg_pow_real_change = rp
+        self.pow_real_change = rp
 
 def trans_old(raw_name, rop_name, con_name, inl_nsame,filename):
 
@@ -2410,7 +2370,13 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
     start_time = time.time()
     e.set_data(p)
     time_elapsed = time.time() - start_time
-    print "eval set data time: %u" % time_elapsed
+    print "set data time: %u" % time_elapsed
+
+    # set penalty params (later read from case.prm)
+    start_time = time.time()
+    e.set_params()
+    time_elapsed = time.time() - start_time
+    print "set params time: %u" % time_elapsed
 
     # set eval sol1
     start_time = time.time()
@@ -2418,22 +2384,31 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
     time_elapsed = time.time() - start_time
     print "eval set sol1 time: %u" % time_elapsed
 
+    # evaluate cost
+    start_time = time.time()
+    e.eval_cost()
+    time_elapsed = time.time() - start_time
+    print "eval cost time: %u" % time_elapsed
+
+    # evaluate base
+    start_time = time.time()
+    e.eval_base()
+    time_elapsed = time.time() - start_time
+    print "eval base time: %u" % time_elapsed
+    
     # get ctg structure in sol
+    # do not forget to check that every contingency is found in the sol file
     ctg_num_lines = get_ctg_num_lines(sol2_name)
     num_ctgs = len(ctg_num_lines)
-    #ctg_results = [None for k in range(num_ctgs)]
-    ctg_num = 0
     with open(sol2_name) as sol2_file:
         for k in range(num_ctgs):
             lines = list(islice(sol2_file, ctg_num_lines[k]))
             if not lines:
                 break # error
-            # work on this ctg here
-            print lines
             s2.read_from_lines(lines)
             e.set_solution2(s2)
-            #e.eval_ctg()
-            #ctg_results[k] = 
+            e.set_ctg_data()
+            e.eval_ctg()
         
     """
     # loop over contingencies in sol2
