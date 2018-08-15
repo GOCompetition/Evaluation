@@ -5,12 +5,12 @@ import time
 from collections import OrderedDict
 from itertools import islice
 
-MAXOBJ = 9876543210.0
-MAXVIOL = 9876543210.0
+#MAXOBJ = 9876543210.0
+#MAXVIOL = 9876543210.0
 KVPEN = 1000.0 # kV penalty (p.u. already)
 MVAPEN = 1000.0 #MVA penalty
 
-TOP_N = 10
+#TOP_N = 10
 
 def get_ctg_num_lines(file_name):
 
@@ -57,9 +57,9 @@ class Evaluation:
         self.bus_volt_mag_max_viol = {}
         self.bus_pow_balance_real_viol = {}
         self.bus_pow_balance_imag_viol = {}
-        self.swsh_status = {}
-        self.swsh_adm_imag_min = {}
-        self.swsh_adm_imag_max = {}
+        #self.swsh_status = {}
+        #self.swsh_adm_imag_min = {}
+        #self.swsh_adm_imag_max = {}
         self.bus_swsh_adm_imag_min = {}
         self.bus_swsh_adm_imag_max = {}
         self.bus_swsh_adm_imag_min_viol = {}
@@ -82,7 +82,7 @@ class Evaluation:
         self.fxsh_pow_imag = {}
         self.fxsh_status = {}
 
-        self.gen_reg_bus = {}
+        #self.gen_reg_bus = {}
         self.gen_pow_real_min = {}
         self.gen_pow_real_max = {}
         self.gen_pow_imag_min = {}
@@ -100,10 +100,10 @@ class Evaluation:
         self.line_adm_imag = {}
         self.line_adm_ch_imag = {}
         self.line_curr_mag_max = {}
-        self.line_curr_orig_real = {}
-        self.line_curr_orig_imag = {}
-        self.line_curr_dest_real = {}
-        self.line_curr_dest_imag = {}
+        #self.line_curr_orig_real = {}
+        #self.line_curr_orig_imag = {}
+        #self.line_curr_dest_real = {}
+        #self.line_curr_dest_imag = {}
         self.line_pow_orig_real = {}
         self.line_pow_orig_imag = {}
         self.line_pow_dest_real = {}
@@ -119,10 +119,10 @@ class Evaluation:
         self.xfmr_tap_mag = {}
         self.xfmr_tap_ang = {}
         self.xfmr_pow_mag_max = {}
-        self.xfmr_curr_orig_real = {}
-        self.xfmr_curr_orig_imag = {}
-        self.xfmr_curr_dest_real = {}
-        self.xfmr_curr_dest_imag = {}
+        #self.xfmr_curr_orig_real = {}
+        #self.xfmr_curr_orig_imag = {}
+        #self.xfmr_curr_dest_real = {}
+        #self.xfmr_curr_dest_imag = {}
         self.xfmr_pow_orig_real = {}
         self.xfmr_pow_orig_imag = {}
         self.xfmr_pow_dest_real = {}
@@ -154,7 +154,7 @@ class Evaluation:
         self.ctg_fxsh_pow_imag = {}
 
         self.ctg_gen_active = {}
-        self.ctg_gen_pow_fact = {}
+        #self.ctg_gen_pow_fact = {}
         self.ctg_gen_pow_real = {}
         self.ctg_gen_pow_imag = {}
         self.ctg_gen_pow_real_min_viol = {}
@@ -162,10 +162,10 @@ class Evaluation:
         self.ctg_gen_pow_imag_min_viol = {}
         self.ctg_gen_pow_imag_max_viol = {}
 
-        self.ctg_line_curr_orig_real = {}
-        self.ctg_line_curr_orig_imag = {}
-        self.ctg_line_curr_dest_real = {}
-        self.ctg_line_curr_dest_imag = {}
+        #self.ctg_line_curr_orig_real = {}
+        #self.ctg_line_curr_orig_imag = {}
+        #self.ctg_line_curr_dest_real = {}
+        #self.ctg_line_curr_dest_imag = {}
         self.ctg_line_pow_orig_real = {}
         self.ctg_line_pow_orig_imag = {}
         self.ctg_line_pow_dest_real = {}
@@ -174,10 +174,10 @@ class Evaluation:
         self.ctg_line_curr_dest_mag_max_viol = {}
         self.ctg_line_active = {}
 
-        self.ctg_xfmr_curr_orig_real = {}
-        self.ctg_xfmr_curr_orig_imag = {}
-        self.ctg_xfmr_curr_dest_real = {}
-        self.ctg_xfmr_curr_dest_imag = {}
+        #self.ctg_xfmr_curr_orig_real = {}
+        #self.ctg_xfmr_curr_orig_imag = {}
+        #self.ctg_xfmr_curr_dest_real = {}
+        #self.ctg_xfmr_curr_dest_imag = {}
         self.ctg_xfmr_pow_orig_real = {}
         self.ctg_xfmr_pow_orig_imag = {}
         self.ctg_xfmr_pow_dest_real = {}
@@ -218,6 +218,12 @@ class Evaluation:
         self.bus_volt_mag_min = {
             r.i:r.nvlo
             for r in data.raw.buses.values()}
+        #self.ctg_bus_volt_mag_max = {
+        #    r.i:r.evhi
+        #    for r in data.raw.buses.values()}
+        #self.ctg_bus_volt_mag_min = {
+        #    r.i:r.evlo
+        #    for r in data.raw.buses.values()}
         self.bus_area = {
             r.i:r.area
             for r in data.raw.buses.values()}
@@ -273,6 +279,9 @@ class Evaluation:
         self.line_curr_mag_max = {
             (r.i,r.j,r.ckt):(r.ratea/self.base_mva) # todo - normalize by bus base kv???
             for r in data.raw.nontransformer_branches.values()}
+        #self.ctg_line_curr_mag_max = {
+        #    (r.i,r.j,r.ckt):(r.ratec/self.base_mva) # todo - normalize by bus base kv???
+        #    for r in data.raw.nontransformer_branches.values()}
         self.line_status = {
             (r.i,r.j,r.ckt):r.st
             for r in data.raw.nontransformer_branches.values()}
@@ -298,6 +307,9 @@ class Evaluation:
         self.xfmr_pow_mag_max = {
             (r.i,r.j,r.ckt):(r.rata1/self.base_mva) # todo check normalization
             for r in data.raw.transformers.values()}
+        #self.ctg_xfmr_pow_mag_max = {
+        #    (r.i,r.j,r.ckt):(r.ratc1/self.base_mva) # todo check normalization
+        #    for r in data.raw.transformers.values()}
         self.xfmr_status = {
             (r.i,r.j,r.ckt):r.stat
             for r in data.raw.transformers.values()}
@@ -428,8 +440,8 @@ class Evaluation:
 
         self.volt_pen = self.volt_pen # starts in p.u. by convention
         self.pow_pen = self.base_mva * self.pow_pen
-        self.pvpq_pen = max(self.volt_pen, self.pow_pen)
-
+        #self.pvpq_pen = max(self.volt_pen, self.pow_pen)
+        
     def set_solution1(self, solution1):
         ''' set values from the solution objects
         convert to per unit (p.u.) convention'''
@@ -499,22 +511,124 @@ class Evaluation:
         """write header line for detailed output"""
 
         with open(det_name, 'wb') as out:
-            csv_writer = csv.writer(out, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
-            csv_writer.writerow(['base/ctg', 'infeas', 'pen', 'cost', 'obj', 'vmax'])
+            csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow(
+                ['ctg', 'infeas', 'pen', 'cost', 'obj',
+                 'vmax-idx',
+                 'vmax-val',
+                 'vmin-idx',
+                 'vmin-val',
+                 'bmax-idx',
+                 'bmax-val',
+                 'bmin-idx',
+                 'bmin-val',
+                 'pbal-idx',
+                 'pbal-val',
+                 'qbal-idx',
+                 'qbal-val',
+                 'pgmax-idx',
+                 'pgmax-val',
+                 'pgmin-idx',
+                 'pgmin-val',
+                 'qgmax-idx',
+                 'qgmax-val',
+                 'qgmin-idx',
+                 'qgmin-val',
+                 'qvg1-idx',
+                 'qvg1-val',
+                 'qvg2-idx',
+                 'qvg2-val',
+                 'lineomax-idx',
+                 'lineomax-val',
+                 'linedmax-idx',
+                 'linedmax-val',
+                 'xfmromax-idx',
+                 'xfmromax-val',
+                 'xfmrdmax-idx',
+                 'xfmrdmax-val',
+             ])
 
     def write_base(self, det_name):
         """write detail of base case evaluation"""
 
         with open(det_name, 'ab') as out:
-            csv_writer = csv.writer(out, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
-            csv_writer.writerow(['', self.infeas, self.penalty, self.cost, self.obj, self.max_bus_volt_mag_max_viol])
+            csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow(
+                ['', self.infeas, self.penalty, self.cost, self.obj,
+                 self.max_bus_volt_mag_max_viol[0],
+                 self.max_bus_volt_mag_max_viol[1],
+                 self.max_bus_volt_mag_min_viol[0],
+                 self.max_bus_volt_mag_min_viol[1],
+                 self.max_bus_swsh_adm_imag_max_viol[0],
+                 self.max_bus_swsh_adm_imag_max_viol[1],
+                 self.max_bus_swsh_adm_imag_min_viol[0],
+                 self.max_bus_swsh_adm_imag_min_viol[1],
+                 self.max_bus_pow_balance_real_viol[0],
+                 self.max_bus_pow_balance_real_viol[1],
+                 self.max_bus_pow_balance_imag_viol[0],
+                 self.max_bus_pow_balance_imag_viol[1],
+                 self.max_gen_pow_real_max_viol[0],
+                 self.max_gen_pow_real_max_viol[1],
+                 self.max_gen_pow_real_min_viol[0],
+                 self.max_gen_pow_real_min_viol[1],
+                 self.max_gen_pow_imag_max_viol[0],
+                 self.max_gen_pow_imag_max_viol[1],
+                 self.max_gen_pow_imag_min_viol[0],
+                 self.max_gen_pow_imag_min_viol[1],
+                 None,
+                 0.0,
+                 None,
+                 0.0,
+                 self.max_line_curr_orig_mag_max_viol[0],
+                 self.max_line_curr_orig_mag_max_viol[1],
+                 self.max_line_curr_dest_mag_max_viol[0],
+                 self.max_line_curr_dest_mag_max_viol[1],
+                 self.max_xfmr_pow_orig_mag_max_viol[0],
+                 self.max_xfmr_pow_orig_mag_max_viol[1],
+                 self.max_xfmr_pow_dest_mag_max_viol[0],
+                 self.max_xfmr_pow_dest_mag_max_viol[1],
+                 ])
 
     def write_ctg(self, det_name):
         """write detail of ctg evaluation"""        
 
         with open(det_name, 'ab') as out:
-            csv_writer = csv.writer(out, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
-            csv_writer.writerow([self.ctg_label, self.ctg_infeas, self.ctg_penalty, 0.0, self.obj])
+            csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow(
+                [self.ctg_label, self.ctg_infeas, self.ctg_penalty, 0.0, self.obj,
+                 self.ctg_max_bus_volt_mag_max_viol[0],
+                 self.ctg_max_bus_volt_mag_max_viol[1],
+                 self.ctg_max_bus_volt_mag_min_viol[0],
+                 self.ctg_max_bus_volt_mag_min_viol[1],
+                 self.ctg_max_bus_swsh_adm_imag_max_viol[0],
+                 self.ctg_max_bus_swsh_adm_imag_max_viol[1],
+                 self.ctg_max_bus_swsh_adm_imag_min_viol[0],
+                 self.ctg_max_bus_swsh_adm_imag_min_viol[1],
+                 self.ctg_max_bus_pow_balance_real_viol[0],
+                 self.ctg_max_bus_pow_balance_real_viol[1],
+                 self.ctg_max_bus_pow_balance_imag_viol[0],
+                 self.ctg_max_bus_pow_balance_imag_viol[1],
+                 self.ctg_max_gen_pow_real_max_viol[0],
+                 self.ctg_max_gen_pow_real_max_viol[1],
+                 self.ctg_max_gen_pow_real_min_viol[0],
+                 self.ctg_max_gen_pow_real_min_viol[1],
+                 self.ctg_max_gen_pow_imag_max_viol[0],
+                 self.ctg_max_gen_pow_imag_max_viol[1],
+                 self.ctg_max_gen_pow_imag_min_viol[0],
+                 self.ctg_max_gen_pow_imag_min_viol[1],
+                 self.ctg_max_gen_pvpq1_viol[0],
+                 self.ctg_max_gen_pvpq1_viol[1],
+                 self.ctg_max_gen_pvpq2_viol[0],
+                 self.ctg_max_gen_pvpq2_viol[1],
+                 self.ctg_max_line_curr_orig_mag_max_viol[0],
+                 self.ctg_max_line_curr_orig_mag_max_viol[1],
+                 self.ctg_max_line_curr_dest_mag_max_viol[0],
+                 self.ctg_max_line_curr_dest_mag_max_viol[1],
+                 self.ctg_max_xfmr_pow_orig_mag_max_viol[0],
+                 self.ctg_max_xfmr_pow_orig_mag_max_viol[1],
+                 self.ctg_max_xfmr_pow_dest_mag_max_viol[0],
+                 self.ctg_max_xfmr_pow_dest_mag_max_viol[1],
+                 ])
 
     def eval_base(self):
         """evaluate base case violations"""
@@ -531,10 +645,10 @@ class Evaluation:
         self.eval_bus_swsh_adm_imag_viol()
         self.eval_bus_swsh_pow()
         self.eval_bus_pow_balance()
+        self.compute_detail()
         self.eval_infeas()
         self.eval_penalty()
         self.eval_obj()
-        self.compute_detail()
 
     def eval_ctg(self):
 
@@ -552,13 +666,14 @@ class Evaluation:
         self.eval_ctg_bus_swsh_pow()
         self.eval_ctg_bus_pow_balance()
         self.eval_ctg_gen_pvpq_viol()
+        self.compute_ctg_detail()
         self.eval_ctg_infeas()
         self.eval_ctg_penalty()
         self.eval_ctg_update_obj()
 
     def eval_ctg_update_obj(self):
 
-        self.obj += self.penalty
+        self.obj += self.ctg_penalty
     
     def eval_cost(self):
         # todo: what if gen_pow_real falls outside of domain of definition
@@ -1043,98 +1158,72 @@ class Evaluation:
 
     def eval_penalty(self):
 
-        self.penalty = 0.0
+        self.penalty = self.pow_pen * (
+            sum(self.line_curr_orig_mag_max_viol.values()) +
+            sum(self.line_curr_dest_mag_max_viol.values()) +
+            sum(self.xfmr_pow_orig_mag_max_viol.values()) +
+            sum(self.xfmr_pow_dest_mag_max_viol.values()) +
+            sum(self.bus_pow_balance_real_viol.values()) +
+            sum(self.bus_pow_balance_imag_viol.values()))
 
     def eval_ctg_penalty(self):
 
-        self.ctg_penalty = 0.0
+        self.ctg_penalty = self.pow_pen * (
+            sum(self.ctg_line_curr_orig_mag_max_viol.values()) +
+            sum(self.ctg_line_curr_dest_mag_max_viol.values()) +
+            sum(self.ctg_xfmr_pow_orig_mag_max_viol.values()) +
+            sum(self.ctg_xfmr_pow_dest_mag_max_viol.values()) +
+            sum(self.ctg_bus_pow_balance_real_viol.values()) +
+            sum(self.ctg_bus_pow_balance_imag_viol.values()))
 
     def eval_infeas(self):
 
-        self.infeas = 0
+        self.infeas = (
+            1 if (
+                self.max_bus_volt_mag_max_viol[1] > 0.0 or
+                self.max_bus_volt_mag_min_viol[1] > 0.0 or
+                self.max_bus_swsh_adm_imag_max_viol[1] > 0.0 or
+                self.max_bus_swsh_adm_imag_min_viol[1] > 0.0 or
+                self.max_gen_pow_real_max_viol[1] > 0.0 or
+                self.max_gen_pow_real_min_viol[1] > 0.0 or
+                self.max_gen_pow_imag_max_viol[1] > 0.0 or
+                self.max_gen_pow_imag_min_viol[1] > 0.0 or
+                self.max_line_curr_orig_mag_max_viol[1] > 0.0 or
+                self.max_line_curr_dest_mag_max_viol[1] > 0.0 or
+                self.max_xfmr_pow_orig_mag_max_viol[1] > 0.0 or
+                self.max_xfmr_pow_dest_mag_max_viol[1] > 0.0)
+            else 0)
 
     def eval_ctg_infeas(self):
 
-        self.ctg_infeas = 0
-
-    def eval_penalty_all(self):
-
-        self.penalty = 0.0
-        self.penalty += self.volt_pen * (
-            sum(self.bus_volt_mag_min_viol.values()) +
-            sum(self.bus_volt_mag_max_viol.values()) +
-            sum(self.bus_ctg_volt_mag_min_viol.values()) +
-            sum(self.bus_ctg_volt_mag_max_viol.values()))
-        self.penalty += self.pow_pen * (
-            sum(self.gen_pow_real_min_viol.values()) +
-            sum(self.gen_pow_real_max_viol.values()) +
-            sum(self.gen_pow_imag_min_viol.values()) +
-            sum(self.gen_pow_imag_max_viol.values()) +
-            sum(self.line_curr_orig_mag_max_viol.values()) +
-            sum(self.line_curr_dest_mag_max_viol.values()) +
-            sum(self.xfmr_pow_dest_mag_max_viol.values()) +
-            sum(self.swsh_adm_imag_min_viol.values()) +
-            sum(self.swsh_adm_imag_max_viol.values()) +
-            sum(self.bus_pow_balance_real_viol.values()) +
-            sum(self.bus_pow_balance_imag_viol.values()) +
-            sum(self.gen_ctg_pow_real_min_viol.values()) +
-            sum(self.gen_ctg_pow_real_max_viol.values()) +
-            sum(self.gen_ctg_pow_imag_min_viol.values()) +
-            sum(self.gen_ctg_pow_imag_max_viol.values()) +
-            sum(self.line_ctg_curr_orig_mag_max_viol.values()) +
-            sum(self.line_ctg_curr_dest_mag_max_viol.values()) +
-            sum(self.xfmr_ctg_pow_orig_mag_max_viol.values()) +
-            sum(self.xfmr_ctg_pow_dest_mag_max_viol.values()) +
-            sum(self.swsh_ctg_adm_imag_min_viol.values()) +
-            sum(self.swsh_ctg_adm_imag_max_viol.values()) +
-            sum(self.bus_ctg_pow_balance_real_viol.values()) +
-            sum(self.bus_ctg_pow_balance_imag_viol.values()))
-        self.penalty += self.pvpq_pen * (
-            sum(self.gen_ctg_pvpq1_viol.values()) +
-            sum(self.gen_ctg_pvpq2_viol.values()))
-
-    '''
-        self.bus_volt_mag_min_viol = {
-        self.bus_volt_mag_max_viol = {
-        self.gen_pow_real_min_viol = {
-        self.gen_pow_real_max_viol = {
-        self.gen_pow_imag_min_viol = {
-        self.gen_pow_imag_max_viol = {
-        self.line_curr_orig_mag_max_viol = {
-        self.line_curr_dest_mag_max_viol = {
-        self.xfmr_pow_dest_mag_max_viol = {
-        self.swsh_adm_imag_min_viol = {
-        self.swsh_adm_imag_max_viol = {
-        self.bus_pow_balance_real_viol = {
-        self.bus_pow_balance_imag_viol = {
-        self.bus_ctg_volt_mag_min_viol = {
-        self.bus_ctg_volt_mag_max_viol = {
-        self.gen_ctg_pow_real_min_viol = {
-        self.gen_ctg_pow_real_max_viol = {
-        self.gen_ctg_pow_imag_min_viol = {
-        self.gen_ctg_pow_imag_max_viol = {
-        self.line_ctg_curr_orig_mag_max_viol = {
-        self.line_ctg_curr_dest_mag_max_viol = {
-        self.xfmr_ctg_pow_orig_mag_max_viol = {
-        self.xfmr_ctg_pow_dest_mag_max_viol = {
-        self.swsh_ctg_adm_imag_min_viol = {
-        self.swsh_ctg_adm_imag_max_viol = {
-        self.bus_ctg_pow_balance_real_viol = {
-        self.bus_ctg_pow_balance_imag_viol = {
-        self.gen_ctg_pvpq1_viol = {}
-        self.gen_ctg_pvpq2_viol = {}
-    '''
+        self.ctg_infeas = (
+            1 if (
+                self.ctg_max_bus_volt_mag_max_viol[1] > 0.0 or
+                self.ctg_max_bus_volt_mag_min_viol[1] > 0.0 or
+                self.ctg_max_bus_swsh_adm_imag_max_viol[1] > 0.0 or
+                self.ctg_max_bus_swsh_adm_imag_min_viol[1] > 0.0 or
+                self.ctg_max_gen_pow_real_max_viol[1] > 0.0 or
+                self.ctg_max_gen_pow_real_min_viol[1] > 0.0 or
+                self.ctg_max_gen_pow_imag_max_viol[1] > 0.0 or
+                self.ctg_max_gen_pow_imag_min_viol[1] > 0.0 or
+                self.ctg_max_gen_pvpq1_viol[1] > 0.0 or
+                self.ctg_max_gen_pvpq2_viol[1] > 0.0 or
+                self.ctg_max_line_curr_orig_mag_max_viol[1] > 0.0 or
+                self.ctg_max_line_curr_dest_mag_max_viol[1] > 0.0 or
+                self.ctg_max_xfmr_pow_orig_mag_max_viol[1] > 0.0 or
+                self.ctg_max_xfmr_pow_dest_mag_max_viol[1] > 0.0)
+            else 0)
 
     def eval_obj(self):
 
         self.obj = self.cost + self.penalty
 
-    def evaluate(self):
-
-        # obj
-        self.eval_cost()
-        self.eval_penalty()
-        self.eval_obj()
+    #def evaluate(self):
+    #
+    #    # obj
+    #    self.eval_cost()
+    #    self.eval_penalty()
+    #    self.eval_obj()
 
     def normalize(self):
         '''divide constraint violations by a normalizing constant.'''
@@ -1152,17 +1241,52 @@ class Evaluation:
     def compute_detail(self):
 
         def extra_max(d):
-            k = max(d.keys(), key=(lambda k: d[k]))
-            return (k, d[k])
+            if len(d) == 0:
+                return (None, 0.0)
+            else:
+                k = max(d.keys(), key=(lambda k: d[k]))
+                return (k, d[k])
         
         self.max_bus_volt_mag_max_viol = extra_max(self.bus_volt_mag_max_viol)
-        self.min_bus_volt_mag_min_viol = extra_max(self.bus_volt_mag_min_viol)
+        self.max_bus_volt_mag_min_viol = extra_max(self.bus_volt_mag_min_viol)
+        self.max_bus_swsh_adm_imag_max_viol = extra_max(self.bus_swsh_adm_imag_max_viol)
+        self.max_bus_swsh_adm_imag_min_viol = extra_max(self.bus_swsh_adm_imag_min_viol)
+        self.max_bus_pow_balance_real_viol = extra_max(self.bus_pow_balance_real_viol)
+        self.max_bus_pow_balance_imag_viol = extra_max(self.bus_pow_balance_imag_viol)
+        self.max_gen_pow_real_max_viol = extra_max(self.gen_pow_real_max_viol)
+        self.max_gen_pow_real_min_viol = extra_max(self.gen_pow_real_min_viol)
+        self.max_gen_pow_imag_max_viol = extra_max(self.gen_pow_imag_max_viol)
+        self.max_gen_pow_imag_min_viol = extra_max(self.gen_pow_imag_min_viol)
+        self.max_line_curr_orig_mag_max_viol = extra_max(self.line_curr_orig_mag_max_viol)
+        self.max_line_curr_dest_mag_max_viol = extra_max(self.line_curr_dest_mag_max_viol)
+        self.max_xfmr_pow_orig_mag_max_viol = extra_max(self.xfmr_pow_orig_mag_max_viol)
+        self.max_xfmr_pow_dest_mag_max_viol = extra_max(self.xfmr_pow_dest_mag_max_viol)
 
     def compute_ctg_detail(self):
 
         def extra_max(d):
-            k = max(d.keys(), key=(lambda k: d[k]))
-            return (k, d[k])        
+            if len(d) == 0:
+                return (None, 0.0)
+            else:
+                k = max(d.keys(), key=(lambda k: d[k]))
+                return (k, d[k])
+        
+        self.ctg_max_bus_volt_mag_max_viol = extra_max(self.ctg_bus_volt_mag_max_viol)
+        self.ctg_max_bus_volt_mag_min_viol = extra_max(self.ctg_bus_volt_mag_min_viol)
+        self.ctg_max_bus_swsh_adm_imag_max_viol = extra_max(self.ctg_bus_swsh_adm_imag_max_viol)
+        self.ctg_max_bus_swsh_adm_imag_min_viol = extra_max(self.ctg_bus_swsh_adm_imag_min_viol)
+        self.ctg_max_bus_pow_balance_real_viol = extra_max(self.ctg_bus_pow_balance_real_viol)
+        self.ctg_max_bus_pow_balance_imag_viol = extra_max(self.ctg_bus_pow_balance_imag_viol)
+        self.ctg_max_gen_pow_real_max_viol = extra_max(self.ctg_gen_pow_real_max_viol)
+        self.ctg_max_gen_pow_real_min_viol = extra_max(self.ctg_gen_pow_real_min_viol)
+        self.ctg_max_gen_pow_imag_max_viol = extra_max(self.ctg_gen_pow_imag_max_viol)
+        self.ctg_max_gen_pow_imag_min_viol = extra_max(self.ctg_gen_pow_imag_min_viol)
+        self.ctg_max_gen_pvpq1_viol = extra_max(self.ctg_gen_pvpq1_viol)
+        self.ctg_max_gen_pvpq2_viol = extra_max(self.ctg_gen_pvpq2_viol)
+        self.ctg_max_line_curr_orig_mag_max_viol = extra_max(self.ctg_line_curr_orig_mag_max_viol)
+        self.ctg_max_line_curr_dest_mag_max_viol = extra_max(self.ctg_line_curr_dest_mag_max_viol)
+        self.ctg_max_xfmr_pow_orig_mag_max_viol = extra_max(self.ctg_xfmr_pow_orig_mag_max_viol)
+        self.ctg_max_xfmr_pow_dest_mag_max_viol = extra_max(self.ctg_xfmr_pow_dest_mag_max_viol)
 
     def compute_summary(self):
 
@@ -2184,60 +2308,5 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
             e.eval_ctg()
             e.write_ctg(det_name)
         
-    """
-    # loop over contingencies in sol2
-    while True:
-        ctg_found = get_next_ctg(
-
-    # eval set sol2
-    start_time = time.time()
-    e.set_solution2(s2)
-    time_elapsed = time.time() - start_time
-    print "eval set sol2 time: %u" % time_elapsed
-
-    # evaluate
-    start_time = time.time()
-    e.set_params() # convert to per unit for evaluation - this might not be the right place to put this item
-    e.evaluate()
-    time_elapsed = time.time() - start_time
-    print "evaluate time: %u" % time_elapsed
-
-    # normalize
-    start_time = time.time()
-    e.normalize()
-    time_elapsed = time.time() - start_time
-    print "eval normalize time: %u" % time_elapsed
-
-    # compute summary
-    start_time = time.time()
-    e.compute_summary()
-    time_elapsed = time.time() - start_time
-    print "eval compute summary time: %u" % time_elapsed
-
-    # convert to data units
-    start_time = time.time()
-    e.convert_to_data_units()
-    time_elapsed = time.time() - start_time
-    print "eval convert to data units time: %u" % time_elapsed
-
-    # write summary
-    #start_time = time.time()
-    #e.write_summary(summary_name) # probably do not need this
-    #time_elapsed = time.time() - start_time
-    #print "eval write summary time: %u" % time_elapsed
-
-    # write detail
-    start_time = time.time()
-    e.write_detail(detail_name)
-    time_elapsed = time.time() - start_time
-    print "eval write detail time: %u" % time_elapsed
-
-    # some results
-    print 'obj: %12.6e, cost: %12.6e, penalty: %12.6e, max nonobj viol: %12.6e' % (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
-    
-    e.write_summary(summary_name)
-    
     return (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
-    """
-
     return (0.0, 0.0, 0.0, 0.0, 0.0)
