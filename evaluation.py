@@ -495,40 +495,70 @@ class Evaluation:
              for a in self.ctg_areas_affected[self.ctg_label]
              for i in self.area_gens[a]})
 
+    def write_header(self, det_name):
+        """write header line for detailed output"""
+
+        with open(det_name, 'wb') as out:
+            csv_writer = csv.writer(out, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow(['base/ctg', 'infeas', 'pen', 'cost', 'obj', 'vmax'])
+
+    def write_base(self, det_name):
+        """write detail of base case evaluation"""
+
+        with open(det_name, 'ab') as out:
+            csv_writer = csv.writer(out, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow(['', self.infeas, self.penalty, self.cost, self.obj, self.max_bus_volt_mag_max_viol])
+
+    def write_ctg(self, det_name):
+        """write detail of ctg evaluation"""        
+
+        with open(det_name, 'ab') as out:
+            csv_writer = csv.writer(out, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow([self.ctg_label, self.ctg_infeas, self.ctg_penalty, 0.0, self.obj])
+
     def eval_base(self):
         """evaluate base case violations"""
 
+        self.eval_cost()
         self.eval_bus_volt_viol()
         self.eval_load_pow()
         self.eval_fxsh_pow()
         self.eval_gen_pow_viol()
-        self.eval_line_curr()
         self.eval_line_pow()
         self.eval_line_curr_viol()
-        self.eval_xfmr_curr()
         self.eval_xfmr_pow()
         self.eval_xfmr_pow_viol()
         self.eval_bus_swsh_adm_imag_viol()
         self.eval_bus_swsh_pow()
         self.eval_bus_pow_balance()
+        self.eval_infeas()
+        self.eval_penalty()
+        self.eval_obj()
+        self.compute_detail()
 
     def eval_ctg(self):
 
         self.eval_ctg_bus_volt_viol()
         self.eval_ctg_load_pow()
         self.eval_ctg_fxsh_pow()
-        #self.eval_ctg_gen_pow_real()
-        self.eval_ctg_gen_pow_viol()
-        #self.eval_ctg_line_curr()
-        #self.eval_ctg_line_pow()
-        #self.eval_ctg_line_curr_viol()
-        #self.eval_ctg_xfmr_curr()
-        #self.eval_ctg_xfmr_pow()
-        #self.eval_ctg_xfmr_pow_viol()
+        self.eval_ctg_gen_pow_real()
+        #self.eval_ctg_gen_pow_real_viol()
+        self.eval_ctg_gen_pow_imag_viol()
+        self.eval_ctg_line_pow()
+        self.eval_ctg_line_curr_viol()
+        self.eval_ctg_xfmr_pow()
+        self.eval_ctg_xfmr_pow_viol()
         self.eval_ctg_bus_swsh_adm_imag_viol()
         self.eval_ctg_bus_swsh_pow()
-        #self.eval_ctg_bus_pow_balance()
-        #self.eval_ctg_gen_pvpq_viol()
+        self.eval_ctg_bus_pow_balance()
+        self.eval_ctg_gen_pvpq_viol()
+        self.eval_ctg_infeas()
+        self.eval_ctg_penalty()
+        self.eval_ctg_update_obj()
+
+    def eval_ctg_update_obj(self):
+
+        self.obj += self.penalty
     
     def eval_cost(self):
         # todo: what if gen_pow_real falls outside of domain of definition
@@ -608,6 +638,7 @@ class Evaluation:
             k:max(0.0, self.gen_pow_imag[k] - (self.gen_pow_imag_max[k] if self.gen_status[k] else 0.0))
             for k in self.gen}
 
+    """
     def eval_line_curr(self):
 
         self.line_curr_orig_real = {
@@ -662,31 +693,36 @@ class Evaluation:
                 0.5 * self.line_adm_ch_imag[k] * self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]])
                 if self.line_status[k] else 0.0)
             for k in self.line}
+    """
 
     def eval_line_pow(self):
 
         self.line_pow_orig_real = {
-            k:(
-                self.line_curr_orig_real[k] * self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]]) +
-                self.line_curr_orig_imag[k] * self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]])
+            k:( self.line_adm_real[k] * self.bus_volt_mag[k[0]]**2.0 +
+                ( - self.line_adm_real[k] * math.cos(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]])
+                  - self.line_adm_imag[k] * math.sin(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]])) *
+                self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.line_status[k] else 0.0)
             for k in self.line}
         self.line_pow_orig_imag = {
-            k:(
-                self.line_curr_orig_real[k] * self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]]) -
-                self.line_curr_orig_imag[k] * self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]])
+            k:( - (self.line_adm_imag[k] + 0.5 * self.line_adm_ch_imag[k]) * self.bus_volt_mag[k[0]]**2.0 +
+                (   self.line_adm_imag[k] * math.cos(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]])
+                  - self.line_adm_real[k] * math.sin(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]])) *
+                self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.line_status[k] else 0.0)
             for k in self.line}
         self.line_pow_dest_real = {
-            k:(
-                self.line_curr_dest_real[k] * self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]]) +
-                self.line_curr_dest_imag[k] * self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]])
+            k:( self.line_adm_real[k] * self.bus_volt_mag[k[1]]**2.0 +
+                ( - self.line_adm_real[k] * math.cos(self.bus_volt_ang[k[1]] - self.bus_volt_ang[k[0]])
+                  - self.line_adm_imag[k] * math.sin(self.bus_volt_ang[k[1]] - self.bus_volt_ang[k[0]])) *
+                self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.line_status[k] else 0.0)
             for k in self.line}
         self.line_pow_dest_imag = {
-            k:(
-                self.line_curr_dest_real[k] * self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]]) -
-                self.line_curr_dest_imag[k] * self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]])
+            k:( - (self.line_adm_imag[k] + 0.5 * self.line_adm_ch_imag[k]) * self.bus_volt_mag[k[1]]**2.0 +
+                (   self.line_adm_imag[k] * math.cos(self.bus_volt_ang[k[1]] - self.bus_volt_ang[k[0]])
+                  - self.line_adm_real[k] * math.sin(self.bus_volt_ang[k[1]] - self.bus_volt_ang[k[0]])) *
+                self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.line_status[k] else 0.0)
             for k in self.line}
 
@@ -695,117 +731,46 @@ class Evaluation:
         self.line_curr_orig_mag_max_viol = {
             k:max(
                 0.0,
-                (self.line_curr_orig_real[k]**2.0 +
-                 self.line_curr_orig_imag[k]**2.0)**0.5 -
-                self.line_curr_mag_max[k])
+                (self.line_pow_orig_real[k]**2.0 +
+                 self.line_pow_orig_imag[k]**2.0)**0.5 -
+                self.line_curr_mag_max[k] * self.bus_volt_mag[k[0]])
             for k in self.line}
         self.line_curr_dest_mag_max_viol = {
             k:max(
                 0.0,
-                (self.line_curr_dest_real[k]**2.0 +
-                 self.line_curr_dest_imag[k]**2.0)**0.5 -
-                self.line_curr_mag_max[k])
+                (self.line_pow_dest_real[k]**2.0 +
+                 self.line_pow_dest_imag[k]**2.0)**0.5 -
+                self.line_curr_mag_max[k] * self.bus_volt_mag[k[1]])
             for k in self.line}
-    
-    def eval_xfmr_curr(self):
-
-        self.xfmr_curr_orig_real = {
-            k:(
-                self.xfmr_adm_mag_real[k] * self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]]) -
-                self.xfmr_adm_mag_imag[k] * self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]]) +
-                (
-                    self.xfmr_adm_real[k] * math.cos(self.xfmr_tap_ang[k]) -
-                    self.xfmr_adm_imag[k] * math.sin(self.xfmr_tap_ang[k])) *
-                (
-                    self.bus_volt_mag[k[0]] / (self.xfmr_tap_mag[k]**2.0) *
-                    math.cos(self.bus_volt_ang[k[0]] - self.xfmr_tap_ang[k]) -
-                    self.bus_volt_mag[k[1]] / self.xfmr_tap_mag[k] *
-                    math.cos(self.bus_volt_ang[k[1]])) -
-                (
-                    self.xfmr_adm_real[k] * math.sin(self.xfmr_tap_ang[k]) +
-                    self.xfmr_adm_imag[k] * math.cos(self.xfmr_tap_ang[k])) *
-                (
-                    self.bus_volt_mag[k[0]] / (self.xfmr_tap_mag[k]**2.0) *
-                    math.sin(self.bus_volt_ang[k[0]] - self.xfmr_tap_ang[k]) -
-                    self.bus_volt_mag[k[1]] / self.xfmr_tap_mag[k] *
-                    math.sin(self.bus_volt_ang[k[1]]))
-                if self.xfmr_status[k] else 0.0)
-            for k in self.xfmr}
-        self.xfmr_curr_orig_imag = {
-            k:(
-                self.xfmr_adm_mag_real[k] * self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]]) +
-                self.xfmr_adm_mag_imag[k] * self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]]) +
-                (
-                    self.xfmr_adm_real[k] * math.cos(self.xfmr_tap_ang[k]) -
-                    self.xfmr_adm_imag[k] * math.sin(self.xfmr_tap_ang[k])) *
-                (
-                    self.bus_volt_mag[k[0]] / (self.xfmr_tap_mag[k]**2.0) *
-                    math.sin(self.bus_volt_ang[k[0]] - self.xfmr_tap_ang[k]) -
-                    self.bus_volt_mag[k[1]] / self.xfmr_tap_mag[k] *
-                    math.sin(self.bus_volt_ang[k[1]])) +
-                (
-                    self.xfmr_adm_real[k] * math.sin(self.xfmr_tap_ang[k]) +
-                    self.xfmr_adm_imag[k] * math.cos(self.xfmr_tap_ang[k])) *
-                (
-                    self.bus_volt_mag[k[0]] / (self.xfmr_tap_mag[k]**2.0) *
-                    math.cos(self.bus_volt_ang[k[0]] - self.xfmr_tap_ang[k]) -
-                    self.bus_volt_mag[k[1]] / self.xfmr_tap_mag[k] *
-                    math.cos(self.bus_volt_ang[k[1]]))
-                if self.xfmr_status[k] else 0.0)
-            for k in self.xfmr}
-        self.xfmr_curr_dest_real = {
-            k:(
-                self.xfmr_adm_real[k] *
-                (
-                    self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]]) -
-                    self.bus_volt_mag[k[0]] / self.xfmr_tap_mag[k] *
-                    math.cos(self.bus_volt_ang[k[0]] - self.xfmr_tap_ang[k])) -
-                self.xfmr_adm_imag[k] *
-                (
-                    self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]]) -
-                    self.bus_volt_mag[k[0]] / self.xfmr_tap_mag[k] *
-                    math.sin(self.bus_volt_ang[k[0]] - self.xfmr_tap_ang[k]))
-                if self.xfmr_status[k] else 0.0)
-            for k in self.xfmr}
-        self.xfmr_curr_dest_imag = {
-            k:(
-                self.xfmr_adm_real[k] *
-                (
-                    self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]]) -
-                    self.bus_volt_mag[k[0]] / self.xfmr_tap_mag[k] *
-                    math.sin(self.bus_volt_ang[k[0]] - self.xfmr_tap_ang[k])) +
-                self.xfmr_adm_imag[k] *
-                (
-                    self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]]) -
-                    self.bus_volt_mag[k[0]] / self.xfmr_tap_mag[k] *
-                    math.cos(self.bus_volt_ang[k[0]] - self.xfmr_tap_ang[k]))
-                if self.xfmr_status[k] else 0.0)
-            for k in self.xfmr}
 
     def eval_xfmr_pow(self):
 
         self.xfmr_pow_orig_real = {
-            k:(
-                self.xfmr_curr_orig_real[k] * self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]]) +
-                self.xfmr_curr_orig_imag[k] * self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]])
+            k:( (self.xfmr_adm_real[k] / self.xfmr_tap_mag[k]**2.0 + self.xfmr_adm_mag_real[k]) * self.bus_volt_mag[k[0]]**2.0 +
+                ( - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.cos(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])
+                  - self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k] * math.sin(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])) *
+                self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.xfmr_status[k] else 0.0)
             for k in self.xfmr}
         self.xfmr_pow_orig_imag = {
-            k:(
-                self.xfmr_curr_orig_real[k] * self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]]) -
-                self.xfmr_curr_orig_imag[k] * self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]])
+            k:( - (self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k]**2.0 + self.xfmr_adm_mag_imag[k]) * self.bus_volt_mag[k[0]]**2.0 +
+                (   self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k] * math.cos(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])
+                    - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.sin(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])) *
+                self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.xfmr_status[k] else 0.0)
             for k in self.xfmr}
         self.xfmr_pow_dest_real = {
-            k:(
-                self.xfmr_curr_dest_real[k] * self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]]) +
-                self.xfmr_curr_dest_imag[k] * self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]])
+            k:( self.xfmr_adm_real[k] * self.bus_volt_mag[k[1]]**2.0 +
+                ( - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.cos(self.bus_volt_ang[k[1]] - self.bus_volt_ang[k[0]] + self.xfmr_tap_ang[k])
+                  - self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k] * math.sin(self.bus_volt_ang[k[1]] - self.bus_volt_ang[k[0]] + self.xfmr_tap_ang[k])) *
+                self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.xfmr_status[k] else 0.0)
             for k in self.xfmr}
         self.xfmr_pow_dest_imag = {
-            k:(
-                self.xfmr_curr_dest_real[k] * self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]]) -
-                self.xfmr_curr_dest_imag[k] * self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]])
+            k:( - self.xfmr_adm_imag[k] * self.bus_volt_mag[k[1]]**2.0 +
+                (   self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k] * math.cos(self.bus_volt_ang[k[1]] - self.bus_volt_ang[k[0]] + self.xfmr_tap_ang[k])
+                    - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.sin(self.bus_volt_ang[k[1]] - self.bus_volt_ang[k[0]] + self.xfmr_tap_ang[k])) *
+                self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.xfmr_status[k] else 0.0)
             for k in self.xfmr}
 
@@ -896,10 +861,6 @@ class Evaluation:
 
     def eval_ctg_gen_pow_real(self):
 
-        #self.gen_ctg_pow_real = {
-        #    (i[0],i[1],k):0.0 # TODO: this should come from the participation factor expression
-        #    for i in self.gen # TODO (also for other items): use status field
-        #    for k in self.ctg} # projection of participation factor expression
         self.ctg_gen_pow_real = {i:0.0 for i in self.gen}
         self.ctg_gen_pow_real.update(
             {i:self.gen_pow_real[i] for i in self.gen
@@ -911,22 +872,18 @@ class Evaluation:
                         self.gen_part_fact[i] *
                         self.ctg_pow_real_change)))
              for i in self.gen if self.ctg_gen_participating[i]})
-        #print 'pg: %20.10f' % self.gen_pow_real[(144,'1')]
-        #print 'alpha: %20.10f' % self.gen_part_fact[(144,'1')]
-        #print 'delta: %20.10f' % self.area_ctg_pow_real_change[(1,'G_000017SENECA33U1')]
-        #print 'pgk: %20.10f' % self.gen_ctg_pow_real[(144,'1','G_000017SENECA33U1')]
 
-    def eval_ctg_gen_pow_viol(self):
+    def eval_ctg_gen_pow_real_viol(self):
 
-        print self.gen_pow_real_min
-        print self.ctg_gen_pow_real
-        print self.ctg_gen_active
         self.ctg_gen_pow_real_min_viol = {
             i:max(0.0, (self.gen_pow_real_min[i] if self.ctg_gen_active[i] else 0.0) - self.ctg_gen_pow_real[i])
             for i in self.gen}
         self.ctg_gen_pow_real_max_viol = {
             i:max(0.0, self.ctg_gen_pow_real[i] - (self.gen_pow_real_max[i] if self.ctg_gen_active[i] else 0.0))
             for i in self.gen}
+
+    def eval_ctg_gen_pow_imag_viol(self):
+
         self.ctg_gen_pow_imag_min_viol = {
             i:max(0.0, (self.gen_pow_imag_min[i] if self.ctg_gen_active[i] else 0.0) - self.ctg_gen_pow_imag[i])
             for i in self.gen}
@@ -934,309 +891,101 @@ class Evaluation:
             i:max(0.0, self.ctg_gen_pow_imag[i] - (self.gen_pow_imag_max[i] if self.ctg_gen_active[i] else 0.0))
             for i in self.gen}
 
-    def eval_line_ctg_curr(self):
+    def eval_ctg_line_pow(self):
 
-        self.line_ctg_curr_orig_real = {
-            (k[0],k[1],k[2],c):(
-                self.line_adm_real[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)]) -
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)])) -
-                self.line_adm_imag[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)]) -
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)])) -
-                0.5 * self.line_adm_ch_imag[k] * self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)])
-                if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.line
-            for c in self.ctg}
-        self.line_ctg_curr_orig_imag = {
-            (k[0],k[1],k[2],c):(
-                self.line_adm_real[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)]) -
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)])) +
-                self.line_adm_imag[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)]) -
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)])) +
-                0.5 * self.line_adm_ch_imag[k] * self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)])
-                if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.line
-            for c in self.ctg}
-        self.line_ctg_curr_dest_real = {
-            (k[0],k[1],k[2],c):(
-                self.line_adm_real[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)]) -
-                    self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)])) -
-                self.line_adm_imag[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)]) -
-                    self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)])) -
-                0.5 * self.line_adm_ch_imag[k] * self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)])
-                if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.line
-            for c in self.ctg}
-        self.line_ctg_curr_dest_imag = {
-            (k[0],k[1],k[2],c):(
-                self.line_adm_real[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)]) -
-                    self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)])) +
-                self.line_adm_imag[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)]) -
-                    self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)])) +
-                0.5 * self.line_adm_ch_imag[k] * self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)])
-                if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.line
-            for c in self.ctg}
+        self.ctg_line_pow_orig_real = {
+            k:( self.line_adm_real[k] * self.ctg_bus_volt_mag[k[0]]**2.0 +
+                ( - self.line_adm_real[k] * math.cos(self.ctg_bus_volt_ang[k[0]] - self.ctg_bus_volt_ang[k[1]])
+                  - self.line_adm_imag[k] * math.sin(self.ctg_bus_volt_ang[k[0]] - self.ctg_bus_volt_ang[k[1]])) *
+                self.ctg_bus_volt_mag[k[0]] * self.ctg_bus_volt_mag[k[1]]
+                if self.ctg_line_active[k] else 0.0)
+            for k in self.line}
+        self.ctg_line_pow_orig_imag = {
+            k:( - (self.line_adm_imag[k] + 0.5 * self.line_adm_ch_imag[k]) * self.ctg_bus_volt_mag[k[0]]**2.0 +
+                (   self.line_adm_imag[k] * math.cos(self.ctg_bus_volt_ang[k[0]] - self.ctg_bus_volt_ang[k[1]])
+                  - self.line_adm_real[k] * math.sin(self.ctg_bus_volt_ang[k[0]] - self.ctg_bus_volt_ang[k[1]])) *
+                self.ctg_bus_volt_mag[k[0]] * self.ctg_bus_volt_mag[k[1]]
+                if self.ctg_line_active[k] else 0.0)
+            for k in self.line}
+        self.ctg_line_pow_dest_real = {
+            k:( self.line_adm_real[k] * self.ctg_bus_volt_mag[k[1]]**2.0 +
+                ( - self.line_adm_real[k] * math.cos(self.ctg_bus_volt_ang[k[1]] - self.ctg_bus_volt_ang[k[0]])
+                  - self.line_adm_imag[k] * math.sin(self.ctg_bus_volt_ang[k[1]] - self.ctg_bus_volt_ang[k[0]])) *
+                self.ctg_bus_volt_mag[k[0]] * self.ctg_bus_volt_mag[k[1]]
+                if self.ctg_line_active[k] else 0.0)
+            for k in self.line}
+        self.ctg_line_pow_dest_imag = {
+            k:( - (self.line_adm_imag[k] + 0.5 * self.line_adm_ch_imag[k]) * self.ctg_bus_volt_mag[k[1]]**2.0 +
+                (   self.line_adm_imag[k] * math.cos(self.ctg_bus_volt_ang[k[1]] - self.ctg_bus_volt_ang[k[0]])
+                  - self.line_adm_real[k] * math.sin(self.ctg_bus_volt_ang[k[1]] - self.ctg_bus_volt_ang[k[0]])) *
+                self.ctg_bus_volt_mag[k[0]] * self.ctg_bus_volt_mag[k[1]]
+                if self.ctg_line_active[k] else 0.0)
+            for k in self.line}
 
-    def eval_line_ctg_curr_test(self):
-        # not faster:
-        #   ignoring line_ctg_active
-        # faster:
-        #   a single dict (25% faster)
-        # to try:
-        # a single dict
-        # lists
-        # numpy
+    def eval_ctg_line_curr_viol(self):
 
-
-
-        line_ctg_curr_or_de_re_im = {
-            (k[0],k[1],k[2],c):(
-                (
-                    self.line_adm_real[k] *
-                    (
-                        self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)]) -
-                        self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)])) -
-                    self.line_adm_imag[k] *
-                    (
-                        self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)]) -
-                        self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)])) -
-                    0.5 * self.line_adm_ch_imag[k] * self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)])
-                    if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0),
-                (
-                    self.line_adm_real[k] *
-                    (
-                        self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)]) -
-                        self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)])) +
-                    self.line_adm_imag[k] *
-                    (
-                        self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)]) -
-                        self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)])) +
-                    0.5 * self.line_adm_ch_imag[k] * self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)])
-                    if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0),
-                (
-                    self.line_adm_real[k] *
-                    (
-                        self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)]) -
-                        self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)])) -
-                    self.line_adm_imag[k] *
-                    (
-                        self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)]) -
-                        self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)])) -
-                    0.5 * self.line_adm_ch_imag[k] * self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)])
-                    if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0),
-                (
-                    self.line_adm_real[k] *
-                    (
-                        self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)]) -
-                        self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)])) +
-                    self.line_adm_imag[k] *
-                    (
-                        self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)]) -
-                        self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)])) +
-                    0.5 * self.line_adm_ch_imag[k] * self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)])
-                    if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0))
-            for k in self.line
-            for c in self.ctg}
-
-
-
-
-
-
-    def eval_line_ctg_pow(self):
-
-        self.line_ctg_pow_orig_real = {
-            (k[0],k[1],k[2],c):(
-                self.line_ctg_curr_orig_real[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)]) +
-                self.line_ctg_curr_orig_imag[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)])
-                if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.line
-            for c in self.ctg}
-        self.line_ctg_pow_orig_imag = {
-            (k[0],k[1],k[2],c):(
-                self.line_ctg_curr_orig_real[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)]) -
-                self.line_ctg_curr_orig_imag[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)])
-                if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.line
-            for c in self.ctg}
-        self.line_ctg_pow_dest_real = {
-            (k[0],k[1],k[2],c):(
-                self.line_ctg_curr_dest_real[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)]) +
-                self.line_ctg_curr_dest_imag[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)])
-                if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.line
-            for c in self.ctg}
-        self.line_ctg_pow_dest_imag = {
-            (k[0],k[1],k[2],c):(
-                self.line_ctg_curr_dest_real[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)]) -
-                self.line_ctg_curr_dest_imag[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)])
-                if self.line_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.line
-            for c in self.ctg}
-
-    def eval_line_ctg_curr_viol(self):
-
-        self.line_ctg_curr_orig_mag_max_viol = {
-            (k[0],k[1],k[2],c):max(
+        self.ctg_line_curr_orig_mag_max_viol = {
+            k:max(
                 0.0,
-                (self.line_ctg_curr_orig_real[(k[0],k[1],k[2],c)]**2.0 +
-                 self.line_ctg_curr_orig_imag[(k[0],k[1],k[2],c)]**2.0)**0.5 -
-                self.line_curr_mag_max[k])
-            for k in self.line
-            for c in self.ctg}
-        self.line_ctg_curr_dest_mag_max_viol = {
-            (k[0],k[1],k[2],c):max(
+                (self.ctg_line_pow_orig_real[k]**2.0 +
+                 self.ctg_line_pow_orig_imag[k]**2.0)**0.5 -
+                self.line_curr_mag_max[k] * self.ctg_bus_volt_mag[k[0]])
+            for k in self.line}
+        self.ctg_line_curr_dest_mag_max_viol = {
+            k:max(
                 0.0,
-                (self.line_ctg_curr_dest_real[(k[0],k[1],k[2],c)]**2.0 +
-                 self.line_ctg_curr_dest_imag[(k[0],k[1],k[2],c)]**2.0)**0.5 -
-                self.line_curr_mag_max[k])
-            for k in self.line
-            for c in self.ctg}
-    
-    def eval_xfmr_ctg_curr(self):
+                (self.ctg_line_pow_dest_real[k]**2.0 +
+                 self.ctg_line_pow_dest_imag[k]**2.0)**0.5 -
+                self.line_curr_mag_max[k] * self.ctg_bus_volt_mag[k[1]])
+            for k in self.line}
 
-        self.xfmr_ctg_curr_orig_real = {
-            (k[0],k[1],k[2],c):(
-                self.xfmr_adm_mag_real[k] * self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)]) -
-                self.xfmr_adm_mag_imag[k] * self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)]) +
-                (
-                    self.xfmr_adm_real[k] * math.cos(self.xfmr_tap_ang[k]) -
-                    self.xfmr_adm_imag[k] * math.sin(self.xfmr_tap_ang[k])) *
-                (
-                    self.bus_ctg_volt_mag[(k[0],c)] / (self.xfmr_tap_mag[k]**2.0) *
-                    math.cos(self.bus_ctg_volt_ang[(k[0],c)] - self.xfmr_tap_ang[k]) -
-                    self.bus_ctg_volt_mag[(k[1],c)] / self.xfmr_tap_mag[k] *
-                    math.cos(self.bus_ctg_volt_ang[(k[1],c)])) -
-                (
-                    self.xfmr_adm_real[k] * math.sin(self.xfmr_tap_ang[k]) +
-                    self.xfmr_adm_imag[k] * math.cos(self.xfmr_tap_ang[k])) *
-                (
-                    self.bus_ctg_volt_mag[(k[0],c)] / (self.xfmr_tap_mag[k]**2.0) *
-                    math.sin(self.bus_ctg_volt_ang[(k[0],c)] - self.xfmr_tap_ang[k]) -
-                    self.bus_ctg_volt_mag[(k[1],c)] / self.xfmr_tap_mag[k] *
-                    math.sin(self.bus_ctg_volt_ang[(k[1],c)]))
-                if self.xfmr_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.xfmr
-            for c in self.ctg}
-        self.xfmr_ctg_curr_orig_imag = {
-            (k[0],k[1],k[2],c):(
-                self.xfmr_adm_mag_real[k] * self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)]) +
-                self.xfmr_adm_mag_imag[k] * self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)]) +
-                (
-                    self.xfmr_adm_real[k] * math.cos(self.xfmr_tap_ang[k]) -
-                    self.xfmr_adm_imag[k] * math.sin(self.xfmr_tap_ang[k])) *
-                (
-                    self.bus_ctg_volt_mag[(k[0],c)] / (self.xfmr_tap_mag[k]**2.0) *
-                    math.sin(self.bus_ctg_volt_ang[(k[0],c)] - self.xfmr_tap_ang[k]) -
-                    self.bus_ctg_volt_mag[(k[1],c)] / self.xfmr_tap_mag[k] *
-                    math.sin(self.bus_ctg_volt_ang[(k[1],c)])) +
-                (
-                    self.xfmr_adm_real[k] * math.sin(self.xfmr_tap_ang[k]) +
-                    self.xfmr_adm_imag[k] * math.cos(self.xfmr_tap_ang[k])) *
-                (
-                    self.bus_ctg_volt_mag[(k[0],c)] / (self.xfmr_tap_mag[k]**2.0) *
-                    math.cos(self.bus_ctg_volt_ang[(k[0],c)] - self.xfmr_tap_ang[k]) -
-                    self.bus_ctg_volt_mag[(k[1],c)] / self.xfmr_tap_mag[k] *
-                    math.cos(self.bus_ctg_volt_ang[(k[1],c)]))
-                if self.xfmr_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.xfmr
-            for c in self.ctg}
-        self.xfmr_ctg_curr_dest_real = {
-            (k[0],k[1],k[2],c):(
-                self.xfmr_adm_real[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)]) -
-                    self.bus_ctg_volt_mag[(k[0],c)] / self.xfmr_tap_mag[k] *
-                    math.cos(self.bus_ctg_volt_ang[(k[0],c)] - self.xfmr_tap_ang[k])) -
-                self.xfmr_adm_imag[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)]) -
-                    self.bus_ctg_volt_mag[(k[0],c)] / self.xfmr_tap_mag[k] *
-                    math.sin(self.bus_ctg_volt_ang[(k[0],c)] - self.xfmr_tap_ang[k]))
-                if self.xfmr_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.xfmr
-            for c in self.ctg}
-        self.xfmr_ctg_curr_dest_imag = {
-            (k[0],k[1],k[2],c):(
-                self.xfmr_adm_real[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)]) -
-                    self.bus_ctg_volt_mag[(k[0],c)] / self.xfmr_tap_mag[k] *
-                    math.sin(self.bus_ctg_volt_ang[(k[0],c)] - self.xfmr_tap_ang[k])) +
-                self.xfmr_adm_imag[k] *
-                (
-                    self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)]) -
-                    self.bus_ctg_volt_mag[(k[0],c)] / self.xfmr_tap_mag[k] *
-                    math.cos(self.bus_ctg_volt_ang[(k[0],c)] - self.xfmr_tap_ang[k]))
-                if self.xfmr_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.xfmr
-            for c in self.ctg}
+    def eval_ctg_xfmr_pow(self):
 
-    def eval_xfmr_ctg_pow(self):
+        self.ctg_xfmr_pow_orig_real = {
+            k:( (self.xfmr_adm_real[k] / self.xfmr_tap_mag[k]**2.0 + self.xfmr_adm_mag_real[k]) * self.ctg_bus_volt_mag[k[0]]**2.0 +
+                ( - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.cos(self.ctg_bus_volt_ang[k[0]] - self.ctg_bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])
+                  - self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k] * math.sin(self.ctg_bus_volt_ang[k[0]] - self.ctg_bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])) *
+                self.ctg_bus_volt_mag[k[0]] * self.ctg_bus_volt_mag[k[1]]
+                if self.ctg_xfmr_active[k] else 0.0)
+            for k in self.xfmr}
+        self.ctg_xfmr_pow_orig_imag = {
+            k:( - (self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k]**2.0 + self.xfmr_adm_mag_imag[k]) * self.ctg_bus_volt_mag[k[0]]**2.0 +
+                (   self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k] * math.cos(self.ctg_bus_volt_ang[k[0]] - self.ctg_bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])
+                    - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.sin(self.ctg_bus_volt_ang[k[0]] - self.ctg_bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])) *
+                self.ctg_bus_volt_mag[k[0]] * self.ctg_bus_volt_mag[k[1]]
+                if self.ctg_xfmr_active[k] else 0.0)
+            for k in self.xfmr}
+        self.ctg_xfmr_pow_dest_real = {
+            k:( self.xfmr_adm_real[k] * self.ctg_bus_volt_mag[k[1]]**2.0 +
+                ( - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.cos(self.ctg_bus_volt_ang[k[1]] - self.ctg_bus_volt_ang[k[0]] + self.xfmr_tap_ang[k])
+                  - self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k] * math.sin(self.ctg_bus_volt_ang[k[1]] - self.ctg_bus_volt_ang[k[0]] + self.xfmr_tap_ang[k])) *
+                self.ctg_bus_volt_mag[k[0]] * self.ctg_bus_volt_mag[k[1]]
+                if self.ctg_xfmr_active[k] else 0.0)
+            for k in self.xfmr}
+        self.ctg_xfmr_pow_dest_imag = {
+            k:( - self.xfmr_adm_imag[k] * self.ctg_bus_volt_mag[k[1]]**2.0 +
+                (   self.xfmr_adm_imag[k] / self.xfmr_tap_mag[k] * math.cos(self.ctg_bus_volt_ang[k[1]] - self.ctg_bus_volt_ang[k[0]] + self.xfmr_tap_ang[k])
+                    - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.sin(self.ctg_bus_volt_ang[k[1]] - self.ctg_bus_volt_ang[k[0]] + self.xfmr_tap_ang[k])) *
+                self.ctg_bus_volt_mag[k[0]] * self.ctg_bus_volt_mag[k[1]]
+                if self.ctg_xfmr_active[k] else 0.0)
+            for k in self.xfmr}
 
-        self.xfmr_ctg_pow_orig_real = {
-            (k[0],k[1],k[2],c):(
-                self.xfmr_ctg_curr_orig_real[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)]) +
-                self.xfmr_ctg_curr_orig_imag[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)])
-                if self.xfmr_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.xfmr
-            for c in self.ctg}
-        self.xfmr_ctg_pow_orig_imag = {
-            (k[0],k[1],k[2],c):(
-                self.xfmr_ctg_curr_orig_real[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[0],c)] * math.sin(self.bus_ctg_volt_ang[(k[0],c)]) -
-                self.xfmr_ctg_curr_orig_imag[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[0],c)] * math.cos(self.bus_ctg_volt_ang[(k[0],c)])
-                if self.xfmr_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.xfmr
-            for c in self.ctg}
-        self.xfmr_ctg_pow_dest_real = {
-            (k[0],k[1],k[2],c):(
-                self.xfmr_ctg_curr_dest_real[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)]) +
-                self.xfmr_ctg_curr_dest_imag[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)])
-                if self.xfmr_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.xfmr
-            for c in self.ctg}
-        self.xfmr_ctg_pow_dest_imag = {
-            (k[0],k[1],k[2],c):(
-                self.xfmr_ctg_curr_dest_real[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[1],c)] * math.sin(self.bus_ctg_volt_ang[(k[1],c)]) -
-                self.xfmr_ctg_curr_dest_imag[(k[0],k[1],k[2],c)] * self.bus_ctg_volt_mag[(k[1],c)] * math.cos(self.bus_ctg_volt_ang[(k[1],c)])
-                if self.xfmr_ctg_active[(k[0],k[1],k[2],c)] else 0.0)
-            for k in self.xfmr
-            for c in self.ctg}
+    def eval_ctg_xfmr_pow_viol(self):
 
-    def eval_xfmr_ctg_pow_viol(self):
-
-        self.xfmr_ctg_pow_orig_mag_max_viol = {
-            (k[0],k[1],k[2],c):max(
+        self.ctg_xfmr_pow_orig_mag_max_viol = {
+            k:max(
                 0.0,
-                (self.xfmr_ctg_pow_orig_real[(k[0],k[1],k[2],c)]**2.0 +
-                 self.xfmr_ctg_pow_orig_imag[(k[0],k[1],k[2],c)]**2.0)**0.5 -
+                (self.ctg_xfmr_pow_orig_real[k]**2.0 +
+                 self.ctg_xfmr_pow_orig_imag[k]**2.0)**0.5 -
                 self.xfmr_pow_mag_max[k])
-            for k in self.xfmr
-            for c in self.ctg}
-        self.xfmr_ctg_pow_dest_mag_max_viol = {
-            (k[0],k[1],k[2],c):max(
+            for k in self.xfmr}
+        self.ctg_xfmr_pow_dest_mag_max_viol = {
+            k:max(
                 0.0,
-                (self.xfmr_ctg_pow_dest_real[(k[0],k[1],k[2],c)]**2.0 +
-                 self.xfmr_ctg_pow_dest_imag[(k[0],k[1],k[2],c)]**2.0)**0.5 -
+                (self.ctg_xfmr_pow_dest_real[k]**2.0 +
+                 self.ctg_xfmr_pow_dest_imag[k]**2.0)**0.5 -
                 self.xfmr_pow_mag_max[k])
-            for k in self.xfmr
-            for c in self.ctg}
+            for k in self.xfmr}
 
     def eval_ctg_bus_swsh_adm_imag_viol(self):
 
@@ -1257,24 +1006,24 @@ class Evaluation:
 
         self.ctg_bus_pow_balance_real_viol = {
             i:abs(
-                sum([self.gen_ctg_pow_real[k] for k in self.bus_gen[i] if self.ctg_gen_active[k]]) -
-                sum([self.load_ctg_pow_real[k] for k in self.bus_load[i] if self.load_status[k]]) -
-                sum([self.fxsh_ctg_pow_real[k] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
-                sum([self.line_ctg_pow_orig_real[k] for k in self.bus_line_orig[i] if self.ctg_line_ctg[k]]) -
-                sum([self.line_ctg_pow_dest_real[k] for k in self.bus_line_dest[i] if self.ctg_line_ctg[k]]) -
-                sum([self.xfmr_ctg_pow_orig_real[k] for k in self.bus_xfmr_orig[i] if self.ctg_xfmr_ctg[k]]) -
-                sum([self.xfmr_ctg_pow_dest_real[k] for k in self.bus_xfmr_dest[i] if self.ctg_xfmr_ctg[k]]))
+                sum([self.ctg_gen_pow_real[k] for k in self.bus_gen[i] if self.ctg_gen_active[k]]) -
+                sum([self.ctg_load_pow_real[k] for k in self.bus_load[i] if self.load_status[k]]) -
+                sum([self.ctg_fxsh_pow_real[k] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
+                sum([self.ctg_line_pow_orig_real[k] for k in self.bus_line_orig[i] if self.ctg_line_active[k]]) -
+                sum([self.ctg_line_pow_dest_real[k] for k in self.bus_line_dest[i] if self.ctg_line_active[k]]) -
+                sum([self.ctg_xfmr_pow_orig_real[k] for k in self.bus_xfmr_orig[i] if self.ctg_xfmr_active[k]]) -
+                sum([self.ctg_xfmr_pow_dest_real[k] for k in self.bus_xfmr_dest[i] if self.ctg_xfmr_active[k]]))
             for i in self.bus}
         self.ctg_bus_pow_balance_imag_viol = {
             i:abs(
-                sum([self.gen_ctg_pow_imag[k] for k in self.bus_gen[i] if self.ctg_gen_active[k]]) -
-                sum([self.load_ctg_pow_imag[k] for k in self.bus_load[i] if self.load_status[k]]) -
-                sum([self.fxsh_ctg_pow_imag[k] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
+                sum([self.ctg_gen_pow_imag[k] for k in self.bus_gen[i] if self.ctg_gen_active[k]]) -
+                sum([self.ctg_load_pow_imag[k] for k in self.bus_load[i] if self.load_status[k]]) -
+                sum([self.ctg_fxsh_pow_imag[k] for k in self.bus_fxsh[i] if self.fxsh_status[k]]) -
                 self.ctg_bus_swsh_pow_imag[i] -
-                sum([self.line_ctg_pow_orig_imag[k] for k in self.bus_line_orig[i] if self.ctg_line_ctg[k]]) -
-                sum([self.line_ctg_pow_dest_imag[k] for k in self.bus_line_dest[i] if self.ctg_line_ctg[k]]) -
-                sum([self.xfmr_ctg_pow_orig_imag[k] for k in self.bus_xfmr_orig[i] if self.ctg_xfmr_ctg[k]]) -
-                sum([self.xfmr_ctg_pow_dest_imag[k] for k in self.bus_xfmr_dest[i] if self.ctg_xfmr_ctg[k]]))
+                sum([self.ctg_line_pow_orig_imag[k] for k in self.bus_line_orig[i] if self.ctg_line_active[k]]) -
+                sum([self.ctg_line_pow_dest_imag[k] for k in self.bus_line_dest[i] if self.ctg_line_active[k]]) -
+                sum([self.ctg_xfmr_pow_orig_imag[k] for k in self.bus_xfmr_orig[i] if self.ctg_xfmr_active[k]]) -
+                sum([self.ctg_xfmr_pow_dest_imag[k] for k in self.bus_xfmr_dest[i] if self.ctg_xfmr_active[k]]))
             for i in self.bus}
 
     def eval_ctg_gen_pvpq_viol(self):
@@ -1285,7 +1034,7 @@ class Evaluation:
                 if self.ctg_gen_active[i]
                 else 0.0)
             for i in self.gen}
-        self.ctg_gen_pvpq1_viol = {
+        self.ctg_gen_pvpq2_viol = {
             i:(min(max(0.0, self.ctg_gen_pow_imag[i] - self.gen_pow_imag_min[i]),
                    max(0.0, self.ctg_bus_volt_mag[i[0]] - self.bus_volt_mag[i[0]]))
                 if self.ctg_gen_active[i]
@@ -1293,6 +1042,22 @@ class Evaluation:
             for i in self.gen}
 
     def eval_penalty(self):
+
+        self.penalty = 0.0
+
+    def eval_ctg_penalty(self):
+
+        self.ctg_penalty = 0.0
+
+    def eval_infeas(self):
+
+        self.infeas = 0
+
+    def eval_ctg_infeas(self):
+
+        self.ctg_infeas = 0
+
+    def eval_penalty_all(self):
 
         self.penalty = 0.0
         self.penalty += self.volt_pen * (
@@ -1383,6 +1148,21 @@ class Evaluation:
         for writing output'''
 
         pass
+
+    def compute_detail(self):
+
+        def extra_max(d):
+            k = max(d.keys(), key=(lambda k: d[k]))
+            return (k, d[k])
+        
+        self.max_bus_volt_mag_max_viol = extra_max(self.bus_volt_mag_max_viol)
+        self.min_bus_volt_mag_min_viol = extra_max(self.bus_volt_mag_min_viol)
+
+    def compute_ctg_detail(self):
+
+        def extra_max(d):
+            k = max(d.keys(), key=(lambda k: d[k]))
+            return (k, d[k])        
 
     def compute_summary(self):
 
@@ -2301,15 +2081,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
 #
 #    return (MAXOBJ, MAXVIOL)
 
-def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
-
-    ## filenames
-    #raw_name = '../../goc-sample-data/case2/case.raw'
-    #rop_name = '../../goc-sample-data/case2/case.rop'
-    #con_name = '../../goc-sample-data/case2/case.con'
-    #inl_name = '../../goc-sample-data/case2/case.inl'
-    #sol1_name = '../../goc-sample-data/case2/sol1.txt'
-    #sol2_name = '../../goc-sample-data/case2/sol2.txt'
+def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
 
     # read the data files
     p = data.Data()
@@ -2382,13 +2154,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
     start_time = time.time()
     e.set_solution1(s1)
     time_elapsed = time.time() - start_time
-    print "eval set sol1 time: %u" % time_elapsed
-
-    # evaluate cost
-    start_time = time.time()
-    e.eval_cost()
-    time_elapsed = time.time() - start_time
-    print "eval cost time: %u" % time_elapsed
+    print "set sol1 time: %u" % time_elapsed
 
     # evaluate base
     start_time = time.time()
@@ -2396,6 +2162,13 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
     time_elapsed = time.time() - start_time
     print "eval base time: %u" % time_elapsed
     
+    # write base summary
+    start_time = time.time()
+    e.write_header(det_name)
+    e.write_base(det_name)
+    time_elapsed = time.time() - start_time
+    print "write base time: %u" % time_elapsed
+
     # get ctg structure in sol
     # do not forget to check that every contingency is found in the sol file
     ctg_num_lines = get_ctg_num_lines(sol2_name)
@@ -2409,6 +2182,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
             e.set_solution2(s2)
             e.set_ctg_data()
             e.eval_ctg()
+            e.write_ctg(det_name)
         
     """
     # loop over contingencies in sol2
