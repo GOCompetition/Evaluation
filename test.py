@@ -25,7 +25,7 @@ def run():
     args = parser.parse_args()
     
     try:
-        (obj, cost, penalty, max_hard_viol, max_soft_viol) = evaluation.run(
+        (obj, cost, penalty, max_obj_viol, max_nonobj_viol) = evaluation.run(
             args.raw,
             args.rop,
             args.con,
@@ -37,6 +37,9 @@ def run():
     except:
         print "exception in evaluation.run"
         raise
+    else:
+        """process obj, cost, penalty, max_obj_viol, max_nonobj_viol
+        e.g. add info, e.g. run time or a scenario name, and append to a report file"""
 
 if __name__ == '__main__':
     run()

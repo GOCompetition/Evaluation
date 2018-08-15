@@ -1178,41 +1178,47 @@ class Evaluation:
 
     def eval_infeas(self):
 
-        self.infeas = (
-            1 if (
-                self.max_bus_volt_mag_max_viol[1] > 0.0 or
-                self.max_bus_volt_mag_min_viol[1] > 0.0 or
-                self.max_bus_swsh_adm_imag_max_viol[1] > 0.0 or
-                self.max_bus_swsh_adm_imag_min_viol[1] > 0.0 or
-                self.max_gen_pow_real_max_viol[1] > 0.0 or
-                self.max_gen_pow_real_min_viol[1] > 0.0 or
-                self.max_gen_pow_imag_max_viol[1] > 0.0 or
-                self.max_gen_pow_imag_min_viol[1] > 0.0 or
-                self.max_line_curr_orig_mag_max_viol[1] > 0.0 or
-                self.max_line_curr_dest_mag_max_viol[1] > 0.0 or
-                self.max_xfmr_pow_orig_mag_max_viol[1] > 0.0 or
-                self.max_xfmr_pow_dest_mag_max_viol[1] > 0.0)
-            else 0)
+        self.max_obj_viol = max(
+            self.max_bus_pow_balance_real_viol[1],
+            self.max_bus_pow_balance_imag_viol[1],
+            self.max_line_curr_orig_mag_max_viol[1],
+            self.max_line_curr_dest_mag_max_viol[1],
+            self.max_xfmr_pow_orig_mag_max_viol[1],
+            self.max_xfmr_pow_dest_mag_max_viol[1])
+        self.max_nonobj_viol = max(
+            self.max_bus_volt_mag_max_viol[1],
+            self.max_bus_volt_mag_min_viol[1],
+            self.max_bus_swsh_adm_imag_max_viol[1],
+            self.max_bus_swsh_adm_imag_min_viol[1],
+            self.max_gen_pow_real_max_viol[1],
+            self.max_gen_pow_real_min_viol[1],
+            self.max_gen_pow_imag_max_viol[1],
+            self.max_gen_pow_imag_min_viol[1])
+        self.infeas = 1 if self.max_nonobj_viol > 0.0 else 0
 
     def eval_ctg_infeas(self):
 
-        self.ctg_infeas = (
-            1 if (
-                self.ctg_max_bus_volt_mag_max_viol[1] > 0.0 or
-                self.ctg_max_bus_volt_mag_min_viol[1] > 0.0 or
-                self.ctg_max_bus_swsh_adm_imag_max_viol[1] > 0.0 or
-                self.ctg_max_bus_swsh_adm_imag_min_viol[1] > 0.0 or
-                self.ctg_max_gen_pow_real_max_viol[1] > 0.0 or
-                self.ctg_max_gen_pow_real_min_viol[1] > 0.0 or
-                self.ctg_max_gen_pow_imag_max_viol[1] > 0.0 or
-                self.ctg_max_gen_pow_imag_min_viol[1] > 0.0 or
-                self.ctg_max_gen_pvpq1_viol[1] > 0.0 or
-                self.ctg_max_gen_pvpq2_viol[1] > 0.0 or
-                self.ctg_max_line_curr_orig_mag_max_viol[1] > 0.0 or
-                self.ctg_max_line_curr_dest_mag_max_viol[1] > 0.0 or
-                self.ctg_max_xfmr_pow_orig_mag_max_viol[1] > 0.0 or
-                self.ctg_max_xfmr_pow_dest_mag_max_viol[1] > 0.0)
-            else 0)
+        self.ctg_max_obj_viol = max(
+            self.ctg_max_bus_pow_balance_real_viol[1],
+            self.ctg_max_bus_pow_balance_imag_viol[1],
+            self.ctg_max_line_curr_orig_mag_max_viol[1],
+            self.ctg_max_line_curr_dest_mag_max_viol[1],
+            self.ctg_max_xfmr_pow_orig_mag_max_viol[1],
+            self.ctg_max_xfmr_pow_dest_mag_max_viol[1])
+        self.ctg_max_nonobj_viol = max(
+            self.ctg_max_bus_volt_mag_max_viol[1],
+            self.ctg_max_bus_volt_mag_min_viol[1],
+            self.ctg_max_bus_swsh_adm_imag_max_viol[1],
+            self.ctg_max_bus_swsh_adm_imag_min_viol[1],
+            self.ctg_max_gen_pow_real_max_viol[1],
+            self.ctg_max_gen_pow_real_min_viol[1],
+            self.ctg_max_gen_pow_imag_max_viol[1],
+            self.ctg_max_gen_pow_imag_min_viol[1],
+            self.ctg_max_gen_pvpq1_viol[1],
+            self.ctg_max_gen_pvpq2_viol[1])
+        self.ctg_infeas = 1 if self.ctg_max_nonobj_viol > 0.0 else 0
+        self.max_obj_viol = max(self.max_obj_viol, self.ctg_max_obj_viol)
+        self.max_nonobj_viol = max(self.max_nonobj_viol, self.ctg_max_nonobj_viol)
 
     def eval_obj(self):
 
@@ -2307,6 +2313,11 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
             e.set_ctg_data()
             e.eval_ctg()
             e.write_ctg(det_name)
-        
-    return (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
-    return (0.0, 0.0, 0.0, 0.0, 0.0)
+
+    print "obj: %f" % e.obj
+    print "cost: %f" % e.cost
+    print "penalty: %f" % (e.obj - e.cost)
+    print "max_obj_viol: %f" % e.max_obj_viol
+    print "max_nonobj_viol: %f" % e.max_nonobj_viol
+
+    return (e.obj, e.cost, e.penalty, e.max_obj_viol, e.max_nonobj_viol)
