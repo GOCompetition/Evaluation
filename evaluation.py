@@ -2,12 +2,13 @@ import csv
 import math
 import data
 import time
-from collections import OrderedDict
+#from collections import OrderedDict
 from itertools import islice
 
 """
 TODO
 write output in data units, not p.u.
+write summary with only worst contingency for each category
 """
 
 #MAXOBJ = 9876543210.0
@@ -2313,6 +2314,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
     start_time = time.time()
     ctg_num_lines = get_ctg_num_lines(sol2_name)
     num_ctgs = len(ctg_num_lines)
+    ctgs_reported = []
     with open(sol2_name) as sol2_file:
         for k in range(num_ctgs):
             lines = list(islice(sol2_file, ctg_num_lines[k]))
@@ -2320,9 +2322,19 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
                 break # error
             s2.read_from_lines(lines)
             e.set_solution2(s2)
+            ctgs_reported.append(e.ctg_label)
             e.set_ctg_data()
             e.eval_ctg()
             e.write_ctg(det_name)
+    num_ctgs_reported = len(ctgs_reported)
+    num_ctgs_reported_unique = len(set(ctgs_reported))
+    if (num_ctgs_reported != num_ctgs_reported_unique or
+        num_ctgs_reported != len(e.ctg)):
+        e.infeas = 1
+        print("infeas, problem with contingency list in sol file")
+        print("num ctg: %u" % len(e.ctg))
+        print("num ctg reported: %u" % num_ctgs_reported)
+        print("num ctg reported unique: %u" % num_ctgs_reported_unique)
     time_elapsed = time.time() - start_time
     print("eval ctg time: %u" % time_elapsed)
 
@@ -2334,5 +2346,6 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
     print("penalty: %f" % (e.obj - e.cost))
     print("max_obj_viol: %f" % e.max_obj_viol)
     print("max_nonobj_viol: %f" % e.max_nonobj_viol)
+    print("infeas: %u" % e.infeas)
 
-    return (e.obj, e.cost, e.penalty, e.max_obj_viol, e.max_nonobj_viol)
+    return (e.obj, e.cost, e.penalty, e.max_obj_viol, e.max_nonobj_viol, e.infeas)
