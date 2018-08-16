@@ -5,6 +5,11 @@ import time
 from collections import OrderedDict
 from itertools import islice
 
+"""
+TODO
+write output in data units, not p.u.
+"""
+
 #MAXOBJ = 9876543210.0
 #MAXVIOL = 9876543210.0
 KVPEN = 1000.0 # kV penalty (p.u. already)
@@ -2214,6 +2219,9 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
 
 def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
 
+    # start timer
+    start_time_all = time.time()
+
     # read the data files
     p = data.Data()
 
@@ -2302,6 +2310,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
 
     # get ctg structure in sol
     # do not forget to check that every contingency is found in the sol file
+    start_time = time.time()
     ctg_num_lines = get_ctg_num_lines(sol2_name)
     num_ctgs = len(ctg_num_lines)
     with open(sol2_name) as sol2_file:
@@ -2314,6 +2323,11 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
             e.set_ctg_data()
             e.eval_ctg()
             e.write_ctg(det_name)
+    time_elapsed = time.time() - start_time
+    print("eval ctg time: %u" % time_elapsed)
+
+    time_elapsed = time.time() - start_time_all
+    print("eval total time: %u" % time_elapsed)
 
     print("obj: %f" % e.obj)
     print("cost: %f" % e.cost)
