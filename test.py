@@ -1,9 +1,13 @@
 '''
-old syntax ??
+syntax:
 
-syntax
-python test.py <raw> <rop> <con> <inl> <sol1> <sol2> <det>
+from a command prompt:
+python test.py raw rop con inl sol1 sol2 det
 
+from a Python interpreter:
+import sys
+sys.argv = [raw, rop, con, inl, sol1, sol2, det]
+execfile("test.py")
 '''
 
 import argparse
