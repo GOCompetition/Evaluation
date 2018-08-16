@@ -726,10 +726,16 @@ class Evaluation:
         self.eval_ctg_infeas()
         self.eval_ctg_penalty()
         self.eval_ctg_update_obj()
+        self.eval_ctg_update_infeas()
 
     def eval_ctg_update_obj(self):
 
         self.obj += self.ctg_penalty
+
+    def eval_ctg_update_infeas(self):
+
+        if self.ctg_infeas > 0:
+            self.infeas = 1
     
     def eval_cost(self):
         # todo: what if gen_pow_real falls outside of domain of definition
@@ -809,77 +815,22 @@ class Evaluation:
             k:max(0.0, self.gen_pow_imag[k] - (self.gen_pow_imag_max[k] if self.gen_status[k] else 0.0))
             for k in self.gen}
 
-    """
-    def eval_line_curr(self):
-
-        self.line_curr_orig_real = {
-            k:(
-                self.line_adm_real[k] *
-                (
-                    self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]]) -
-                    self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]])) -
-                self.line_adm_imag[k] *
-                (
-                    self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]]) -
-                    self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]])) -
-                0.5 * self.line_adm_ch_imag[k] * self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]])
-                if self.line_status[k] else 0.0)
-            for k in self.line}
-        self.line_curr_orig_imag = {
-            k:(
-                self.line_adm_real[k] *
-                (
-                    self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]]) -
-                    self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]])) +
-                self.line_adm_imag[k] *
-                (
-                    self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]]) -
-                    self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]])) +
-                0.5 * self.line_adm_ch_imag[k] * self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]])
-                if self.line_status[k] else 0.0)
-            for k in self.line}
-        self.line_curr_dest_real = {
-            k:(
-                self.line_adm_real[k] *
-                (
-                    self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]]) -
-                    self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]])) -
-                self.line_adm_imag[k] *
-                (
-                    self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]]) -
-                    self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]])) -
-                0.5 * self.line_adm_ch_imag[k] * self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]])
-                if self.line_status[k] else 0.0)
-            for k in self.line}
-        self.line_curr_dest_imag = {
-            k:(
-                self.line_adm_real[k] *
-                (
-                    self.bus_volt_mag[k[1]] * math.sin(self.bus_volt_ang[k[1]]) -
-                    self.bus_volt_mag[k[0]] * math.sin(self.bus_volt_ang[k[0]])) +
-                self.line_adm_imag[k] *
-                (
-                    self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]]) -
-                    self.bus_volt_mag[k[0]] * math.cos(self.bus_volt_ang[k[0]])) +
-                0.5 * self.line_adm_ch_imag[k] * self.bus_volt_mag[k[1]] * math.cos(self.bus_volt_ang[k[1]])
-                if self.line_status[k] else 0.0)
-            for k in self.line}
-    """
-
     def eval_line_pow(self):
 
-        iorig = 223
-        idest = 224
-        cid = '1'
-        k = (iorig, idest, cid)
-        print("debug line real power")
-        print("(iorig, idest, cid): %s" % str(k))
-        print("vm_orig: %s" % str(self.bus_volt_mag[iorig]))
-        print("vm_dest: %s" % str(self.bus_volt_mag[idest]))
-        print("va_orig (rad): %s" % str(self.bus_volt_ang[iorig]))
-        print("va_dest (rad): %s" % str(self.bus_volt_ang[idest]))
-        print("va_orig (deg): %s" % str(self.bus_volt_ang[iorig] * 180.0/math.pi))
-        print("va_dest (deg): %s" % str(self.bus_volt_ang[idest] * 180.0/math.pi))
+        debug = False
+        if debug:
+            iorig = 223
+            idest = 224
+            cid = '1'
+            k = (iorig, idest, cid)
+            print("debug line real power")
+            print("(iorig, idest, cid): %s" % str(k))
+            print("vm_orig: %s" % str(self.bus_volt_mag[iorig]))
+            print("vm_dest: %s" % str(self.bus_volt_mag[idest]))
+            print("va_orig (rad): %s" % str(self.bus_volt_ang[iorig]))
+            print("va_dest (rad): %s" % str(self.bus_volt_ang[idest]))
+            print("va_orig (deg): %s" % str(self.bus_volt_ang[iorig] * 180.0/math.pi))
+            print("va_dest (deg): %s" % str(self.bus_volt_ang[idest] * 180.0/math.pi))
         
         self.line_pow_orig_real = {
             k:( self.line_adm_real[k] * self.bus_volt_mag[k[0]]**2.0 +
@@ -992,16 +943,18 @@ class Evaluation:
 
     def eval_bus_pow_balance(self):
 
-        i = 223
-        print("debug base case real power balance")
-        print("bus: %s", str(i))
-        print("generators: %s" % str([(k, self.gen_status[k], self.gen_pow_real[k]) for k in self.bus_gen[i]]))
-        print("loads: %s" % str([(k, self.load_status[k], self.load_pow_real[k]) for k in self.bus_load[i]]))
-        print("fixed shunts: %s" % str([(k, self.fxsh_status[k], self.fxsh_pow_real[k]) for k in self.bus_fxsh[i]]))
-        print("lines orig: %s" % str([(k, self.line_status[k], self.line_pow_orig_real[k]) for k in self.bus_line_orig[i]]))
-        print("lines dest: %s" % str([(k, self.line_status[k], self.line_pow_dest_real[k]) for k in self.bus_line_dest[i]]))
-        print("xfmrs orig: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_orig_real[k]) for k in self.bus_xfmr_orig[i]]))
-        print("xfmrs dest: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
+        debug = False
+        if debug:
+            i = 223
+            print("debug base case real power balance")
+            print("bus: %s", str(i))
+            print("generators: %s" % str([(k, self.gen_status[k], self.gen_pow_real[k]) for k in self.bus_gen[i]]))
+            print("loads: %s" % str([(k, self.load_status[k], self.load_pow_real[k]) for k in self.bus_load[i]]))
+            print("fixed shunts: %s" % str([(k, self.fxsh_status[k], self.fxsh_pow_real[k]) for k in self.bus_fxsh[i]]))
+            print("lines orig: %s" % str([(k, self.line_status[k], self.line_pow_orig_real[k]) for k in self.bus_line_orig[i]]))
+            print("lines dest: %s" % str([(k, self.line_status[k], self.line_pow_dest_real[k]) for k in self.bus_line_dest[i]]))
+            print("xfmrs orig: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_orig_real[k]) for k in self.bus_xfmr_orig[i]]))
+            print("xfmrs dest: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
 
         self.bus_pow_balance_real_viol = {
             i:abs(
@@ -1068,21 +1021,23 @@ class Evaluation:
                         self.ctg_pow_real_change)))
              for i in self.gen if self.ctg_gen_participating[i]})
 
-        i = 223
-        uid = '1'
-        k = 'LINE-104-105-1'
-        g = (i, uid)
-        if self.ctg_label == k:
-            print('debug ctg gen real power evaluation')
-            print('ctg: %s' % str(k))
-            print('gen: %s' % str(g))
-            print('participating: %s' % str(self.ctg_gen_participating[g]))
-            print('pmax: %f' % self.gen_pow_real_max[g])
-            print('pmin: %f' % self.gen_pow_real_min[g])
-            print('pg: %f' % self.gen_pow_real[g])
-            print('alphag: %f' % self.gen_part_fact[g])
-            print('deltak: %f' % self.ctg_pow_real_change)
-            print('pgk: %f' % self.ctg_gen_pow_real[g])
+        debug = False
+        if debug:
+            i = 223
+            uid = '1'
+            k = 'LINE-104-105-1'
+            g = (i, uid)
+            if self.ctg_label == k:
+                print('debug ctg gen real power evaluation')
+                print('ctg: %s' % str(k))
+                print('gen: %s' % str(g))
+                print('participating: %s' % str(self.ctg_gen_participating[g]))
+                print('pmax: %f' % self.gen_pow_real_max[g])
+                print('pmin: %f' % self.gen_pow_real_min[g])
+                print('pg: %f' % self.gen_pow_real[g])
+                print('alphag: %f' % self.gen_part_fact[g])
+                print('deltak: %f' % self.ctg_pow_real_change)
+                print('pgk: %f' % self.ctg_gen_pow_real[g])
 
     def eval_ctg_gen_pow_real_viol(self):
 
@@ -2118,210 +2073,6 @@ def trans_old(raw_name, rop_name, con_name, inl_nsame,filename):
         p.con.write(filename+".con")
         p.inl.write(filename+".inl",p.raw,p.rop)
     
-
-
-
-"""
-# run method with reading some data from phase 0
-def run_old(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name, detail_name):
-
-    # read the data files
-    p = data.Data()
-    p.raw.read(raw_name)
-    if rop_name[-3:]=='rop':
-        p.rop.read(rop_name)
-        p.con.read(con_name)
-        p.inl.read(inl_name)
-    elif rop_name[-3:]=='csv':
-        p.rop.read_from_phase_0(rop_name)
-        p.rop.trancostfuncfrom_phase_0(p.raw)
-        p.rop.write("C:\SyncDrive\PNNL_Project\ACOPF Competition\eval_phase1\\testfile.rop",p.raw)
-        p.con.read_from_phase_0(con_name)
-        p.con.write("C:\SyncDrive\PNNL_Project\ACOPF Competition\eval_phase1\\testfile2.con")
-        p.inl.write("C:\SyncDrive\PNNL_Project\ACOPF Competition\eval_phase1\\testfile3.inl",p.raw,p.rop)
-    
-    print("buses: %u" % len(p.raw.buses))
-    print("loads: %u" % len(p.raw.loads))
-    print("fixed_shunts: %u" % len(p.raw.fixed_shunts))
-    print("generators: %u" % len(p.raw.generators))
-    print("nontransformer_branches: %u" % len(p.raw.nontransformer_branches))
-    print("transformers: %u" % len(p.raw.transformers))
-    print("areas: %u" % len(p.raw.areas)) # should do areas
-    print("switched_shunts: %u" % len(p.raw.switched_shunts))
-    print("generator inl records: %u" % len(p.inl.generator_inl_records))
-    print("generator dispatch records: %u" % len(p.rop.generator_dispatch_records))
-    print("active power dispatch records: %u" % len(p.rop.active_power_dispatch_records))
-    print("piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions))
-    print('contingencies: %u' % len(p.con.contingencies))
-
-    s1 = Solution1()
-    s2 = Solution2()
-    s1.read(sol1_name)
-    s2.read(sol2_name) # todo skip solution2 for now
-    #print 'solution 1'
-    #print 'gen pow real'
-    #print s1.gen_pow_real
-    #print 'solution 2'
-    #print 'area ctg pow real delta'
-    #print s2.area_ctg_pow_real_change
-
-    e = Evaluation()
-    e.set_data(p)
-    e.set_solution1(s1)
-    e.set_solution2(s2) # todo skip solution2 for now
-    e.evaluate()
-    e.normalize()
-    e.compute_summary()
-    #e.write_summary(summary_name) # probably do not need this
-    e.write_detail(detail_name)
-    print 'obj: %12.6e, cost: %12.6e, penalty: %12.6e, max nonobj viol: %12.6e' % (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
-    return (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
-"""
-
-"""
-def get_bus_volt_mag_min_viol(raw_name):
-    for row in self.get_row(raw_name):
-        row = pad_row(row, 13)
-        nvlo = parse_token(row[10], float, 0.9)
-"""    
-    
-"""
-def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name, detail_name, scenario_number, runtime_sec):
-
-    # read the data files
-    p = data.Data()
-
-    # read raw
-    start_time = time.time()
-    p.raw.read(raw_name)
-    time_elapsed = time.time() - start_time
-    print "read raw time: %u" % time_elapsed
-
-    # read rop
-    start_time = time.time()
-    p.rop.read(rop_name)
-    time_elapsed = time.time() - start_time
-    print "read rop time: %u" % time_elapsed
-
-    # read con
-    start_time = time.time()
-    p.con.read(con_name)
-    time_elapsed = time.time() - start_time
-    print "read con time: %u" % time_elapsed
-
-    # read inl
-    start_time = time.time()
-    p.inl.read(inl_name)
-    time_elapsed = time.time() - start_time
-    print "read inl time: %u" % time_elapsed
-
-    # show data stats
-    print "buses: %u" % len(p.raw.buses)
-    print "loads: %u" % len(p.raw.loads)
-    print "fixed_shunts: %u" % len(p.raw.fixed_shunts)
-    print "generators: %u" % len(p.raw.generators)
-    print "nontransformer_branches: %u" % len(p.raw.nontransformer_branches)
-    print "transformers: %u" % len(p.raw.transformers)
-    print "areas: %u" % len(p.raw.areas)
-    print "switched_shunts: %u" % len(p.raw.switched_shunts)
-    print "generator inl records: %u" % len(p.inl.generator_inl_records)
-    print "generator dispatch records: %u" % len(p.rop.generator_dispatch_records)
-    print "active power dispatch records: %u" % len(p.rop.active_power_dispatch_records)
-    print "piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions)
-    print 'contingencies: %u' % len(p.con.contingencies)
-
-    # read the solution
-    s1 = Solution1()
-    s2 = Solution2()
-
-    # read sol 1
-    start_time = time.time()
-    s1.read(sol1_name)
-    time_elapsed = time.time() - start_time
-    print "read sol1 time: %u" % time_elapsed
-
-    # read sol 2
-    start_time = time.time()
-    s2.read(sol2_name)
-    time_elapsed = time.time() - start_time
-    print "read sol2 time: %u" % time_elapsed
-
-    # add data and solution to evaluation
-    e = Evaluation()
-    
-    e.scenario_number = scenario_number
-    e.runtime_sec = runtime_sec
-
-    # set eval data
-    start_time = time.time()
-    e.set_data(p)
-    time_elapsed = time.time() - start_time
-    print "eval set data time: %u" % time_elapsed
-
-    # set eval sol1
-    start_time = time.time()
-    e.set_solution1(s1)
-    time_elapsed = time.time() - start_time
-    print "eval set sol1 time: %u" % time_elapsed
-
-    # eval set sol2
-    start_time = time.time()
-    e.set_solution2(s2)
-    time_elapsed = time.time() - start_time
-    print "eval set sol2 time: %u" % time_elapsed
-
-    # evaluate
-    start_time = time.time()
-    e.set_params() # convert to per unit for evaluation - this might not be the right place to put this item
-    e.evaluate()
-    time_elapsed = time.time() - start_time
-    print "evaluate time: %u" % time_elapsed
-
-    # normalize
-    start_time = time.time()
-    e.normalize()
-    time_elapsed = time.time() - start_time
-    print "eval normalize time: %u" % time_elapsed
-
-    # compute summary
-    start_time = time.time()
-    e.compute_summary()
-    time_elapsed = time.time() - start_time
-    print "eval compute summary time: %u" % time_elapsed
-
-    # convert to data units
-    start_time = time.time()
-    e.convert_to_data_units()
-    time_elapsed = time.time() - start_time
-    print "eval convert to data units time: %u" % time_elapsed
-
-    # write summary
-    #start_time = time.time()
-    #e.write_summary(summary_name) # probably do not need this
-    #time_elapsed = time.time() - start_time
-    #print "eval write summary time: %u" % time_elapsed
-
-    # write detail
-    start_time = time.time()
-    e.write_detail(detail_name)
-    time_elapsed = time.time() - start_time
-    print "eval write detail time: %u" % time_elapsed
-
-    # some results
-    print 'obj: %12.6e, cost: %12.6e, penalty: %12.6e, max nonobj viol: %12.6e' % (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
-    
-    e.write_summary(summary_name)
-    
-    return (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
-
-# old run method
-#def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name):
-#    '''temporary stub for integration with other GOComp codes.
-#    The real run() method is developed in run_old() until it is ready.'''
-#
-#    return (MAXOBJ, MAXVIOL)
-"""
-
 def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
 
     # start timer
