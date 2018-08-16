@@ -18,6 +18,56 @@ MVAPEN = 1000.0 #MVA penalty
 
 #TOP_N = 10
 
+class Result:
+
+    def __init__(self, ctgs):
+
+        self.obj_all = 0.0
+        self.cost_all = 0.0
+        self.penalty_all = 0.0
+        self.infeas_all = 1 # starts out infeasible
+        self.ctgs = [k for k in ctgs]
+
+        self.obj = 0.0
+        self.cost = 0.0
+        self.penalty = 0.0
+        self.infeas = 1
+        self.max_bus_volt_mag_max_viol = (None, 0.0)
+        self.max_bus_volt_mag_min_viol = (None, 0.0)
+        self.max_bus_swsh_adm_imag_max_viol = (None, 0.0)
+        self.max_bus_swsh_adm_imag_min_viol = (None, 0.0)
+        self.max_bus_pow_balance_real_viol = (None, 0.0)
+        self.max_bus_pow_balance_imag_viol = (None, 0.0)
+        self.max_gen_pow_real_max_viol = (None, 0.0)
+        self.max_gen_pow_real_min_viol = (None, 0.0)
+        self.max_gen_pow_imag_max_viol = (None, 0.0)
+        self.max_gen_pow_imag_min_viol = (None, 0.0)
+        self.max_line_curr_orig_mag_max_viol = (None, 0.0)
+        self.max_line_curr_dest_mag_max_viol = (None, 0.0)
+        self.max_xfmr_pow_orig_mag_max_viol = (None, 0.0)
+        self.max_xfmr_pow_dest_mag_max_viol = (None, 0.0)
+
+        self.ctg_obj = {k:0.0 for k in ctgs}
+        self.ctg_cost = {k:0.0 for k in ctgs}
+        self.ctg_penalty = {k:0.0 for k in ctgs}
+        self.ctg_infeas = {k:1 for k in ctgs}
+        self.ctg_max_bus_volt_mag_max_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_bus_volt_mag_min_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_bus_swsh_adm_imag_max_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_bus_swsh_adm_imag_min_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_bus_pow_balance_real_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_bus_pow_balance_imag_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_gen_pow_real_max_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_gen_pow_real_min_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_gen_pow_imag_max_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_gen_pow_imag_min_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_gen_pvpq1_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_gen_pvpq2_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_line_curr_orig_mag_max_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_line_curr_dest_mag_max_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_xfmr_pow_orig_mag_max_viol = {k:(None, 0.0) for k in ctgs}
+        self.ctg_max_xfmr_pow_dest_mag_max_viol = {k:(None, 0.0) for k in ctgs}
+
 def get_ctg_num_lines(file_name):
 
     ctg_start_str = '--con'
@@ -818,6 +868,19 @@ class Evaluation:
 
     def eval_line_pow(self):
 
+        iorig = 223
+        idest = 224
+        cid = '1'
+        k = (iorig, idest, cid)
+        print("debug line real power")
+        print("(iorig, idest, cid): %s" % str(k))
+        print("vm_orig: %s" % str(self.bus_volt_mag[iorig]))
+        print("vm_dest: %s" % str(self.bus_volt_mag[idest]))
+        print("va_orig (rad): %s" % str(self.bus_volt_ang[iorig]))
+        print("va_dest (rad): %s" % str(self.bus_volt_ang[idest]))
+        print("va_orig (deg): %s" % str(self.bus_volt_ang[iorig] * 180.0/math.pi))
+        print("va_dest (deg): %s" % str(self.bus_volt_ang[idest] * 180.0/math.pi))
+        
         self.line_pow_orig_real = {
             k:( self.line_adm_real[k] * self.bus_volt_mag[k[0]]**2.0 +
                 ( - self.line_adm_real[k] * math.cos(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]])
@@ -929,6 +992,17 @@ class Evaluation:
 
     def eval_bus_pow_balance(self):
 
+        i = 223
+        print("debug base case real power balance")
+        print("bus: %s", str(i))
+        print("generators: %s" % str([(k, self.gen_status[k], self.gen_pow_real[k]) for k in self.bus_gen[i]]))
+        print("loads: %s" % str([(k, self.load_status[k], self.load_pow_real[k]) for k in self.bus_load[i]]))
+        print("fixed shunts: %s" % str([(k, self.fxsh_status[k], self.fxsh_pow_real[k]) for k in self.bus_fxsh[i]]))
+        print("lines orig: %s" % str([(k, self.line_status[k], self.line_pow_orig_real[k]) for k in self.bus_line_orig[i]]))
+        print("lines dest: %s" % str([(k, self.line_status[k], self.line_pow_dest_real[k]) for k in self.bus_line_dest[i]]))
+        print("xfmrs orig: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_orig_real[k]) for k in self.bus_xfmr_orig[i]]))
+        print("xfmrs dest: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
+
         self.bus_pow_balance_real_viol = {
             i:abs(
                 sum([self.gen_pow_real[k] for k in self.bus_gen[i] if self.gen_status[k]]) -
@@ -993,6 +1067,22 @@ class Evaluation:
                         self.gen_part_fact[i] *
                         self.ctg_pow_real_change)))
              for i in self.gen if self.ctg_gen_participating[i]})
+
+        i = 223
+        uid = '1'
+        k = 'LINE-104-105-1'
+        g = (i, uid)
+        if self.ctg_label == k:
+            print('debug ctg gen real power evaluation')
+            print('ctg: %s' % str(k))
+            print('gen: %s' % str(g))
+            print('participating: %s' % str(self.ctg_gen_participating[g]))
+            print('pmax: %f' % self.gen_pow_real_max[g])
+            print('pmin: %f' % self.gen_pow_real_min[g])
+            print('pg: %f' % self.gen_pow_real[g])
+            print('alphag: %f' % self.gen_part_fact[g])
+            print('deltak: %f' % self.ctg_pow_real_change)
+            print('pgk: %f' % self.ctg_gen_pow_real[g])
 
     def eval_ctg_gen_pow_real_viol(self):
 
@@ -1124,6 +1214,20 @@ class Evaluation:
             for i in self.bus}
 
     def eval_ctg_bus_pow_balance(self):
+
+        ctg = 'LINE-104-105-1'
+        i = 223
+        if self.ctg_label == ctg:
+            print("debug contingency real power balance")
+            print("ctg: %s" % str(ctg))
+            print("bus: %s" % str(i))
+            print("generators: %s" % str([(k, self.ctg_gen_active[k], self.ctg_gen_pow_real[k]) for k in self.bus_gen[i]]))
+            print("loads: %s" % str([(k, self.load_status[k], self.ctg_load_pow_real[k]) for k in self.bus_load[i]]))
+            print("fixed shunts: %s" % str([(k, self.fxsh_status[k], self.ctg_fxsh_pow_real[k]) for k in self.bus_fxsh[i]]))
+            print("lines orig: %s" % str([(k, self.ctg_line_active[k], self.ctg_line_pow_orig_real[k]) for k in self.bus_line_orig[i]]))
+            print("lines dest: %s" % str([(k, self.ctg_line_active[k], self.ctg_line_pow_dest_real[k]) for k in self.bus_line_dest[i]]))
+            print("xfmrs orig: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_orig_real[k]) for k in self.bus_xfmr_orig[i]]))
+            print("xfmrs dest: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
 
         self.ctg_bus_pow_balance_real_viol = {
             i:abs(
