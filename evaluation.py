@@ -1489,7 +1489,7 @@ class Evaluation:
                         i, k, self.bus_ctg_volt_mag_min_viol[(i,k)], self.bus_ctg_volt_mag_max_viol[(i,k)],
                         self.bus_ctg_pow_balance_real_viol[(i,k)], self.bus_ctg_pow_balance_imag_viol[(i,k)]])
         time_elapsed = time.time() - start_time
-        print 'write bus ctg time (1): %u' % time_elapsed
+        print('write bus ctg time (1): %u' % time_elapsed)
 
     def write_line_contingencies(self, csv_writer):
         csv_writer.writerow(['--line ctg'])
@@ -1514,7 +1514,7 @@ class Evaluation:
                         i[0], i[1], i[2], k, self.line_ctg_curr_orig_mag_max_viol[(i[0],i[1],i[2],k)],
                         self.line_ctg_curr_dest_mag_max_viol[(i[0],i[1],i[2],k)]])
         time_elapsed = time.time() - start_time
-        print 'write line ctg time (1): %u' % time_elapsed
+        print('write line ctg time (1): %u' % time_elapsed)
         
         
     def write_gen_contingencies(self, csv_writer):
@@ -1919,19 +1919,19 @@ class Solution2:
 
     def display(self):
 
-        print "ctg_label: %s" % self.ctg_label
-        print "bus_volt_mag:"
-        print self.bus_volt_mag
-        print "bus_volt_ang:"
-        print self.bus_volt_ang
-        print "bus_swsh_adm_imag:"
-        print self.bus_swsh_adm_imag
-        print "gen_pow_real:"
-        print self.gen_pow_real
-        print "gen_pow_imag:"
-        print self.gen_pow_imag
-        print "pow_real_change:"
-        print self.pow_real_change
+        print("ctg_label: %s" % self.ctg_label)
+        print("bus_volt_mag:")
+        print(self.bus_volt_mag)
+        print("bus_volt_ang:")
+        print(self.bus_volt_ang)
+        print("bus_swsh_adm_imag:")
+        print(self.bus_swsh_adm_imag)
+        print("gen_pow_real:")
+        print(self.gen_pow_real)
+        print("gen_pow_imag:")
+        print(self.gen_pow_imag)
+        print("pow_real_change:")
+        print(self.pow_real_change)
         
     def read_from_lines(self, lines):
         """read a sol2 object from a list of text lines
@@ -2011,7 +2011,7 @@ def trans_old(raw_name, rop_name, con_name, inl_nsame,filename):
 
 
 
-
+"""
 # run method with reading some data from phase 0
 def run_old(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name, detail_name):
 
@@ -2030,19 +2030,19 @@ def run_old(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summar
         p.con.write("C:\SyncDrive\PNNL_Project\ACOPF Competition\eval_phase1\\testfile2.con")
         p.inl.write("C:\SyncDrive\PNNL_Project\ACOPF Competition\eval_phase1\\testfile3.inl",p.raw,p.rop)
     
-    print "buses: %u" % len(p.raw.buses)
-    print "loads: %u" % len(p.raw.loads)
-    print "fixed_shunts: %u" % len(p.raw.fixed_shunts)
-    print "generators: %u" % len(p.raw.generators)
-    print "nontransformer_branches: %u" % len(p.raw.nontransformer_branches)
-    print "transformers: %u" % len(p.raw.transformers)
-    print "areas: %u" % len(p.raw.areas) # should do areas
-    print "switched_shunts: %u" % len(p.raw.switched_shunts)
-    print "generator inl records: %u" % len(p.inl.generator_inl_records)
-    print "generator dispatch records: %u" % len(p.rop.generator_dispatch_records)
-    print "active power dispatch records: %u" % len(p.rop.active_power_dispatch_records)
-    print "piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions)
-    print 'contingencies: %u' % len(p.con.contingencies)
+    print("buses: %u" % len(p.raw.buses))
+    print("loads: %u" % len(p.raw.loads))
+    print("fixed_shunts: %u" % len(p.raw.fixed_shunts))
+    print("generators: %u" % len(p.raw.generators))
+    print("nontransformer_branches: %u" % len(p.raw.nontransformer_branches))
+    print("transformers: %u" % len(p.raw.transformers))
+    print("areas: %u" % len(p.raw.areas)) # should do areas
+    print("switched_shunts: %u" % len(p.raw.switched_shunts))
+    print("generator inl records: %u" % len(p.inl.generator_inl_records))
+    print("generator dispatch records: %u" % len(p.rop.generator_dispatch_records))
+    print("active power dispatch records: %u" % len(p.rop.active_power_dispatch_records))
+    print("piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions))
+    print('contingencies: %u' % len(p.con.contingencies))
 
     s1 = Solution1()
     s2 = Solution2()
@@ -2066,16 +2066,16 @@ def run_old(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summar
     e.write_detail(detail_name)
     print 'obj: %12.6e, cost: %12.6e, penalty: %12.6e, max nonobj viol: %12.6e' % (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
     return (e.obj, e.cost, e.penalty, e.max_nonobj_viol)
+"""
 
-
-
+"""
 def get_bus_volt_mag_min_viol(raw_name):
     for row in self.get_row(raw_name):
         row = pad_row(row, 13)
         nvlo = parse_token(row[10], float, 0.9)
+"""    
     
-    
-
+"""
 def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name, detail_name, scenario_number, runtime_sec):
 
     # read the data files
@@ -2210,6 +2210,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
 #    The real run() method is developed in run_old() until it is ready.'''
 #
 #    return (MAXOBJ, MAXVIOL)
+"""
 
 def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
 
@@ -2220,40 +2221,40 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
     start_time = time.time()
     p.raw.read(raw_name)
     time_elapsed = time.time() - start_time
-    print "read raw time: %u" % time_elapsed
+    print("read raw time: %u" % time_elapsed)
 
     # read rop
     start_time = time.time()
     p.rop.read(rop_name)
     time_elapsed = time.time() - start_time
-    print "read rop time: %u" % time_elapsed
+    print("read rop time: %u" % time_elapsed)
 
     # read con
     start_time = time.time()
     p.con.read(con_name)
     time_elapsed = time.time() - start_time
-    print "read con time: %u" % time_elapsed
+    print("read con time: %u" % time_elapsed)
 
     # read inl
     start_time = time.time()
     p.inl.read(inl_name)
     time_elapsed = time.time() - start_time
-    print "read inl time: %u" % time_elapsed
+    print("read inl time: %u" % time_elapsed)
 
     # show data stats
-    print "buses: %u" % len(p.raw.buses)
-    print "loads: %u" % len(p.raw.loads)
-    print "fixed_shunts: %u" % len(p.raw.fixed_shunts)
-    print "generators: %u" % len(p.raw.generators)
-    print "nontransformer_branches: %u" % len(p.raw.nontransformer_branches)
-    print "transformers: %u" % len(p.raw.transformers)
-    print "areas: %u" % len(p.raw.areas)
-    print "switched_shunts: %u" % len(p.raw.switched_shunts)
-    print "generator inl records: %u" % len(p.inl.generator_inl_records)
-    print "generator dispatch records: %u" % len(p.rop.generator_dispatch_records)
-    print "active power dispatch records: %u" % len(p.rop.active_power_dispatch_records)
-    print "piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions)
-    print 'contingencies: %u' % len(p.con.contingencies)
+    print("buses: %u" % len(p.raw.buses))
+    print("loads: %u" % len(p.raw.loads))
+    print("fixed_shunts: %u" % len(p.raw.fixed_shunts))
+    print("generators: %u" % len(p.raw.generators))
+    print("nontransformer_branches: %u" % len(p.raw.nontransformer_branches))
+    print("transformers: %u" % len(p.raw.transformers))
+    print("areas: %u" % len(p.raw.areas))
+    print("switched_shunts: %u" % len(p.raw.switched_shunts))
+    print("generator inl records: %u" % len(p.inl.generator_inl_records))
+    print("generator dispatch records: %u" % len(p.rop.generator_dispatch_records))
+    print("active power dispatch records: %u" % len(p.rop.active_power_dispatch_records))
+    print("piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions))
+    print('contingencies: %u' % len(p.con.contingencies))
 
     # set up solution objects
     s1 = Solution1()
@@ -2263,7 +2264,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
     start_time = time.time()
     s1.read(sol1_name)
     time_elapsed = time.time() - start_time
-    print "read sol_base time: %u" % time_elapsed
+    print("read sol_base time: %u" % time_elapsed)
 
     # set up evaluation
     e = Evaluation()
@@ -2272,32 +2273,32 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
     start_time = time.time()
     e.set_data(p)
     time_elapsed = time.time() - start_time
-    print "set data time: %u" % time_elapsed
+    print("set data time: %u" % time_elapsed)
 
     # set penalty params (later read from case.prm)
     start_time = time.time()
     e.set_params()
     time_elapsed = time.time() - start_time
-    print "set params time: %u" % time_elapsed
+    print("set params time: %u" % time_elapsed)
 
     # set eval sol1
     start_time = time.time()
     e.set_solution1(s1)
     time_elapsed = time.time() - start_time
-    print "set sol1 time: %u" % time_elapsed
+    print("set sol1 time: %u" % time_elapsed)
 
     # evaluate base
     start_time = time.time()
     e.eval_base()
     time_elapsed = time.time() - start_time
-    print "eval base time: %u" % time_elapsed
+    print("eval base time: %u" % time_elapsed)
     
     # write base summary
     start_time = time.time()
     e.write_header(det_name)
     e.write_base(det_name)
     time_elapsed = time.time() - start_time
-    print "write base time: %u" % time_elapsed
+    print("write base time: %u" % time_elapsed)
 
     # get ctg structure in sol
     # do not forget to check that every contingency is found in the sol file
@@ -2314,10 +2315,10 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
             e.eval_ctg()
             e.write_ctg(det_name)
 
-    print "obj: %f" % e.obj
-    print "cost: %f" % e.cost
-    print "penalty: %f" % (e.obj - e.cost)
-    print "max_obj_viol: %f" % e.max_obj_viol
-    print "max_nonobj_viol: %f" % e.max_nonobj_viol
+    print("obj: %f" % e.obj)
+    print("cost: %f" % e.cost)
+    print("penalty: %f" % (e.obj - e.cost))
+    print("max_obj_viol: %f" % e.max_obj_viol)
+    print("max_nonobj_viol: %f" % e.max_nonobj_viol)
 
     return (e.obj, e.cost, e.penalty, e.max_obj_viol, e.max_nonobj_viol)

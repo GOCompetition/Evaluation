@@ -39,7 +39,7 @@ def run():
             args.det,
         )
     except:
-        print "exception in evaluation.run"
+        print("exception in evaluation.run")
         raise
     else:
         """process obj, cost, penalty, max_obj_viol, max_nonobj_viol

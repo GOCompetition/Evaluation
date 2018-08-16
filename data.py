@@ -1084,8 +1084,8 @@ class Transformer:
         try:
             self.read_from_row(row)
         except Exception as e:
-            print "row:"
-            print row
+            print("row:")
+            print(row)
             raise e
         
     def pad_rows(self, rows):
