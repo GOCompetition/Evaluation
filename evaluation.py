@@ -9,6 +9,8 @@ from itertools import islice
 TODO
 write output in data units, not p.u.
 write summary with only worst contingency for each category
+numpy
+process scenarios in parallel
 """
 
 #MAXOBJ = 9876543210.0
@@ -17,6 +19,8 @@ KVPEN = 1000.0 # kV penalty (p.u. already)
 MVAPEN = 1000.0 #MVA penalty
 
 #TOP_N = 10
+
+debug = False
 
 class Result:
 
@@ -379,12 +383,12 @@ class Evaluation:
         self.bus_volt_mag_min = {
             r.i:r.nvlo
             for r in data.raw.buses.values()}
-        #self.ctg_bus_volt_mag_max = {
-        #    r.i:r.evhi
-        #    for r in data.raw.buses.values()}
-        #self.ctg_bus_volt_mag_min = {
-        #    r.i:r.evlo
-        #    for r in data.raw.buses.values()}
+        self.ctg_bus_volt_mag_max = {
+            r.i:r.evhi
+            for r in data.raw.buses.values()}
+        self.ctg_bus_volt_mag_min = {
+            r.i:r.evlo
+            for r in data.raw.buses.values()}
         self.bus_area = {
             r.i:r.area
             for r in data.raw.buses.values()}
@@ -440,9 +444,9 @@ class Evaluation:
         self.line_curr_mag_max = {
             (r.i,r.j,r.ckt):(r.ratea/self.base_mva) # todo - normalize by bus base kv???
             for r in data.raw.nontransformer_branches.values()}
-        #self.ctg_line_curr_mag_max = {
-        #    (r.i,r.j,r.ckt):(r.ratec/self.base_mva) # todo - normalize by bus base kv???
-        #    for r in data.raw.nontransformer_branches.values()}
+        self.ctg_line_curr_mag_max = {
+            (r.i,r.j,r.ckt):(r.ratec/self.base_mva) # todo - normalize by bus base kv???
+            for r in data.raw.nontransformer_branches.values()}
         self.line_status = {
             (r.i,r.j,r.ckt):r.st
             for r in data.raw.nontransformer_branches.values()}
@@ -468,9 +472,9 @@ class Evaluation:
         self.xfmr_pow_mag_max = {
             (r.i,r.j,r.ckt):(r.rata1/self.base_mva) # todo check normalization
             for r in data.raw.transformers.values()}
-        #self.ctg_xfmr_pow_mag_max = {
-        #    (r.i,r.j,r.ckt):(r.ratc1/self.base_mva) # todo check normalization
-        #    for r in data.raw.transformers.values()}
+        self.ctg_xfmr_pow_mag_max = {
+            (r.i,r.j,r.ckt):(r.ratc1/self.base_mva) # todo check normalization
+            for r in data.raw.transformers.values()}
         self.xfmr_status = {
             (r.i,r.j,r.ckt):r.stat
             for r in data.raw.transformers.values()}
@@ -922,7 +926,6 @@ class Evaluation:
 
     def eval_line_pow(self):
 
-        debug = False
         if debug:
             iorig = 223
             idest = 224
@@ -1048,7 +1051,6 @@ class Evaluation:
 
     def eval_bus_pow_balance(self):
 
-        debug = False
         if debug:
             i = 223
             print("debug base case real power balance")
@@ -1086,10 +1088,10 @@ class Evaluation:
     def eval_ctg_bus_volt_viol(self):
 
         self.ctg_bus_volt_mag_min_viol = {
-            i:max(0.0, self.bus_volt_mag_min[i] - self.ctg_bus_volt_mag[i])
+            i:max(0.0, self.ctg_bus_volt_mag_min[i] - self.ctg_bus_volt_mag[i])
             for i in self.bus}
         self.ctg_bus_volt_mag_max_viol = {
-            i:max(0.0, self.ctg_bus_volt_mag[i] - self.bus_volt_mag_max[i])
+            i:max(0.0, self.ctg_bus_volt_mag[i] - self.ctg_bus_volt_mag_max[i])
             for i in self.bus}
 
     def eval_ctg_load_pow(self):
@@ -1114,6 +1116,24 @@ class Evaluation:
 
     def eval_ctg_gen_pow_real(self):
 
+
+        i = 223
+        uid = '1'
+        k = 'GEN-688-1'
+        g = (i, uid)
+        if debug:
+            if self.ctg_label == k:
+                print('debug ctg gen real power evaluation')
+                print('ctg: %s' % str(k))
+                print('gen: %s' % str(g))
+                print('participating: %s' % str(self.ctg_gen_participating[g]))
+                print('pmax: %f' % self.gen_pow_real_max[g])
+                print('pmin: %f' % self.gen_pow_real_min[g])
+                print('pg: %f' % self.gen_pow_real[g])
+                print('alphag: %f' % self.gen_part_fact[g])
+                print('deltak: %f' % self.ctg_pow_real_change)
+                print('pgk (from sol2): %f' % self.ctg_gen_pow_real[g])
+
         self.ctg_gen_pow_real = {i:0.0 for i in self.gen}
         self.ctg_gen_pow_real.update(
             {i:self.gen_pow_real[i] for i in self.gen
@@ -1126,23 +1146,9 @@ class Evaluation:
                         self.ctg_pow_real_change)))
              for i in self.gen if self.ctg_gen_participating[i]})
 
-        debug = False
         if debug:
-            i = 223
-            uid = '1'
-            k = 'LINE-104-105-1'
-            g = (i, uid)
             if self.ctg_label == k:
-                print('debug ctg gen real power evaluation')
-                print('ctg: %s' % str(k))
-                print('gen: %s' % str(g))
-                print('participating: %s' % str(self.ctg_gen_participating[g]))
-                print('pmax: %f' % self.gen_pow_real_max[g])
-                print('pmin: %f' % self.gen_pow_real_min[g])
-                print('pg: %f' % self.gen_pow_real[g])
-                print('alphag: %f' % self.gen_part_fact[g])
-                print('deltak: %f' % self.ctg_pow_real_change)
-                print('pgk: %f' % self.ctg_gen_pow_real[g])
+                print('pgk (computed): %f' % self.ctg_gen_pow_real[g])
 
     def eval_ctg_gen_pow_real_viol(self):
 
@@ -1200,14 +1206,14 @@ class Evaluation:
                 0.0,
                 (self.ctg_line_pow_orig_real[k]**2.0 +
                  self.ctg_line_pow_orig_imag[k]**2.0)**0.5 -
-                self.line_curr_mag_max[k] * self.ctg_bus_volt_mag[k[0]])
+                self.ctg_line_curr_mag_max[k] * self.ctg_bus_volt_mag[k[0]])
             for k in self.line}
         self.ctg_line_curr_dest_mag_max_viol = {
             k:max(
                 0.0,
                 (self.ctg_line_pow_dest_real[k]**2.0 +
                  self.ctg_line_pow_dest_imag[k]**2.0)**0.5 -
-                self.line_curr_mag_max[k] * self.ctg_bus_volt_mag[k[1]])
+                self.ctg_line_curr_mag_max[k] * self.ctg_bus_volt_mag[k[1]])
             for k in self.line}
 
     def eval_ctg_xfmr_pow(self):
@@ -1248,14 +1254,14 @@ class Evaluation:
                 0.0,
                 (self.ctg_xfmr_pow_orig_real[k]**2.0 +
                  self.ctg_xfmr_pow_orig_imag[k]**2.0)**0.5 -
-                self.xfmr_pow_mag_max[k])
+                self.ctg_xfmr_pow_mag_max[k])
             for k in self.xfmr}
         self.ctg_xfmr_pow_dest_mag_max_viol = {
             k:max(
                 0.0,
                 (self.ctg_xfmr_pow_dest_real[k]**2.0 +
                  self.ctg_xfmr_pow_dest_imag[k]**2.0)**0.5 -
-                self.xfmr_pow_mag_max[k])
+                self.ctg_xfmr_pow_mag_max[k])
             for k in self.xfmr}
 
     def eval_ctg_bus_swsh_adm_imag_viol(self):
@@ -1275,9 +1281,9 @@ class Evaluation:
 
     def eval_ctg_bus_pow_balance(self):
 
-        debug = False
         if debug:
-            ctg = 'LINE-104-105-1'
+            #ctg = 'LINE-104-105-1'
+            ctg = 'GEN-688-1'
             i = 223
             if self.ctg_label == ctg:
                 print("debug contingency real power balance")
@@ -1328,7 +1334,6 @@ class Evaluation:
                 else 0.0)
             for i in self.gen}
 
-        debug = False
         if debug:
             ctg = 'LINE-95-96-1'
             i = 151
