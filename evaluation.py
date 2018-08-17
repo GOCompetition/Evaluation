@@ -2331,4 +2331,4 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
     print("max_nonobj_viol: %f" % e.max_nonobj_viol)
     print("infeas: %u" % e.infeas)
 
-    return (e.obj, e.cost, e.penalty, e.max_obj_viol, e.max_nonobj_viol, e.infeas)
+    return (e.obj, e.cost, e.obj - e.cost, e.max_obj_viol, e.max_nonobj_viol, e.infeas)
