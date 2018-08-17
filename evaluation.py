@@ -28,6 +28,7 @@ class Result:
         self.infeas_all = 1 # starts out infeasible
         self.ctgs = [k for k in ctgs]
 
+        #base case
         self.obj = 0.0
         self.cost = 0.0
         self.penalty = 0.0
@@ -47,6 +48,7 @@ class Result:
         self.max_xfmr_pow_orig_mag_max_viol = (None, 0.0)
         self.max_xfmr_pow_dest_mag_max_viol = (None, 0.0)
 
+        #ctgs
         self.ctg_obj = {k:0.0 for k in ctgs}
         self.ctg_cost = {k:0.0 for k in ctgs}
         self.ctg_penalty = {k:0.0 for k in ctgs}
@@ -67,6 +69,109 @@ class Result:
         self.ctg_max_line_curr_dest_mag_max_viol = {k:(None, 0.0) for k in ctgs}
         self.ctg_max_xfmr_pow_orig_mag_max_viol = {k:(None, 0.0) for k in ctgs}
         self.ctg_max_xfmr_pow_dest_mag_max_viol = {k:(None, 0.0) for k in ctgs}
+
+        #reduce_ctg
+        self.total_obj = 0.0
+        self.total_cost = 0.0
+        self.total_penalty = 0.0
+        self.max_ctg_infeas = (None, 1)
+        self.max_ctg_max_bus_volt_mag_max_viol = (None, 0.0)
+        self.max_ctg_max_bus_volt_mag_min_viol = (None, 0.0)
+        self.max_ctg_max_bus_swsh_adm_imag_max_viol = (None, 0.0)
+        self.max_ctg_max_bus_swsh_adm_imag_min_viol = (None, 0.0)
+        self.max_ctg_max_bus_pow_balance_real_viol = (None, 0.0)
+        self.max_ctg_max_bus_pow_balance_imag_viol = (None, 0.0)
+        self.max_ctg_max_gen_pow_real_max_viol = (None, 0.0)
+        self.max_ctg_max_gen_pow_real_min_viol = (None, 0.0)
+        self.max_ctg_max_gen_pow_imag_max_viol = (None, 0.0)
+        self.max_ctg_max_gen_pow_imag_min_viol = (None, 0.0)
+        self.max_ctg_max_gen_pvpq1_viol = (None, 0.0)
+        self.max_ctg_max_gen_pvpq2_viol = (None, 0.0)
+        self.max_ctg_max_line_curr_orig_mag_max_viol = (None, 0.0)
+        self.max_ctg_max_line_curr_dest_mag_max_viol = (None, 0.0)
+        self.max_ctg_max_xfmr_pow_orig_mag_max_viol = (None, 0.0)
+        self.max_ctg_max_xfmr_pow_dest_mag_max_viol = (None, 0.0)
+
+    def reduce_ctg(self):
+
+        def compute_max_ctg_one_component(x):
+            if len(x) == 0:
+                return (None, 0.0)
+            else:
+                k = max(x.keys(), key=(lambda k: x[k][1]))
+                return (k, x[k])
+        
+        self.total_obj = sum(self.ctg_obj.values())
+        self.total_cost = sum(self.ctg_cost.values())
+        self.total_penalty = sum(self.ctg_penalty.values())
+        self.max_ctg_infeas = max(self.ctg_infeas.values())
+        self.max_ctg_max_bus_volt_mag_max_viol = compute_max_ctg_one_component(self.ctg_max_bus_volt_mag_max_viol)
+        self.max_ctg_max_bus_volt_mag_min_viol = compute_max_ctg_one_component(self.ctg_max_bus_volt_mag_min_viol)
+        self.max_ctg_max_bus_swsh_adm_imag_max_viol = compute_max_ctg_one_component(self.ctg_max_bus_swsh_adm_imag_max_viol)
+        self.max_ctg_max_bus_swsh_adm_imag_min_viol = compute_max_ctg_one_component(self.ctg_max_bus_swsh_adm_imag_min_viol)
+        self.max_ctg_max_bus_pow_balance_real_viol = compute_max_ctg_one_component(self.ctg_max_bus_pow_balance_real_viol)
+        self.max_ctg_max_bus_pow_balance_imag_viol = compute_max_ctg_one_component(self.ctg_max_bus_pow_balance_imag_viol)
+        self.max_ctg_max_gen_pow_real_max_viol = compute_max_ctg_one_component(self.ctg_max_gen_pow_real_max_viol)
+        self.max_ctg_max_gen_pow_real_min_viol = compute_max_ctg_one_component(self.ctg_max_gen_pow_real_min_viol)
+        self.max_ctg_max_gen_pow_imag_max_viol = compute_max_ctg_one_component(self.ctg_max_gen_pow_imag_max_viol)
+        self.max_ctg_max_gen_pow_imag_min_viol = compute_max_ctg_one_component(self.ctg_max_gen_pow_imag_min_viol)
+        self.max_ctg_max_gen_pvpq1_viol = compute_max_ctg_one_component(self.ctg_max_gen_pvpq1_viol)
+        self.max_ctg_max_gen_pvpq2_viol = compute_max_ctg_one_component(self.ctg_max_gen_pvpq2_viol)
+        self.max_ctg_max_line_curr_orig_mag_max_viol = compute_max_ctg_one_component(self.ctg_max_line_curr_orig_mag_max_viol)
+        self.max_ctg_max_line_curr_dest_mag_max_viol = compute_max_ctg_one_component(self.ctg_max_line_curr_dest_mag_max_viol)
+        self.max_ctg_max_xfmr_pow_orig_mag_max_viol = compute_max_ctg_one_component(self.ctg_max_xfmr_curr_orig_mag_max_viol)
+        self.max_ctg_max_xfmr_pow_dest_mag_max_viol = compute_max_ctg_one_component(self.ctg_max_xfmr_curr_dest_mag_max_viol)
+
+    def convert_units(self):
+
+        #self.obj
+        #self.cost
+        #self.penalty
+        #self.infeas
+        #self.max_bus_volt_mag_max_viol
+        #self.max_bus_volt_mag_min_viol
+        self.max_bus_swsh_adm_imag_max_viol *= self.base_mva
+        self.max_bus_swsh_adm_imag_min_viol *= self.base_mva
+        self.max_bus_pow_balance_real_viol *= self.base_mva
+        self.max_bus_pow_balance_imag_viol *= self.base_mva
+        self.max_gen_pow_real_max_viol *= self.base_mva
+        self.max_gen_pow_real_min_viol *= self.base_mva
+        self.max_gen_pow_imag_max_viol *= self.base_mva
+        self.max_gen_pow_imag_min_viol *= self.base_mva
+        self.max_line_curr_orig_mag_max_viol *= self.base_mva
+        self.max_line_curr_dest_mag_max_viol *= self.base_mva
+        self.max_xfmr_pow_orig_mag_max_viol *= self.base_mva
+        self.max_xfmr_pow_dest_mag_max_viol *= self.base_mva
+
+        #self.ctg_obj
+        #self.ctg_cost
+        #self.ctg_penalty
+        #self.ctg_infeas
+        for k in ctgs:
+            #self.ctg_max_bus_volt_mag_max_viol[k][1]
+            #self.ctg_max_bus_volt_mag_min_viol[k][1]
+            self.ctg_max_bus_swsh_adm_imag_max_viol[k][1] *= self.base_mva
+            self.ctg_max_bus_swsh_adm_imag_min_viol[k][1] *= self.base_mva
+            self.ctg_max_bus_pow_balance_real_viol[k][1] *= self.base_mva
+            self.ctg_max_bus_pow_balance_imag_viol[k][1] *= self.base_mva
+            self.ctg_max_gen_pow_real_max_viol[k][1] *= self.base_mva
+            self.ctg_max_gen_pow_real_min_viol[k][1] *= self.base_mva
+            self.ctg_max_gen_pow_imag_max_viol[k][1] *= self.base_mva
+            self.ctg_max_gen_pow_imag_min_viol[k][1] *= self.base_mva
+            #self.ctg_max_gen_pvpq1_viol[k][1]
+            #self.ctg_max_gen_pvpq2_viol[k][1]
+            self.ctg_max_line_curr_orig_mag_max_viol[k][1] *= self.base_mva
+            self.ctg_max_line_curr_dest_mag_max_viol[k][1] *= self.base_mva
+            self.ctg_max_xfmr_pow_orig_mag_max_viol[k][1] *= self.base_mva
+            self.ctg_max_xfmr_pow_dest_mag_max_viol[k][1] *= self.base_mva
+
+    def write_detail(self, file_name):
+
+        pass
+
+    def write_summary(self, file_name):
+
+        pass
 
 def get_ctg_num_lines(file_name):
 
@@ -1170,19 +1275,21 @@ class Evaluation:
 
     def eval_ctg_bus_pow_balance(self):
 
-        ctg = 'LINE-104-105-1'
-        i = 223
-        if self.ctg_label == ctg:
-            print("debug contingency real power balance")
-            print("ctg: %s" % str(ctg))
-            print("bus: %s" % str(i))
-            print("generators: %s" % str([(k, self.ctg_gen_active[k], self.ctg_gen_pow_real[k]) for k in self.bus_gen[i]]))
-            print("loads: %s" % str([(k, self.load_status[k], self.ctg_load_pow_real[k]) for k in self.bus_load[i]]))
-            print("fixed shunts: %s" % str([(k, self.fxsh_status[k], self.ctg_fxsh_pow_real[k]) for k in self.bus_fxsh[i]]))
-            print("lines orig: %s" % str([(k, self.ctg_line_active[k], self.ctg_line_pow_orig_real[k]) for k in self.bus_line_orig[i]]))
-            print("lines dest: %s" % str([(k, self.ctg_line_active[k], self.ctg_line_pow_dest_real[k]) for k in self.bus_line_dest[i]]))
-            print("xfmrs orig: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_orig_real[k]) for k in self.bus_xfmr_orig[i]]))
-            print("xfmrs dest: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
+        debug = False
+        if debug:
+            ctg = 'LINE-104-105-1'
+            i = 223
+            if self.ctg_label == ctg:
+                print("debug contingency real power balance")
+                print("ctg: %s" % str(ctg))
+                print("bus: %s" % str(i))
+                print("generators: %s" % str([(k, self.ctg_gen_active[k], self.ctg_gen_pow_real[k]) for k in self.bus_gen[i]]))
+                print("loads: %s" % str([(k, self.load_status[k], self.ctg_load_pow_real[k]) for k in self.bus_load[i]]))
+                print("fixed shunts: %s" % str([(k, self.fxsh_status[k], self.ctg_fxsh_pow_real[k]) for k in self.bus_fxsh[i]]))
+                print("lines orig: %s" % str([(k, self.ctg_line_active[k], self.ctg_line_pow_orig_real[k]) for k in self.bus_line_orig[i]]))
+                print("lines dest: %s" % str([(k, self.ctg_line_active[k], self.ctg_line_pow_dest_real[k]) for k in self.bus_line_dest[i]]))
+                print("xfmrs orig: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_orig_real[k]) for k in self.bus_xfmr_orig[i]]))
+                print("xfmrs dest: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
 
         self.ctg_bus_pow_balance_real_viol = {
             i:abs(
@@ -1220,6 +1327,27 @@ class Evaluation:
                 if self.ctg_gen_active[i]
                 else 0.0)
             for i in self.gen}
+
+        debug = False
+        if debug:
+            ctg = 'LINE-95-96-1'
+            i = 151
+            uid = '2'
+            g = (i,uid)
+            if self.ctg_label == ctg:
+                print("debug ctg gen pvpq switching constraints")
+                print("ctg: %s" % str(ctg))
+                print("gen: %s" % str(g))
+                print("active: %u" % self.ctg_gen_active[g])
+                print("qmax: %s" % self.gen_pow_imag_max[g])
+                print("qmin: %s" % self.gen_pow_imag_min[g])
+                print("vmax: %s" % self.bus_volt_mag_max[i])
+                print("vmin: %s" % self.bus_volt_mag_min[i])
+                print("v: %s" % self.bus_volt_mag[i])
+                print("vk: %s" % self.ctg_bus_volt_mag[i])
+                print("qk: %s" % self.ctg_gen_pow_imag[g])
+                print("vq1_viol (undervoltage / qmax slack): %s" % self.ctg_gen_pvpq1_viol[g])
+                print("vq2_viol (overvoltage / qmin slack: %s" % self.ctg_gen_pvpq2_viol[g])
 
     def eval_penalty(self):
 
