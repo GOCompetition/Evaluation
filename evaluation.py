@@ -1297,6 +1297,31 @@ class Evaluation:
                 print("xfmrs orig: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_orig_real[k]) for k in self.bus_xfmr_orig[i]]))
                 print("xfmrs dest: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
 
+        ''' something we could do with numpy but not with dictionaries - what about lists?
+        self.ctg_bus_pow_balance_real_viol = {
+            i:abs(
+                sum(self.ctg_gen_pow_real[self.bus_gen[i]]) -
+                sum(self.ctg_load_pow_real[self.bus_load[i]]) -
+                sum(self.ctg_fxsh_pow_real[self.bus_fxsh[i]]) -
+                sum(self.ctg_line_pow_orig_real[self.bus_line_orig[i]]) -
+                sum(self.ctg_line_pow_dest_real[self.bus_line_dest[i]]) -
+                sum(self.ctg_xfmr_pow_orig_real[self.bus_xfmr_orig[i]]) -
+                sum(self.ctg_xfmr_pow_dest_real[self.bus_xfmr_dest[i]]))
+            for i in self.bus}
+        '''
+        ''' could do this by precomputing the index sets
+        self.ctg_bus_pow_balance_real_viol = {
+            i:abs(
+                sum([self.ctg_gen_pow_real[k] for k in self.bus_gen[i]]) -
+                sum([self.ctg_load_pow_real[k] for k in self.bus_load[i]]) -
+                sum([self.ctg_fxsh_pow_real[k] for k in self.bus_fxsh[i]]) -
+                sum([self.ctg_line_pow_orig_real[k] for k in self.bus_line_orig[i]]) -
+                sum([self.ctg_line_pow_dest_real[k] for k in self.bus_line_dest[i]]) -
+                sum([self.ctg_xfmr_pow_orig_real[k] for k in self.bus_xfmr_orig[i]]) -
+                sum([self.ctg_xfmr_pow_dest_real[k] for k in self.bus_xfmr_dest[i]]))
+            for i in self.bus}
+        '''
+        #''' original
         self.ctg_bus_pow_balance_real_viol = {
             i:abs(
                 sum([self.ctg_gen_pow_real[k] for k in self.bus_gen[i] if self.ctg_gen_active[k]]) -
@@ -1307,6 +1332,7 @@ class Evaluation:
                 sum([self.ctg_xfmr_pow_orig_real[k] for k in self.bus_xfmr_orig[i] if self.ctg_xfmr_active[k]]) -
                 sum([self.ctg_xfmr_pow_dest_real[k] for k in self.bus_xfmr_dest[i] if self.ctg_xfmr_active[k]]))
             for i in self.bus}
+        #'''
         self.ctg_bus_pow_balance_imag_viol = {
             i:abs(
                 sum([self.ctg_gen_pow_imag[k] for k in self.bus_gen[i] if self.ctg_gen_active[k]]) -
@@ -2206,7 +2232,7 @@ def trans_old(raw_name, rop_name, con_name, inl_nsame,filename):
         p.con.write(filename+".con")
         p.inl.write(filename+".inl",p.raw,p.rop)
     
-def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
+def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name, detail_name):
 
     # start timer
     start_time_all = time.time()
@@ -2292,8 +2318,8 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
     
     # write base summary
     start_time = time.time()
-    e.write_header(det_name)
-    e.write_base(det_name)
+    e.write_header(detail_name)
+    e.write_base(detail_name)
     time_elapsed = time.time() - start_time
     print("write base time: %u" % time_elapsed)
 
@@ -2313,7 +2339,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, det_name):
             ctgs_reported.append(e.ctg_label)
             e.set_ctg_data()
             e.eval_ctg()
-            e.write_ctg(det_name)
+            e.write_ctg(detail_name)
     num_ctgs_reported = len(ctgs_reported)
     num_ctgs_reported_unique = len(set(ctgs_reported))
     if (num_ctgs_reported != num_ctgs_reported_unique or

@@ -7,7 +7,8 @@ con=$case_dir'case.con'
 inl=$case_dir'case.inl'
 sol1=$case_dir'sol1.txt'
 sol2=$case_dir'sol2.txt'
-det=$case_dir'detail.csv'
+summary=$case_dir'summary.csv'
+detail=$case_dir'detail.csv'
 
 # run it
-python test.py "$raw" "$rop" "$con" "$inl" "$sol1" "$sol2" "$det"
+python test.py "$raw" "$rop" "$con" "$inl" "$sol1" "$sol2" "$summary" "$detail"
