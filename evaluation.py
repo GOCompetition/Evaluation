@@ -1681,7 +1681,7 @@ class Evaluation:
                 self.max_gen_ctg_pvpq2_viol,
                 self.max_viol])
         
-
+    '''
     def get_top_violations(self, top_keys, items):
         top_i=0
         for key, value in sorted(items, key=lambda (k,v): (v,k), reverse=True):
@@ -1689,7 +1689,9 @@ class Evaluation:
             top_i += 1
             if top_i >= TOP_N:
                 break
+    '''
 
+    '''
     def write_bus_contingencies(self, csv_writer):
         csv_writer.writerow(['--bus ctg'])
         csv_writer.writerow([
@@ -1941,8 +1943,9 @@ class Evaluation:
             for i in self.swsh:
                 csv_writer.writerow([
                     i, self.swsh_adm_imag_min_viol[i], self.swsh_adm_imag_max_viol[i]])
-                
+    '''
 
+    """
     def write_detail(self, out_name):
         
         with open(out_name, 'wb') as out:
@@ -1995,7 +1998,7 @@ class Evaluation:
             self.write_swsh_base_violations(csv_writer)
                         
             self.write_bus_contingencies(csv_writer)
-            
+
             
             '''
             start_time = time.time()
@@ -2027,7 +2030,7 @@ class Evaluation:
             self.write_transformer_contingencies(csv_writer)
             
             self.write_swsh_contingencies(csv_writer)
-            
+    """
 
 def solution_read_sections(file_name, section_start_line_str=None, has_headers=None):
 
