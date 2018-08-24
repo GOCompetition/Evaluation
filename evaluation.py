@@ -876,7 +876,8 @@ class Evaluation:
                         pl = i
                         break
                 self.gen_cost[k] = y_value + slope * x_change
-        self.cost = sum([0.0] + self.gen_cost.values())
+        #self.cost = sum([0.0] + self.gen_cost.values()) # cannot do this in Python3 - not sure we need it anyway - if we need it then convert second term to list
+        self.cost = sum(self.gen_cost.values())
 
     def eval_bus_volt_viol(self):
 
@@ -1518,6 +1519,7 @@ class Evaluation:
         self.ctg_max_xfmr_pow_orig_mag_max_viol = extra_max(self.ctg_xfmr_pow_orig_mag_max_viol)
         self.ctg_max_xfmr_pow_dest_mag_max_viol = extra_max(self.ctg_xfmr_pow_dest_mag_max_viol)
 
+    '''
     def compute_summary(self):
 
         def dict_max_zero(d):
@@ -1590,8 +1592,9 @@ class Evaluation:
 
         self.max_nonobj_viol = 0.0 # todo need to actually compute this, but so far there are no nonobjective constraints to violate anyway
         self.num_viol = 0
+    '''
 
-
+    '''
     def write_summary(self, out_name):
 
         with open(out_name, 'ab') as out:
@@ -1680,6 +1683,7 @@ class Evaluation:
                 self.max_gen_ctg_pvpq1_viol,
                 self.max_gen_ctg_pvpq2_viol,
                 self.max_viol])
+    '''
 
 def solution_read_sections(file_name, section_start_line_str=None, has_headers=None):
 
