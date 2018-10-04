@@ -4,6 +4,7 @@ import data
 import time
 #from collections import OrderedDict
 from itertools import islice
+import numpy as np
 
 """
 TODO
@@ -13,14 +14,38 @@ numpy
 process scenarios in parallel
 """
 
-#MAXOBJ = 9876543210.0
-#MAXVIOL = 9876543210.0
-KVPEN = 1000.0 # kV penalty (p.u. already)
-MVAPEN = 1000.0 #MVA penalty
-
-#TOP_N = 10
-
 debug = False
+
+penalty_block_pow_real_max = [2.0, 100.0]
+penalty_block_pow_real_coeff = [10.0, 1000.0, 1000000.0]
+penalty_block_pow_imag_max = [2.0, 100.0]
+penalty_block_pow_imag_coeff = [10.0, 1000.0, 1000000.0]
+penalty_block_pow_abs_max = [2.0, 100.0]
+penalty_block_pow_abs_coeff = [10.0, 1000.0, 1000000.0]
+
+base_case_penalty_weight = 0.5
+
+def eval_piecewise_linear_penalty(residual, penalty_block_max, penalty_block_coeff):
+    num_block = len(penalty_block_coeff)
+    num_block_bounded = len(penalty_block_max)
+    assert(num_block_bounded + 1 == num_block)
+    num_resid = len(residual)
+    abs_resid = np.abs(residual)
+    #penalty_block_max_extended = np.concatenate((penalty_block_max, np.inf))
+    remaining_resid = abs_resid
+    penalty = np.zeros(num_resid)
+    for i in range(num_block):
+        #block_min = penalty_block_cumul_min[i]
+        #block_max = penalty_block_cumul_max[i]
+        block_coeff = penalty_block_coeff[i]
+        if i < num_block - 1:
+            block_max = penalty_block_max[i]
+            penalized_resid = np.minimum(block_max, remaining_resid)
+            penalty += block_coeff * penalized_resid
+            remaining_resid -= penalized_resid
+        else:
+            penalty += block_coeff * remaining_resid
+    return penalty
 
 class Result:
 
@@ -201,9 +226,7 @@ class Evaluation:
 
     def __init__(self):
 
-        self.volt_pen = KVPEN
-        self.pow_pen = MVAPEN
-        #self.pvpq_pen = max(self.volt_pen, self.pow_pen)
+        #self.pow_pen = MVAPEN
         self.bus = []
         self.load = []
         self.fxsh = []
@@ -602,11 +625,14 @@ class Evaluation:
 
     def set_params(self):
         '''set parameters, e.g. tolerances, penalties, and convert to PU'''
-
-        self.volt_pen = self.volt_pen # starts in p.u. by convention
-        self.pow_pen = self.base_mva * self.pow_pen
-        #self.pvpq_pen = max(self.volt_pen, self.pow_pen)
         
+        self.penalty_block_pow_real_max = np.array(penalty_block_pow_real_max) / self.base_mva
+        self.penalty_block_pow_real_coeff = np.array(penalty_block_pow_real_coeff) * self.base_mva
+        self.penalty_block_pow_imag_max = np.array(penalty_block_pow_imag_max) / self.base_mva
+        self.penalty_block_pow_imag_coeff = np.array(penalty_block_pow_imag_coeff) * self.base_mva
+        self.penalty_block_pow_abs_max = np.array(penalty_block_pow_abs_max) / self.base_mva
+        self.penalty_block_pow_abs_coeff = np.array(penalty_block_pow_abs_coeff) * self.base_mva
+
     def set_solution1(self, solution1):
         ''' set values from the solution objects
         convert to per unit (p.u.) convention'''
@@ -1383,23 +1409,59 @@ class Evaluation:
 
     def eval_penalty(self):
 
-        self.penalty = self.pow_pen * (
-            sum(self.line_curr_orig_mag_max_viol.values()) +
-            sum(self.line_curr_dest_mag_max_viol.values()) +
-            sum(self.xfmr_pow_orig_mag_max_viol.values()) +
-            sum(self.xfmr_pow_dest_mag_max_viol.values()) +
-            sum(self.bus_pow_balance_real_viol.values()) +
-            sum(self.bus_pow_balance_imag_viol.values()))
+        self.penalty = base_case_penalty_weight * (
+            np.sum(
+                eval_piecewise_linear_penalty(
+                    np.maximum(
+                        self.line_curr_orig_mag_max_viol.values(),
+                        self.line_curr_dest_mag_max_viol.values()),
+                    self.penalty_block_pow_abs_max,
+                    self.penalty_block_pow_abs_coeff)) +
+            np.sum(
+                eval_piecewise_linear_penalty(
+                    np.maximum(
+                        self.xfmr_pow_orig_mag_max_viol.values(),
+                        self.xfmr_pow_dest_mag_max_viol.values()),
+                    self.penalty_block_pow_abs_max,
+                    self.penalty_block_pow_abs_coeff)) +
+            np.sum(
+                eval_piecewise_linear_penalty(
+                    self.bus_pow_balance_real_viol.values(),
+                    self.penalty_block_pow_real_max,
+                    self.penalty_block_pow_real_coeff)) +
+            np.sum(
+                eval_piecewise_linear_penalty(
+                    self.bus_pow_balance_imag_viol.values(),
+                    self.penalty_block_pow_imag_max,
+                    self.penalty_block_pow_imag_coeff)))
 
     def eval_ctg_penalty(self):
 
-        self.ctg_penalty = self.pow_pen * (
-            sum(self.ctg_line_curr_orig_mag_max_viol.values()) +
-            sum(self.ctg_line_curr_dest_mag_max_viol.values()) +
-            sum(self.ctg_xfmr_pow_orig_mag_max_viol.values()) +
-            sum(self.ctg_xfmr_pow_dest_mag_max_viol.values()) +
-            sum(self.ctg_bus_pow_balance_real_viol.values()) +
-            sum(self.ctg_bus_pow_balance_imag_viol.values()))
+        self.ctg_penalty = (1 - base_case_penalty_weight) / max(1.0, float(len(self.ctg))) * (
+            np.sum(
+                eval_piecewise_linear_penalty(
+                    np.maximum(
+                        self.ctg_line_curr_orig_mag_max_viol.values(),
+                        self.ctg_line_curr_dest_mag_max_viol.values()),
+                    self.penalty_block_pow_abs_max,
+                    self.penalty_block_pow_abs_coeff)) +
+            np.sum(
+                eval_piecewise_linear_penalty(
+                    np.maximum(
+                        self.ctg_xfmr_pow_orig_mag_max_viol.values(),
+                        self.ctg_xfmr_pow_dest_mag_max_viol.values()),
+                    self.penalty_block_pow_abs_max,
+                    self.penalty_block_pow_abs_coeff)) +
+            np.sum(
+                eval_piecewise_linear_penalty(
+                    self.ctg_bus_pow_balance_real_viol.values(),
+                    self.penalty_block_pow_real_max,
+                    self.penalty_block_pow_real_coeff)) +
+            np.sum(
+                eval_piecewise_linear_penalty(
+                    self.ctg_bus_pow_balance_imag_viol.values(),
+                    self.penalty_block_pow_imag_max,
+                    self.penalty_block_pow_imag_coeff)))
 
     def eval_infeas(self):
 
