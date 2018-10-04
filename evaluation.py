@@ -16,12 +16,12 @@ process scenarios in parallel
 
 debug = False
 
-penalty_block_pow_real_max = [2.0, 100.0]
-penalty_block_pow_real_coeff = [10.0, 1000.0, 1000000.0]
-penalty_block_pow_imag_max = [2.0, 100.0]
-penalty_block_pow_imag_coeff = [10.0, 1000.0, 1000000.0]
-penalty_block_pow_abs_max = [2.0, 100.0]
-penalty_block_pow_abs_coeff = [10.0, 1000.0, 1000000.0]
+penalty_block_pow_real_max = [2.0, 50.0]
+penalty_block_pow_real_coeff = [1000.0, 5000.0, 1000000.0]
+penalty_block_pow_imag_max = [2.0, 50.0]
+penalty_block_pow_imag_coeff = [1000.0, 5000.0, 1000000.0]
+penalty_block_pow_abs_max = [2.0, 50.0]
+penalty_block_pow_abs_coeff = [1000.0, 5000.0, 1000000.0]
 
 base_case_penalty_weight = 0.5
 
