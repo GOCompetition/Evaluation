@@ -706,8 +706,8 @@ class Con:
         in_contingency = False
         while True:
             row_num += 1
-            if row_num >= len(rows): # in case the data provider failed to put an end file line
-                return
+            #if row_num >= len(rows): # in case the data provider failed to put an end file line
+            #    return
             row = rows[row_num]
             if self.row_is_file_end(row):
                 return
