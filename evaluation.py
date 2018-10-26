@@ -14,16 +14,19 @@ numpy
 process scenarios in parallel
 """
 
+# when used for evaluation, should have debug=False
 debug = False
 
-penalty_block_pow_real_max = [2.0, 50.0]
-penalty_block_pow_real_coeff = [1000.0, 5000.0, 1000000.0]
-penalty_block_pow_imag_max = [2.0, 50.0]
-penalty_block_pow_imag_coeff = [1000.0, 5000.0, 1000000.0]
-penalty_block_pow_abs_max = [2.0, 50.0]
-penalty_block_pow_abs_coeff = [1000.0, 5000.0, 1000000.0]
+# soft constraint penalty parameters
+penalty_block_pow_real_max = [2.0, 50.0] # MW. when converted to p.u., this is overline_sigma_p in the formulation
+penalty_block_pow_real_coeff = [1000.0, 5000.0, 1000000.0] # USD/MW-h. when converted USD/p.u.-h this is lambda_p in the formulation
+penalty_block_pow_imag_max = [2.0, 50.0] # MVar. when converted to p.u., this is overline_sigma_q in the formulation
+penalty_block_pow_imag_coeff = [1000.0, 5000.0, 1000000.0] # USD/MVar-h. when converted USD/p.u.-h this is lambda_q in the formulation
+penalty_block_pow_abs_max = [2.0, 50.0] # MVA. when converted to p.u., this is overline_sigma_s in the formulation
+penalty_block_pow_abs_coeff = [1000.0, 5000.0, 1000000.0] # USD/MWA-h. when converted USD/p.u.-h this is lambda_s in the formulation
 
-base_case_penalty_weight = 0.5
+# weight on base case in objective
+base_case_penalty_weight = 0.5 # dimensionless. corresponds to delta in the formulation
 
 def eval_piecewise_linear_penalty(residual, penalty_block_max, penalty_block_coeff):
     num_block = len(penalty_block_coeff)
@@ -514,7 +517,7 @@ class Evaluation:
                   max(0.0, r.n5 * r.b5) +
                   max(0.0, r.n6 * r.b6) +
                   max(0.0, r.n7 * r.b7) +
-                  max(0.0, r.n8 * r.b8)) / self.base_mva) # todo normalize ?
+                  max(0.0, r.n8 * r.b8)) / self.base_mva)
             for r in data.raw.switched_shunts.values()}
         self.swsh_adm_imag_min = {
             r.i:((min(0.0, r.n1 * r.b1) +
@@ -524,7 +527,7 @@ class Evaluation:
                   min(0.0, r.n5 * r.b5) +
                   min(0.0, r.n6 * r.b6) +
                   min(0.0, r.n7 * r.b7) +
-                  min(0.0, r.n8 * r.b8)) / self.base_mva) # todo normalize ?
+                  min(0.0, r.n8 * r.b8)) / self.base_mva)
             for r in data.raw.switched_shunts.values()}
 
         # todo clean up maybe
@@ -542,7 +545,6 @@ class Evaluation:
             self.gen_num_pl[(r_bus,r_genid)] = r_npairs
             for i in range(r_npairs):
                 key = (r_bus, r_genid, i + 1)
-                #gen_pl.add_record(key)
                 self.gen_pl_x[key] = t.points[i].x / self.base_mva
                 self.gen_pl_y[key] = t.points[i].y            
         #'''
@@ -611,17 +613,6 @@ class Evaluation:
         #        else 0)
         #    for r in self.gen
         #    for k in self.ctg}
-
-        # generator real power emergency min/max
-        # todo read from data
-        #self.gen_pow_real_emerg_max = {
-        #    #(r.i,r.id):(r.pt/self.base_mva)
-        #    (r.i,r.id):float("inf")
-        #    for r in data.raw.generators.values()}
-        #self.gen_pow_real_emerg_min = {
-        #    #(r.i,r.id):(r.pb/self.base_mva)
-        #    (r.i,r.id):(-float("inf"))
-        #    for r in data.raw.generators.values()}    
 
     def set_params(self):
         '''set parameters, e.g. tolerances, penalties, and convert to PU'''
