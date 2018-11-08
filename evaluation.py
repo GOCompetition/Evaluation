@@ -5,6 +5,7 @@ import time
 #from collections import OrderedDict
 from itertools import islice
 import numpy as np
+#from io import open
 
 """
 TODO
@@ -29,11 +30,13 @@ penalty_block_pow_abs_coeff = [1000.0, 5000.0, 1000000.0] # USD/MWA-h. when conv
 base_case_penalty_weight = 0.5 # dimensionless. corresponds to delta in the formulation
 
 def eval_piecewise_linear_penalty(residual, penalty_block_max, penalty_block_coeff):
+    print('len of resid %u' % len(residual))
+    r = list(residual)
     num_block = len(penalty_block_coeff)
     num_block_bounded = len(penalty_block_max)
     assert(num_block_bounded + 1 == num_block)
-    num_resid = len(residual)
-    abs_resid = np.abs(residual)
+    num_resid = len(r)
+    abs_resid = np.abs(r)
     #penalty_block_max_extended = np.concatenate((penalty_block_max, np.inf))
     remaining_resid = abs_resid
     penalty = np.zeros(num_resid)
@@ -692,8 +695,11 @@ class Evaluation:
     def write_header(self, det_name):
         """write header line for detailed output"""
 
+        #with open(det_name, 'w', newline='', encoding='utf-8') as out:
         with open(det_name, 'wb') as out:
             csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            #csv_writer.writerow(['foo'])
+            #'''
             csv_writer.writerow(
                 ['ctg', 'infeas', 'pen', 'cost', 'obj',
                  'vmax-idx',
@@ -728,11 +734,13 @@ class Evaluation:
                  'xfmromax-val',
                  'xfmrdmax-idx',
                  'xfmrdmax-val',
-             ])
+            ])
+            #'''
 
     def write_base(self, det_name):
         """write detail of base case evaluation"""
 
+        #with open(det_name, 'a', newline='') as out:
         with open(det_name, 'ab') as out:
             csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             csv_writer.writerow(
@@ -774,6 +782,7 @@ class Evaluation:
     def write_ctg(self, det_name):
         """write detail of ctg evaluation"""        
 
+        #with open(det_name, 'a', newline='') as out:
         with open(det_name, 'ab') as out:
             csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             csv_writer.writerow(
@@ -1404,15 +1413,15 @@ class Evaluation:
             np.sum(
                 eval_piecewise_linear_penalty(
                     np.maximum(
-                        self.line_curr_orig_mag_max_viol.values(),
-                        self.line_curr_dest_mag_max_viol.values()),
+                        list(self.line_curr_orig_mag_max_viol.values()),
+                        list(self.line_curr_dest_mag_max_viol.values())),
                     self.penalty_block_pow_abs_max,
                     self.penalty_block_pow_abs_coeff)) +
             np.sum(
                 eval_piecewise_linear_penalty(
                     np.maximum(
-                        self.xfmr_pow_orig_mag_max_viol.values(),
-                        self.xfmr_pow_dest_mag_max_viol.values()),
+                        list(self.xfmr_pow_orig_mag_max_viol.values()),
+                        list(self.xfmr_pow_dest_mag_max_viol.values())),
                     self.penalty_block_pow_abs_max,
                     self.penalty_block_pow_abs_coeff)) +
             np.sum(
@@ -1432,15 +1441,15 @@ class Evaluation:
             np.sum(
                 eval_piecewise_linear_penalty(
                     np.maximum(
-                        self.ctg_line_curr_orig_mag_max_viol.values(),
-                        self.ctg_line_curr_dest_mag_max_viol.values()),
+                        list(self.ctg_line_curr_orig_mag_max_viol.values()),
+                        list(self.ctg_line_curr_dest_mag_max_viol.values())),
                     self.penalty_block_pow_abs_max,
                     self.penalty_block_pow_abs_coeff)) +
             np.sum(
                 eval_piecewise_linear_penalty(
                     np.maximum(
-                        self.ctg_xfmr_pow_orig_mag_max_viol.values(),
-                        self.ctg_xfmr_pow_dest_mag_max_viol.values()),
+                        list(self.ctg_xfmr_pow_orig_mag_max_viol.values()),
+                        list(self.ctg_xfmr_pow_dest_mag_max_viol.values())),
                     self.penalty_block_pow_abs_max,
                     self.penalty_block_pow_abs_coeff)) +
             np.sum(
