@@ -25,12 +25,15 @@ def parse_token(token, val_type, default):
 
 def pad_row(row, new_row_len):
 
+    #return row
+    #'''
     row_len = len(row)
     row_len_diff = new_row_len - row_len
     row_new = row
     if row_len_diff > 0:
         row_new = row + row_len_diff * ['']
     return row_new
+    #'''
 
 def remove_end_of_line_comment(token, end_of_line_str):
     
