@@ -210,7 +210,8 @@ class Raw:
             self.transformers[(
                 transformer.i,
                 transformer.j,
-                transformer.k,
+                #transformer.k,
+                0,
                 transformer.ckt)] = transformer
             row_num += (num_rows - 1)
         while True: # areas - for now just make a set of areas based on bus info

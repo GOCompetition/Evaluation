@@ -30,7 +30,6 @@ penalty_block_pow_abs_coeff = [1000.0, 5000.0, 1000000.0] # USD/MWA-h. when conv
 base_case_penalty_weight = 0.5 # dimensionless. corresponds to delta in the formulation
 
 def eval_piecewise_linear_penalty(residual, penalty_block_max, penalty_block_coeff):
-    print('len of resid %u' % len(residual))
     r = list(residual)
     num_block = len(penalty_block_coeff)
     num_block_bounded = len(penalty_block_max)
