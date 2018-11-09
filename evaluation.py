@@ -403,9 +403,9 @@ class Evaluation:
         
         self.base_mva = data.raw.case_identification.sbase
 
-        self.bus_base_kv = {
-            r.i:r.baskv
-            for r in data.raw.buses.values()}
+        #self.bus_base_kv = {
+        #    r.i:r.baskv
+        #    for r in data.raw.buses.values()}
         self.bus_volt_mag_max = {
             r.i:r.nvhi
             for r in data.raw.buses.values()}
