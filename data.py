@@ -709,9 +709,10 @@ class Con:
 
     def is_branch_out_event(self, row):
 
-        return (
-            row[0].upper() in {'DISCONNECT', 'OPEN', 'TRIP'} and
-            row[1].upper() in {'BRANCH', 'LINE'})
+        #return (
+        #    row[0].upper() in {'DISCONNECT', 'OPEN', 'TRIP'} and
+        #    row[1].upper() in {'BRANCH', 'LINE'})
+        return (row[0] == 'OPEN' and row[1] == 'BRANCH')
 
     def is_three_winding(self, row):
 
@@ -725,9 +726,10 @@ class Con:
 
     def is_generator_out_event(self, row):
 
-        return(
-            row[0].upper() == 'REMOVE' and
-            row[1].upper() in {'UNIT', 'MACHINE'})
+        #return(
+        #    row[0].upper() == 'REMOVE' and
+        #    row[1].upper() in {'UNIT', 'MACHINE'})
+        return(row[0] == 'REMOVE' and row[1] == 'UNIT')
         
     def read_from_rows(self, rows):
 
