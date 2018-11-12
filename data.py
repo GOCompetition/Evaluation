@@ -22,6 +22,7 @@ def parse_token(token, val_type, default=None):
     elif default is not None:
         val = val_type(default)
     else:
+        print('empty field, token: %s, val_type: %s' % (token, val_type))
         raise Exception('empty field not allowed')
     return val
 
@@ -29,10 +30,14 @@ def pad_row(row, new_row_len):
 
     if len(row) != new_row_len:
         if len(row) < new_row_len:
+            print('missing field, row:')
+            print(row)
             raise Exception('missing field not allowed')
         elif len(row) > new_row_len:
             row = remove_end_of_line_comment_from_row(row, '/')
             if len(row) > new_row_len:
+                print('extra field, row:')
+                print(row)
                 raise Exception('extra field not allowed')
     return row
     '''
@@ -43,6 +48,13 @@ def pad_row(row, new_row_len):
         row_new = row + row_len_diff * ['']
     return row_new
     '''
+
+def check_row_missing_fields(row, row_len_expected):
+
+    if len(row) < row_len_expected:
+        print('missing field, row:')
+        print(row)
+        raise Exception('missing field not allowed')
 
 def remove_end_of_line_comment_from_row(row, end_of_line_str):
 
@@ -1539,7 +1551,7 @@ class BranchOutEvent:
 
     def read_from_row(self, row):
 
-        row = pad_row(row, 10)
+        check_row_missing_fields(row, 10)
         self.i = parse_token(row[4], int, default=None)
         self.j = parse_token(row[7], int, default=None)
         self.ckt = parse_token(row[9], str, default=None)
@@ -1550,6 +1562,7 @@ class BranchOutEvent:
         self.j = parse_token(row[3], int, '')
         self.ckt = parse_token(row[4], str, '1')
 
+    '''
     def read_three_winding_from_row(self, row):
 
         row = pad_row(row, 13)
@@ -1557,6 +1570,7 @@ class BranchOutEvent:
         self.j = parse_token(row[7], int, '')
         self.k = parse_token(row[10], int, '')
         self.ckt = parse_token(row[12], str, '1')
+    '''
 
 class GeneratorOutEvent:
 
