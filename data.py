@@ -684,14 +684,20 @@ class Con:
 
         with open(file_name, 'r') as in_file:
             lines = in_file.readlines()
+        for l in lines:
+            if l.find("'") > -1 or l.find('"') > -1:
+                print('no quotes allowed, line:')
+                print(l)
+                raise Exception('no quotes allowed in CON')
         delimiter_str = " "
-        quote_str = "'"
+        #quote_str = "'"
         skip_initial_space = True
         rows = csv.reader(
             lines,
             delimiter=delimiter_str,
-            quotechar=quote_str,
-            skipinitialspace=skip_initial_space)
+            #quotechar=quote_str,
+            skipinitialspace=skip_initial_space,
+            quoting=csv.QUOTE_NONE) # QUOTE_NONE
         rows = [[t.strip() for t in r] for r in rows]
         self.read_from_rows(rows)
         
