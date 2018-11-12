@@ -744,27 +744,31 @@ class Con:
                 return
             #if self.row_is_section_end(row):
             #    break
-            if self.is_contingency_start(row):
+            elif self.is_contingency_start(row):
                 in_contingency = True
                 contingency = Contingency()
                 contingency.label = row[1]
-            if self.is_end(row):
+            elif self.is_end(row):
                 if in_contingency:
                     self.contingencies[contingency.label] = contingency
                     in_contingency = False
                 else:
                     break
-            if self.is_branch_out_event(row):
+            elif self.is_branch_out_event(row):
                 branch_out_event = BranchOutEvent()
                 if self.is_three_winding(row):
                     branch_out_event.read_three_winding_from_row(row)
                 else:
                     branch_out_event.read_from_row(row)
                 contingency.branch_out_events.append(branch_out_event)
-            if self.is_generator_out_event(row):
+            elif self.is_generator_out_event(row):
                 generator_out_event = GeneratorOutEvent()
                 generator_out_event.read_from_row(row)
                 contingency.generator_out_events.append(generator_out_event)
+            else:
+                print('format error in CON file row:')
+                print(row)
+                raise Exception('format error in CON file')
 
 class CaseIdentification:
 
