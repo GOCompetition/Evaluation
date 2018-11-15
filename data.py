@@ -14,6 +14,7 @@ import csv
 import os
 import sys
 import math
+import traceback
 
 def parse_token(token, val_type, default=None):
     val = None
@@ -22,23 +23,32 @@ def parse_token(token, val_type, default=None):
     elif default is not None:
         val = val_type(default)
     else:
-        print('empty field, token: %s, val_type: %s' % (token, val_type))
-        raise Exception('empty field not allowed')
+        try:
+            print('empty field, token: %s, val_type: %s' % (token, val_type))
+            raise Exception('empty field not allowed')
+        except Exception as e:
+            traceback.print_exc()
+            raise e
+        #raise Exception('empty field not allowed')
     return val
 
 def pad_row(row, new_row_len):
 
-    if len(row) != new_row_len:
-        if len(row) < new_row_len:
-            print('missing field, row:')
-            print(row)
-            raise Exception('missing field not allowed')
-        elif len(row) > new_row_len:
-            row = remove_end_of_line_comment_from_row(row, '/')
-            if len(row) > new_row_len:
-                print('extra field, row:')
+    try:
+        if len(row) != new_row_len:
+            if len(row) < new_row_len:
+                print('missing field, row:')
                 print(row)
-                raise Exception('extra field not allowed')
+                raise Exception('missing field not allowed')
+            elif len(row) > new_row_len:
+                row = remove_end_of_line_comment_from_row(row, '/')
+                if len(row) > new_row_len:
+                    print('extra field, row:')
+                    print(row)
+                    raise Exception('extra field not allowed')
+    except Exception as e:
+        traceback.print_exc()
+        raise e
     return row
     '''
     row_len = len(row)
@@ -51,10 +61,14 @@ def pad_row(row, new_row_len):
 
 def check_row_missing_fields(row, row_len_expected):
 
-    if len(row) < row_len_expected:
-        print('missing field, row:')
-        print(row)
-        raise Exception('missing field not allowed')
+    try:
+        if len(row) < row_len_expected:
+            print('missing field, row:')
+            print(row)
+            raise Exception('missing field not allowed')
+    except Exception as e:
+        traceback.print_exc()
+        raise e
 
 def remove_end_of_line_comment_from_row(row, end_of_line_str):
 
@@ -684,11 +698,15 @@ class Con:
 
         with open(file_name, 'r') as in_file:
             lines = in_file.readlines()
-        for l in lines:
-            if l.find("'") > -1 or l.find('"') > -1:
-                print('no quotes allowed, line:')
-                print(l)
-                raise Exception('no quotes allowed in CON')
+        try:
+            for l in lines:
+                if l.find("'") > -1 or l.find('"') > -1:
+                    print('no quotes allowed, line:')
+                    print(l)
+                    raise Exception('no quotes allowed in CON')
+        except Exception as e:
+            traceback.print_exc()
+            raise e
         delimiter_str = " "
         #quote_str = "'"
         skip_initial_space = True
@@ -784,9 +802,13 @@ class Con:
                 generator_out_event.read_from_row(row)
                 contingency.generator_out_events.append(generator_out_event)
             else:
-                print('format error in CON file row:')
-                print(row)
-                raise Exception('format error in CON file')
+                try:
+                    print('format error in CON file row:')
+                    print(row)
+                    raise Exception('format error in CON file')
+                except Exception as e:
+                    traceback.print_exc()
+                    raise e
 
 class CaseIdentification:
 
@@ -1253,13 +1275,17 @@ class Transformer:
         '''
         
         # just 2-winding, 4-row
-        if len(row) != 43:
-            if len(row) < 43:
-                raise Exception('missing field not allowed')
-            elif len(row) > 43:
-                row = remove_end_of_line_comment_from_row(row, '/')
-                if len(row) > new_row_len:
-                    raise Exception('extra field not allowed')
+        try:
+            if len(row) != 43:
+                if len(row) < 43:
+                    raise Exception('missing field not allowed')
+                elif len(row) > 43:
+                    row = remove_end_of_line_comment_from_row(row, '/')
+                    if len(row) > new_row_len:
+                        raise Exception('extra field not allowed')
+        except Exception as e:
+            traceback.print_exc()
+            raise e
         self.i = parse_token(row[0], int, default=None)
         self.j = parse_token(row[1], int, default=None)
         #self.k = parse_token(row[2], int, 0)

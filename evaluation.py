@@ -5,6 +5,7 @@ import time
 #from collections import OrderedDict
 from itertools import islice
 import numpy as np
+import traceback
 #from io import open
 
 """
@@ -1953,34 +1954,34 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
 
     # start timer
     start_time_all = time.time()
-
+    
     # read the data files
     p = data.Data()
-
+    
     # read raw
     start_time = time.time()
     p.raw.read(raw_name)
     time_elapsed = time.time() - start_time
     print("read raw time: %u" % time_elapsed)
-
+    
     # read rop
     start_time = time.time()
     p.rop.read(rop_name)
     time_elapsed = time.time() - start_time
     print("read rop time: %u" % time_elapsed)
-
+    
     # read con
     start_time = time.time()
     p.con.read(con_name)
     time_elapsed = time.time() - start_time
     print("read con time: %u" % time_elapsed)
-
+    
     # read inl
     start_time = time.time()
     p.inl.read(inl_name)
     time_elapsed = time.time() - start_time
     print("read inl time: %u" % time_elapsed)
-
+    
     # show data stats
     print("buses: %u" % len(p.raw.buses))
     print("loads: %u" % len(p.raw.loads))
@@ -1995,38 +1996,38 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     print("active power dispatch records: %u" % len(p.rop.active_power_dispatch_records))
     print("piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions))
     print('contingencies: %u' % len(p.con.contingencies))
-
+    
     # set up solution objects
     s1 = Solution1()
     s2 = Solution2()
-
+    
     # read sol1
     start_time = time.time()
     s1.read(sol1_name)
     time_elapsed = time.time() - start_time
     print("read sol_base time: %u" % time_elapsed)
-
+    
     # set up evaluation
     e = Evaluation()
-
+    
     # set eval data
     start_time = time.time()
     e.set_data(p)
     time_elapsed = time.time() - start_time
     print("set data time: %u" % time_elapsed)
-
+    
     # set penalty params (later read from case.prm)
     start_time = time.time()
     e.set_params()
     time_elapsed = time.time() - start_time
     print("set params time: %u" % time_elapsed)
-
+    
     # set eval sol1
     start_time = time.time()
     e.set_solution1(s1)
     time_elapsed = time.time() - start_time
     print("set sol1 time: %u" % time_elapsed)
-
+    
     # evaluate base
     start_time = time.time()
     e.eval_base()
@@ -2039,7 +2040,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     e.write_base(detail_name)
     time_elapsed = time.time() - start_time
     print("write base time: %u" % time_elapsed)
-
+    
     # get ctg structure in sol
     # do not forget to check that every contingency is found in the sol file
     start_time = time.time()
@@ -2068,15 +2069,15 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
         print("num ctg reported unique: %u" % num_ctgs_reported_unique)
     time_elapsed = time.time() - start_time
     print("eval ctg time: %u" % time_elapsed)
-
+    
     time_elapsed = time.time() - start_time_all
     print("eval total time: %u" % time_elapsed)
-
+    
     print("obj: %f" % e.obj)
     print("cost: %f" % e.cost)
     print("penalty: %f" % (e.obj - e.cost))
     print("max_obj_viol: %f" % e.max_obj_viol)
     print("max_nonobj_viol: %f" % e.max_nonobj_viol)
     print("infeas: %u" % e.infeas)
-
+    
     return (e.obj, e.cost, e.obj - e.cost, e.max_obj_viol, e.max_nonobj_viol, e.infeas)
