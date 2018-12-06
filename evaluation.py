@@ -209,6 +209,9 @@ class Result:
         pass
 
 def get_ctg_num_lines(file_name):
+    '''this is slow since it reads the sol2 file.
+    use Evaluation.get_ctg_num_lines() instead,
+    which relies on knowing the problem dimensions.'''
 
     ctg_start_str = '--con'
     num_lines = 0
@@ -271,11 +274,11 @@ def get_ctg_num_lines(file_name):
     '''
     end_time = time.time()
     time_elapsed = end_time - start_time
-    print('get_ctg_num_lines time: %f' % time_elapsed)
+    #print('get_ctg_num_lines time: %f' % time_elapsed)
     num_ctgs = len(ctg_start_lines)
-    print('num ctg from sol2: %u' % num_ctgs)
-    print('ctg_start_lines[:3]:')
-    print(ctg_start_lines[:3])
+    #print('num ctg from sol2: %u' % num_ctgs)
+    #print('ctg_start_lines[:3]:')
+    #print(ctg_start_lines[:3])
     ctg_end_lines = [
         ctg_start_lines[i + 1]
         for i in range(num_ctgs - 1)]
@@ -283,7 +286,11 @@ def get_ctg_num_lines(file_name):
     ctg_num_lines = [
         ctg_end_lines[i] - ctg_start_lines[i]
         for i in range(num_ctgs)]
-    return ctg_num_lines
+    #num_ctgs = 10
+    #num_lines_per_ctg = 33536
+    #ctg_num_lines = num_ctgs * [num_lines_per_ctg]
+    return ctg_num_lines #todo1
+    #return ctg_num_lines[0:30] #todo1
 
 class Evaluation:
     '''In per unit convention, i.e. same as the model'''
@@ -444,6 +451,29 @@ class Evaluation:
         self.gen_num_pl = {}
         self.gen_pl_x = {}
         self.gen_pl_y = {}
+
+    def get_ctg_num_lines(self):
+        '''compute the number of lines for each contingency in the sol2 file
+        num_lines = 10 + num_bus + num_gen
+        ctg_num_lines = num_ctg * [num_lines]
+        sol2 file looks like:
+          --ctg
+          header
+          1 data row
+          --bus
+          header
+          num_bus data rows
+          --gen
+          header
+          num_gen data rows
+          --delta
+          header
+          1 data row
+        '''
+
+        num_lines = 10 + len(self.bus) + len(self.gen)
+        ctg_num_lines = len(self.ctg) * [num_lines]
+        return ctg_num_lines
 
     def set_data(self, data):
         ''' set values from the data object
@@ -2063,7 +2093,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     
     # read sol1
     start_time = time.time()
-    s1.read(sol1_name)
+    s1.read(sol1_name) #todo1
     time_elapsed = time.time() - start_time
     print("read sol_base time: %u" % time_elapsed)
     
@@ -2072,52 +2102,60 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     
     # set eval data
     start_time = time.time()
-    e.set_data(p)
+    e.set_data(p) #todo1
     time_elapsed = time.time() - start_time
     print("set data time: %u" % time_elapsed)
     
     # set penalty params (later read from case.prm)
     start_time = time.time()
-    e.set_params()
+    e.set_params() #todo1
     time_elapsed = time.time() - start_time
     print("set params time: %u" % time_elapsed)
     
     # set eval sol1
     start_time = time.time()
-    e.set_solution1(s1)
+    e.set_solution1(s1) #todo1
     time_elapsed = time.time() - start_time
     print("set sol1 time: %u" % time_elapsed)
     
     # evaluate base
     start_time = time.time()
-    e.eval_base()
+    e.eval_base() #todo1
     time_elapsed = time.time() - start_time
     print("eval base time: %u" % time_elapsed)
     
     # write base summary
     start_time = time.time()
-    e.write_header(detail_name)
-    e.write_base(detail_name)
+    e.write_header(detail_name) #todo1
+    e.write_base(detail_name) #todo1
     time_elapsed = time.time() - start_time
     print("write base time: %u" % time_elapsed)
     
     # get ctg structure in sol
     # do not forget to check that every contingency is found in the sol file
     start_time = time.time()
-    ctg_num_lines = get_ctg_num_lines(sol2_name)
+    #ctg_num_lines = get_ctg_num_lines(sol2_name) # reads sol2 - unfavorable memory/time tradeoff
+    ctg_num_lines = e.get_ctg_num_lines() # does not use the sol2 file to determine the number of lines in each ctg
     num_ctgs = len(ctg_num_lines)
     ctgs_reported = []
+    #return [0, 0, 0, 0, 0, 0] #todo1
+    ctg_counter = 0
+    print('start ctg eval')
     with open(sol2_name) as sol2_file:
         for k in range(num_ctgs):
-            lines = list(islice(sol2_file, ctg_num_lines[k]))
+            lines = list(islice(sol2_file, ctg_num_lines[k])) # note this updates a pointer into sol2_file so that we read a new set of ctg lines for each k
             if not lines:
                 break # error
+            ctg_label = lines[2].strip() # ctg label
             s2.read_from_lines(lines)
-            e.set_solution2(s2)
-            ctgs_reported.append(e.ctg_label)
-            e.set_ctg_data()
-            e.eval_ctg()
-            e.write_ctg(detail_name)
+            e.set_solution2(s2) #todo1
+            ctgs_reported.append(e.ctg_label) #todo1
+            e.set_ctg_data() #todo1
+            e.eval_ctg() #todo1
+            e.write_ctg(detail_name) #todo1
+            ctg_counter += 1
+            print('ctg num: %u, done: %u, time elapsed: %u, id: %s' % (num_ctgs, ctg_counter, time.time() - start_time, ctg_label))
+    #return [0, 0, 0, 0, 0, 0] #todo1
     num_ctgs_reported = len(ctgs_reported)
     num_ctgs_reported_unique = len(set(ctgs_reported))
     if (num_ctgs_reported != num_ctgs_reported_unique or
