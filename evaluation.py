@@ -211,13 +211,71 @@ class Result:
 def get_ctg_num_lines(file_name):
 
     ctg_start_str = '--con'
+    num_lines = 0
+    start_time = time.time()
+    # readlines reads all the lines into a list.
+    # uses too much memory
+    '''
     with open(file_name, 'r') as in_file:
-        lines = in_file.readlines()
-    num_lines = len(lines)
-    ctg_start_lines = [
-        i for i in range(num_lines)
-        if lines[i].startswith(ctg_start_str)]
+        for l in in_file.readlines():
+            if l.startswith(ctg_start_str):
+                ctg_start_lines.append(line_counter)
+            line_counter += 1
+            if line_counter >= 1000:
+                break
+    '''
+    # readline is slow but it keeps the memory down
+    # there are some improvements that can be made while reading one line at a time
+    # best may be to determine ctg_start_lines by a calculation from num_ctg, num_bus, num_gen
+    # which are known from the problem data rather than reading solution2
+    '''
+    with open(file_name, 'r') as in_file:
+        ctg_start_lines = []
+        line_counter = 0
+        line = in_file.readline()
+        while line:
+            if line[:5] == '--con':
+            #if line.startswith(ctg_start_str):
+                ctg_start_lines.append(line_counter)
+            line_counter += 1
+            line = in_file.readline()
+            if line_counter >= int(1e7):
+                break
+        num_lines = line_counter
+    '''
+    #'''
+    with open(file_name, 'r') as in_file:
+        ctg_start_lines = []
+        line_counter = 0
+        for line in in_file:
+            if line[:5] == '--con':
+            #if line.startswith(ctg_start_str):
+                ctg_start_lines.append(line_counter)
+            line_counter += 1
+            #if line_counter >= int(1e7):
+            #    break
+        num_lines = line_counter
+    #'''
+    '''
+    with open(file_name, 'r') as in_file:
+        ctg_start_lines = []
+        line_counter = 0
+        for line in in_file:
+            if line[:5] == '--con':
+            #if line.startswith(ctg_start_str):
+                ctg_start_lines.append(line_counter)
+            line_counter += 1
+            if line_counter >= int(1e7):
+                break
+        num_lines = line_counter
+    '''
+    end_time = time.time()
+    time_elapsed = end_time - start_time
+    print('get_ctg_num_lines time: %f' % time_elapsed)
     num_ctgs = len(ctg_start_lines)
+    print('num ctg from sol2: %u' % num_ctgs)
+    print('ctg_start_lines[:3]:')
+    print(ctg_start_lines[:3])
     ctg_end_lines = [
         ctg_start_lines[i + 1]
         for i in range(num_ctgs - 1)]
