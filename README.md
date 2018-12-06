@@ -1,5 +1,7 @@
 # Grid Optimization Competition Solution Evaluation Module
 
+These scripts are for Python 2 and Python 3.
+
 Evaluates the contents of the solution files and produces results suitable for scoring
 
 The main script is in evaluation.py

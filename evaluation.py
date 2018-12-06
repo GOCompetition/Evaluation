@@ -753,11 +753,11 @@ class Evaluation:
     def write_header(self, det_name):
         """write header line for detailed output"""
 
+        with open(det_name, 'w') as out:
+        #with open(det_name, 'w', newline='') as out:
         #with open(det_name, 'w', newline='', encoding='utf-8') as out:
-        with open(det_name, 'wb') as out:
+        #with open(det_name, 'wb') as out:
             csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            #csv_writer.writerow(['foo'])
-            #'''
             csv_writer.writerow(
                 ['ctg', 'infeas', 'pen', 'cost', 'obj',
                  'vmax-idx',
@@ -798,8 +798,9 @@ class Evaluation:
     def write_base(self, det_name):
         """write detail of base case evaluation"""
 
+        with open(det_name, 'a') as out:
         #with open(det_name, 'a', newline='') as out:
-        with open(det_name, 'ab') as out:
+        #with open(det_name, 'ab') as out:
             csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             csv_writer.writerow(
                 ['', self.infeas, self.penalty, self.cost, self.obj,
@@ -840,8 +841,9 @@ class Evaluation:
     def write_ctg(self, det_name):
         """write detail of ctg evaluation"""        
 
+        with open(det_name, 'a') as out:
         #with open(det_name, 'a', newline='') as out:
-        with open(det_name, 'ab') as out:
+        #with open(det_name, 'ab') as out:
             csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             csv_writer.writerow(
                 [self.ctg_label, self.ctg_infeas, self.ctg_penalty, 0.0, self.obj,
