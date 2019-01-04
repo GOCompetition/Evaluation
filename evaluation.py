@@ -475,10 +475,9 @@ class Evaluation:
         ctg_num_lines = len(self.ctg) * [num_lines]
         return ctg_num_lines
 
-    def set_data(self, data):
-        ''' set values from the data object
-        convert to per unit (p.u.) convention'''
+    def set_data_sets(self, data):
 
+        start_time = time.time()
         self.bus = [r.i for r in data.raw.buses.values()]
         self.load = [(r.i,r.id) for r in data.raw.loads.values()]
         self.fxsh = [(r.i,r.id) for r in data.raw.fixed_shunts.values()]
@@ -488,9 +487,19 @@ class Evaluation:
         self.swsh = [r.i for r in data.raw.switched_shunts.values()]
         self.area = [r.i for r in data.raw.areas.values()]
         self.ctg = [r.label for r in data.con.contingencies.values()]
-        
-        self.base_mva = data.raw.case_identification.sbase
+        end_time = time.time()
+        print('set data sets: %f' % (end_time - start_time))
 
+    def set_data_scalars(self, data):
+
+        start_time = time.time()
+        self.base_mva = data.raw.case_identification.sbase
+        end_time = time.time()
+        print('set data scalars: %f' % (end_time - start_time))
+
+    def set_data_bus_params(self, data):
+        
+        start_time = time.time()
         #self.bus_base_kv = {
         #    r.i:r.baskv
         #    for r in data.raw.buses.values()}
@@ -509,7 +518,12 @@ class Evaluation:
         self.bus_area = {
             r.i:r.area
             for r in data.raw.buses.values()}
+        end_time = time.time()
+        print('set data bus params: %f' % (end_time - start_time))
 
+    def set_data_load_params(self, data):
+
+        start_time = time.time()
         self.load_const_pow_real = {
             (r.i,r.id):(r.pl/self.base_mva)
             for r in data.raw.loads.values()}
@@ -519,7 +533,12 @@ class Evaluation:
         self.load_status = {
             (r.i,r.id):r.status
             for r in data.raw.loads.values()}
+        end_time = time.time()
+        print('set data load params: %f' % (end_time - start_time))
 
+    def set_data_fxsh_params(self, data):
+
+        start_time = time.time()
         self.fxsh_adm_real = {
             (r.i,r.id):(r.gl/self.base_mva)
             for r in data.raw.fixed_shunts.values()}
@@ -529,7 +548,12 @@ class Evaluation:
         self.fxsh_status = {
             (r.i,r.id):r.status
             for r in data.raw.fixed_shunts.values()}
+        end_time = time.time()
+        print('set data fxsh params: %f' % (end_time - start_time))
 
+    def set_data_gen_params(self, data):
+    
+        start_time = time.time()
         self.gen_status = {
             (r.i,r.id):r.stat
             for r in data.raw.generators.values()}
@@ -548,7 +572,12 @@ class Evaluation:
         self.gen_part_fact = {
             (r.i,r.id):r.r
             for r in data.inl.generator_inl_records.values()}
+        end_time = time.time()
+        print('set data gen params: %f' % (end_time - start_time))
 
+    def set_data_line_params(self, data):
+        
+        start_time = time.time()
         self.line_adm_real = {
             (r.i,r.j,r.ckt):(r.r/(r.r**2.0 + r.x**2.0))
             for r in data.raw.nontransformer_branches.values()}
@@ -567,7 +596,12 @@ class Evaluation:
         self.line_status = {
             (r.i,r.j,r.ckt):r.st
             for r in data.raw.nontransformer_branches.values()}
+        end_time = time.time()
+        print('set data line params: %f' % (end_time - start_time))
 
+    def set_data_xfmr_params(self, data):
+
+        start_time = time.time()
         self.xfmr_adm_real = {
             (r.i,r.j,r.ckt):(r.r12 / (r.r12**2.0 + r.x12**2.0))
             for r in data.raw.transformers.values()}
@@ -595,7 +629,12 @@ class Evaluation:
         self.xfmr_status = {
             (r.i,r.j,r.ckt):r.stat
             for r in data.raw.transformers.values()}
+        end_time = time.time()
+        print('set data xfmr params: %f' % (end_time - start_time))
 
+    def set_data_swsh_params(self, data):
+
+        start_time = time.time()
         # swsh
         self.swsh_status = {
             r.i:r.stat
@@ -620,7 +659,12 @@ class Evaluation:
                   min(0.0, r.n7 * r.b7) +
                   min(0.0, r.n8 * r.b8)) / self.base_mva)
             for r in data.raw.switched_shunts.values()}
+        end_time = time.time()
+        print('set data swsh params: %f' % (end_time - start_time))
 
+    def set_data_gen_cost_params(self, data):
+
+        start_time = time.time()
         # todo clean up maybe
         # defines some attributes that need to be initialized above
         # piecewise linear cost functions
@@ -639,8 +683,40 @@ class Evaluation:
                 self.gen_pl_x[key] = t.points[i].x / self.base_mva
                 self.gen_pl_y[key] = t.points[i].y            
         #'''
+        end_time = time.time()
+        print('set data gen cost params: %f' % (end_time - start_time))
 
+    def set_data_bus_maps(self, data):
+
+        start_time = time.time()
         # maps from buses to components
+        # this section is long (140 s) - much reduced now (~1s) see below
+
+        # fasster method ~1s
+        self.bus_load = {i:[] for i in self.bus}
+        self.bus_fxsh = {i:[] for i in self.bus}
+        self.bus_gen = {i:[] for i in self.bus}
+        self.bus_line_orig = {i:[] for i in self.bus}
+        self.bus_line_dest = {i:[] for i in self.bus}
+        self.bus_xfmr_orig = {i:[] for i in self.bus}
+        self.bus_xfmr_dest = {i:[] for i in self.bus}
+        for k in self.load:
+            self.bus_load[k[0]].append(k)
+        for k in self.fxsh:
+            self.bus_fxsh[k[0]].append(k)
+        for k in self.gen:
+            self.bus_gen[k[0]].append(k)
+        for k in self.line:
+            self.bus_line_orig[k[0]].append(k)
+        for k in self.line:
+            self.bus_line_dest[k[1]].append(k)
+        for k in self.xfmr:
+            self.bus_xfmr_orig[k[0]].append(k)
+        for k in self.xfmr:
+            self.bus_xfmr_dest[k[1]].append(k)
+
+        # original, slow method
+        '''
         self.bus_load = {
             i:[k for k in self.load if k[0] == i]
             for i in self.bus}
@@ -662,7 +738,13 @@ class Evaluation:
         self.bus_xfmr_dest = {
             i:[k for k in self.xfmr if k[1] == i]
             for i in self.bus}
+        '''
+        end_time = time.time()
+        print('set data bus maps: %f' % (end_time - start_time))
 
+    def set_data_bus_swsh_params(self, data):
+
+        start_time = time.time()
         self.bus_swsh_adm_imag_max = {i:0.0 for i in self.bus}
         self.bus_swsh_adm_imag_max.update(
             {i:self.swsh_adm_imag_max[i]
@@ -671,10 +753,16 @@ class Evaluation:
         self.bus_swsh_adm_imag_min.update(
             {i:self.swsh_adm_imag_min[i]
              for i in self.swsh if self.swsh_status[i]})
-        
+        end_time = time.time()
+        print('set data bus swsh params: %f' % (end_time - start_time))
+
+    def set_data_ctg_params(self, data):
+
+        start_time = time.time()
         # contingency records
         # TODO - stll need gen_ctg_part_fact
         # and area_ctg_affected will need to be done more carefully
+        # this section is pretty long (40 s) - much reduced now, < 1 s (see below)
         self.gen_area = {r:self.bus_area[r[0]] for r in self.gen}
         self.area_gens = {a:set() for a in self.area}
         for i in self.gen:
@@ -683,6 +771,30 @@ class Evaluation:
         self.ctg_lines_out = {k:set() for k in self.ctg}
         self.ctg_xfmrs_out = {k:set() for k in self.ctg}
         self.ctg_areas_affected = {k:set() for k in self.ctg}
+
+        # fast - < 1 s
+        #'''
+        self.ctg_branches_out = {
+            r.label:set([(e.i, e.j, e.ckt) for e in r.branch_out_events])
+            for r in data.con.contingencies.values()}
+        line_set = set(self.line)
+        self.ctg_lines_out = {k:(v & line_set) for k,v in self.ctg_branches_out.iteritems()}
+        xfmr_set = set(self.xfmr)
+        self.ctg_xfmrs_out = {k:(v & xfmr_set) for k,v in self.ctg_branches_out.iteritems()}
+        self.ctg_gens_out = {
+            r.label:set([(e.i, e.id) for e in r.generator_out_events])
+            for r in data.con.contingencies.values()}
+        self.ctg_areas_affected = {
+            k:(
+                set([self.bus_area[r[0]] for r in self.ctg_gens_out[k]]) |
+                set([self.bus_area[r[0]] for r in self.ctg_branches_out[k]]) |
+                set([self.bus_area[r[1]] for r in self.ctg_branches_out[k]]))
+            for k in self.ctg}
+        #print self.ctg_lines_out
+        #'''
+        
+        # slow - 30 seconds - remove
+        '''
         for r in data.con.contingencies.values():
             for e in r.branch_out_events:
                 if (e.i, e.j, e.ckt) in data.raw.nontransformer_branches.keys():
@@ -696,6 +808,9 @@ class Evaluation:
             for e in r.generator_out_events:
                 self.ctg_gens_out[r.label].add((e.i, e.id))
                 self.ctg_areas_affected[r.label].add(self.bus_area[e.i])
+        '''
+
+        # remove
         #self.gen_ctg_participating = {
         #    (r[0],r[1],k):(
         #        1 if (
@@ -704,6 +819,26 @@ class Evaluation:
         #        else 0)
         #    for r in self.gen
         #    for k in self.ctg}
+        end_time = time.time()
+        print('set data ctg params: %f' % (end_time - start_time))
+
+    def set_data(self, data):
+        ''' set values from the data object
+        convert to per unit (p.u.) convention'''
+
+        self.set_data_sets(data)
+        self.set_data_scalars(data)
+        self.set_data_bus_params(data)
+        self.set_data_load_params(data)
+        self.set_data_fxsh_params(data)
+        self.set_data_gen_params(data)
+        self.set_data_line_params(data)
+        self.set_data_xfmr_params(data)
+        self.set_data_swsh_params(data)
+        self.set_data_gen_cost_params(data)
+        self.set_data_bus_maps(data)
+        self.set_data_bus_swsh_params(data)
+        self.set_data_ctg_params(data)
 
     def set_params(self):
         '''set parameters, e.g. tolerances, penalties, and convert to PU'''
@@ -1057,6 +1192,8 @@ class Evaluation:
             print("va_orig (deg): %s" % str(self.bus_volt_ang[iorig] * 180.0/math.pi))
             print("va_dest (deg): %s" % str(self.bus_volt_ang[idest] * 180.0/math.pi))
         
+        start_time = time.time()
+
         self.line_pow_orig_real = {
             k:( self.line_adm_real[k] * self.bus_volt_mag[k[0]]**2.0 +
                 ( - self.line_adm_real[k] * math.cos(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]])
@@ -1085,6 +1222,36 @@ class Evaluation:
                 self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.line_status[k] else 0.0)
             for k in self.line}
+
+        end_time = time.time()
+        eval_line_pow_time = end_time - start_time
+        print('eval line pow time: %f' % eval_line_pow_time)
+
+        start_time = time.time()
+        line_status = np.array([self.line_status[k] for k in self.line])
+        line_adm_real = np.array([self.line_adm_real[k] for k in self.line])
+        line_adm_imag = np.array([self.line_adm_imag[k] for k in self.line])
+        bus_volt_mag = np.array([self.bus_volt_mag[k] for k in self.bus])
+        bus_volt_ang = np.array([self.bus_volt_ang[k] for k in self.bus])
+        line_orig_volt_mag = np.array([self.bus_volt_mag[k[0]] for k in self.line])
+        line_dest_volt_mag = np.array([self.bus_volt_mag[k[1]] for k in self.line])
+        line_orig_volt_ang = np.array([self.bus_volt_ang[k[0]] for k in self.line])
+        line_dest_volt_ang = np.array([self.bus_volt_ang[k[1]] for k in self.line])
+        end_time = time.time()
+        eval_line_pow_startup_time = end_time - start_time
+        print('eval line pow startup time: %f' % eval_line_pow_startup_time)
+
+        start_time = time.time()
+        line_pow_orig_real = line_status * (
+            line_adm_real * line_orig_volt_mag ** 2.0 +
+            ( - line_adm_real * np.cos(line_orig_volt_ang - line_dest_volt_ang)
+              - line_adm_imag * np.sin(line_orig_volt_ang - line_dest_volt_ang)) *
+            line_orig_volt_mag * line_dest_volt_mag)
+        end_time = time.time()
+        eval_line_pow_time = end_time - start_time
+        print('eval line pow time: %f' % (4.0 * eval_line_pow_time))
+
+        print('eval line pow total time: %f' % (eval_line_pow_startup_time + 4.0 * eval_line_pow_time))
 
     def eval_line_curr_viol(self):
 
@@ -1908,6 +2075,7 @@ class Solution1:
             
     def read_bus_rows(self, rows):
 
+        start_time = time.time()
         i = 0
         vm = 1
         va = 2
@@ -1920,6 +2088,8 @@ class Solution1:
             self.bus_volt_mag[ri] = rvm
             self.bus_volt_ang[ri] = rva
             self.bus_swsh_adm_imag[ri] = rb
+        end_time = time.time()
+        print('sol1 read_bus_rows time: %f' % (end_time - start_time))
 
     def read_gen_rows(self, rows):
 
