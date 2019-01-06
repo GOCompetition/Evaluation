@@ -12,7 +12,8 @@ execfile("test.py")
 
 import argparse
 #import evaluation1 as evaluation
-import evaluation
+import evaluation2 as evaluation
+#import evaluation
 import csv
     
 def run():
