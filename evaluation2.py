@@ -6,7 +6,7 @@ import time
 from itertools import islice
 import numpy as np
 import traceback
-#from scipy import sparse as sp
+from scipy import sparse as sp
 #from io import open
 
 """
@@ -1239,7 +1239,14 @@ class Evaluation:
         line_map = {self.line[i]:i for i in range(num_line)}
         line_orig_bus = [bus_map[r[0]] for r in self.line]
         line_dest_bus = [bus_map[r[1]] for r in self.line]
-        #bus_line_incidence_matrix = 
+        bus_line_orig_matrix = sp.csc_matrix(
+            ([1.0 for i in range(num_line)],
+             (line_orig_bus, list(range(num_line)))),
+            (num_bus, num_line))
+        bus_line_dest_matrix = sp.csc_matrix(
+            ([1.0 for i in range(num_line)],
+             (line_dest_bus, list(range(num_line)))),
+            (num_bus, num_line))
         #????
         line_status = np.array([self.line_status[k] for k in self.line])
         line_adm_real = np.array([self.line_adm_real[k] for k in self.line])
@@ -1263,6 +1270,11 @@ class Evaluation:
         end_time = time.time()
         eval_line_pow_time = end_time - start_time
         print('eval line pow time: %f' % (4.0 * eval_line_pow_time))
+
+        start_time = time.time()
+        bus_line_pow_real_injection = - bus_line_orig_matrix.dot(line_pow_orig_real) # (- ... dest)
+        end_time = time.time()
+        print('bus line pow matrix multiply time: %f' % (4.0 * (end_time - start_time)))
 
         print('eval line pow total time: %f' % (eval_line_pow_startup_time + 4.0 * eval_line_pow_time))
 

@@ -12,8 +12,9 @@ execfile("test.py")
 
 import argparse
 #import evaluation1 as evaluation
-import evaluation2 as evaluation
-#import evaluation
+#import evaluation2 as evaluation # functioning code, with timing prototypes of numpy/scipy method
+#import evaluation3 as evaluation # developing numpy/scipy method
+import evaluation # = evaluation2 
 import csv
     
 def run():

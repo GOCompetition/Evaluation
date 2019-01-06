@@ -6,7 +6,6 @@ import time
 from itertools import islice
 import numpy as np
 import traceback
-from scipy import sparse as sp
 #from io import open
 
 """
@@ -479,13 +478,13 @@ class Evaluation:
     def set_data_sets(self, data):
 
         start_time = time.time()
-        self.bus = [r.i for r in data.raw.buses.values()]
-        self.load = [(r.i,r.id) for r in data.raw.loads.values()]
-        self.fxsh = [(r.i,r.id) for r in data.raw.fixed_shunts.values()]
-        self.gen = [(r.i,r.id) for r in data.raw.generators.values()]
-        self.line = [(r.i,r.j,r.ckt) for r in data.raw.nontransformer_branches.values()]
-        self.xfmr = [(r.i,r.j,r.ckt) for r in data.raw.transformers.values()]
-        self.swsh = [r.i for r in data.raw.switched_shunts.values()]
+        #self.bus = [r.i for r in data.raw.buses.values()]
+        #self.load = [(r.i,r.id) for r in data.raw.loads.values()]
+        #self.fxsh = [(r.i,r.id) for r in data.raw.fixed_shunts.values()]
+        #self.gen = [(r.i,r.id) for r in data.raw.generators.values()]
+        #self.line = [(r.i,r.j,r.ckt) for r in data.raw.nontransformer_branches.values()]
+        #self.xfmr = [(r.i,r.j,r.ckt) for r in data.raw.transformers.values()]
+        #self.swsh = [r.i for r in data.raw.switched_shunts.values()]
         self.area = [r.i for r in data.raw.areas.values()]
         self.ctg = [r.label for r in data.con.contingencies.values()]
         end_time = time.time()
@@ -499,137 +498,140 @@ class Evaluation:
         print('set data scalars: %f' % (end_time - start_time))
 
     def set_data_bus_params(self, data):
-        
+
         start_time = time.time()
-        #self.bus_base_kv = {
-        #    r.i:r.baskv
-        #    for r in data.raw.buses.values()}
-        self.bus_volt_mag_max = {
-            r.i:r.nvhi
-            for r in data.raw.buses.values()}
-        self.bus_volt_mag_min = {
-            r.i:r.nvlo
-            for r in data.raw.buses.values()}
-        self.ctg_bus_volt_mag_max = {
-            r.i:r.evhi
-            for r in data.raw.buses.values()}
-        self.ctg_bus_volt_mag_min = {
-            r.i:r.evlo
-            for r in data.raw.buses.values()}
-        self.bus_area = {
-            r.i:r.area
-            for r in data.raw.buses.values()}
+        buses = list(data.raw.buses.values())
+        self.num_bus = len(buses)
+        self.bus_i = [r.i for r in buses]
+        self.bus_map = {self.bus_i[i]:i for i in range(len(self.bus_i))}
+        self.bus_volt_mag_max = np.array([r.nvhi for r in buses])
+        self.bus_volt_mag_min = np.array([r.nvlo for r in buses])
+        self.ctg_bus_volt_mag_max = np.array([r.evhi for r in buses])
+        self.ctg_bus_volt_mag_min = np.array([r.evlo for r in buses])
+        self.bus_area = [r.area for r in buses]
         end_time = time.time()
         print('set data bus params: %f' % (end_time - start_time))
 
     def set_data_load_params(self, data):
 
         start_time = time.time()
-        self.load_const_pow_real = {
-            (r.i,r.id):(r.pl/self.base_mva)
-            for r in data.raw.loads.values()}
-        self.load_const_pow_imag = {
-            (r.i,r.id):(r.ql/self.base_mva)
-            for r in data.raw.loads.values()}
-        self.load_status = {
-            (r.i,r.id):r.status
-            for r in data.raw.loads.values()}
+        loads = list(data.raw.loads.values())
+        self.num_load = len(loads)
+        self.load_i = [r.i for r in loads]
+        self.load_id = [r.id for r in loads]
+        self.load_bus = [self.bus_map[self.load_i[i]] for i in range(self.num_load)]
+        self.load_map = {(self.load_i[i], self.load_id[i]):i for i in range(self.num_load)}
+        self.load_const_pow_real = np.array([r.pl / self.base_mva for r in loads])
+        self.load_const_pow_imag = np.array([r.ql / self.base_mva for r in loads])
+        self.load_status = np.array([r.status for r in loads])
+        self.bus_load = {i:[] for i in range(self.num_bus)}
+        for i in range(self.num_load):
+            self.bus_load[self.load_bus[i]].append(i)
+        self.bus_load_const_pow_real = np.array([
+            np.sum(self.load_const_pow_real[self.bus_load[i]])
+            for i in range(self.num)])
+        self.bus_load_const_pow_imag = np.array([
+            np.sum(self.load_const_pow_imag[self.bus_load[i]])
+            for i in range(self.num)])
         end_time = time.time()
         print('set data load params: %f' % (end_time - start_time))
 
     def set_data_fxsh_params(self, data):
 
         start_time = time.time()
-        self.fxsh_adm_real = {
-            (r.i,r.id):(r.gl/self.base_mva)
-            for r in data.raw.fixed_shunts.values()}
-        self.fxsh_adm_imag = {
-            (r.i,r.id):(r.bl/self.base_mva)
-            for r in data.raw.fixed_shunts.values()}
-        self.fxsh_status = {
-            (r.i,r.id):r.status
-            for r in data.raw.fixed_shunts.values()}
+        fxshs = list(data.raw.fixed_shunts.values())
+        self.num_fxsh = len(fxshs)
+        self.fxsh_i = [r.i for r in fxshs]
+        self.fxsh_id = [r.id for r in fxshs]
+        self.fxsh_bus = [self.bus_map[self.fxsh_i[i]] for i in range(self.num_fxsh)]
+        self.fxsh_map = {(self.fxsh_i[i], self.fxsh_id[i]):i for i in range(self.num_fxsh)}
+        self.fxsh_status = np.array([r.status for r in fxshs])
+        self.fxsh_adm_real = np.array([r.gl / self.base_mva for r in fxshs]) * self.fxsh_status
+        self.fxsh_adm_imag = np.array([r.bl / self.base_mva for r in fxshs]) * self.fxsh_status
+        self.bus_fxsh = {i:[] for i in range(self.num_bus)}
+        for i in range(self.num_fxsh):
+            self.bus_fxsh[self.fxsh_bus[i]].append(i)
+        self.bus_fxsh_adm_real = np.array([
+            np.sum(self.fxsh_adm_real[self.bus_fxsh[i]])
+            for i in range(self.num)])
+        self.bus_fxsh_adm_imag = np.array([
+            np.sum(self.fxsh_adm_imag[self.bus_fxsh[i]])
+            for i in range(self.num)])
         end_time = time.time()
         print('set data fxsh params: %f' % (end_time - start_time))
 
     def set_data_gen_params(self, data):
     
         start_time = time.time()
-        self.gen_status = {
-            (r.i,r.id):r.stat
-            for r in data.raw.generators.values()}
-        self.gen_pow_imag_max = {
-            (r.i,r.id):(r.qt/self.base_mva)
-            for r in data.raw.generators.values()}
-        self.gen_pow_imag_min = {
-            (r.i,r.id):(r.qb/self.base_mva)
-            for r in data.raw.generators.values()}
-        self.gen_pow_real_max = {
-            (r.i,r.id):(r.pt/self.base_mva)
-            for r in data.raw.generators.values()}
-        self.gen_pow_real_min = {
-            (r.i,r.id):(r.pb/self.base_mva)
-            for r in data.raw.generators.values()}
-        self.gen_part_fact = {
-            (r.i,r.id):r.r
-            for r in data.inl.generator_inl_records.values()}
+        gens = list(data.raw.generators.values())
+        self.num_gen = len(gens)
+        self.gen_i = [r.i for r in gens]
+        self.gen_id = [r.id for r in gens]
+        self.gen_bus = [self.bus_map[self.gen_i[i]] for i in range(self.num_gen)]
+        self.gen_map = {(self.gen_i[i], self.gen_id[i]):i for i in range(self.num_gen)}
+        self.gen_status = np.array([r.stat for r in gens])
+        self.gen_pow_imag_max = np.array([r.qt / self.base_mva for r in gens]) * self.gen_status
+        self.gen_pow_imag_min = np.array([r.qb / self.base_mva for r in gens]) * self.gen_status
+        self.gen_pow_real_max = np.array([r.pt / self.base_mva for r in gens]) * self.gen_status
+        self.gen_pow_real_min = np.array([r.pb / self.base_mva for r in gens]) * self.gen_status
+        gen_part_fact = {(r.i, r.id) : r.r for r in data.inl.generator_inl_records.values()} * self.gen_status
+        self.gen_part_fact = np.array([gen_part_fact[(r.i, r.id)] for r in gens])
+        self.bus_gen = {i:[] for i in range(self.num_bus)}
+        for i in range(self.num_gen):
+            self.bus_gen[self.gen_bus[i]].append(i)
         end_time = time.time()
         print('set data gen params: %f' % (end_time - start_time))
 
     def set_data_line_params(self, data):
         
         start_time = time.time()
-        self.line_adm_real = {
-            (r.i,r.j,r.ckt):(r.r/(r.r**2.0 + r.x**2.0))
-            for r in data.raw.nontransformer_branches.values()}
-        self.line_adm_imag = {
-            (r.i,r.j,r.ckt):(-r.x/(r.r**2.0 + r.x**2.0))
-            for r in data.raw.nontransformer_branches.values()}
-        self.line_adm_ch_imag = {
-            (r.i,r.j,r.ckt):r.b
-            for r in data.raw.nontransformer_branches.values()}
-        self.line_curr_mag_max = {
-            (r.i,r.j,r.ckt):(r.ratea/self.base_mva) # todo - normalize by bus base kv???
-            for r in data.raw.nontransformer_branches.values()}
-        self.ctg_line_curr_mag_max = {
-            (r.i,r.j,r.ckt):(r.ratec/self.base_mva) # todo - normalize by bus base kv???
-            for r in data.raw.nontransformer_branches.values()}
-        self.line_status = {
-            (r.i,r.j,r.ckt):r.st
-            for r in data.raw.nontransformer_branches.values()}
+        lines = list(data.raw.nontransformer_branches.values())
+        self.num_line = len(lines)
+        self.line_i = [r.i for r in lines]
+        self.line_j = [r.j for r in lines]
+        self.line_k = [r.ckt for r in lines]
+        self.line_orig_bus = [self.bus_map[self.line_i[i]] for i in range(self.num_line)]
+        self.line_dest_bus = [self.bus_map[self.line_j[i]] for i in range(self.num_line)]
+        self.line_map = {(self.line_i[i], self.line_j[i], self.line_ckt[i]):i for i range(self.num_line)}
+        self.line_status = np.array([r.st for r in lines])
+        self.line_adm_real = np.array([r.r / (r.r**2.0 + r.x**2.0) for r in lines]) * self.line_status
+        self.line_adm_imag = np.array([-r.x / (r.r**2.0 + r.x**2.0) for r in lines]) * self.line_status
+        self.line_adm_ch_imag = np.array([r.b for r in lines]) * self.line_status
+        self.line_curr_mag_max = np.array([r.ratea / self.base_mva for r in lines]) # todo - normalize by bus base kv???
+        self.ctg_line_curr_mag_max = np.array([r.ratec / self.base_mva for r in lines]) # todo - normalize by bus base kv???
+        self.bus_line_orig = {i:[] for i in range(self.num_bus)}
+        self.bus_line_dest = {i:[] for i in range(self.num_bus)}
+        for i in range(self.num_line):
+            self.bus_line_orig[self.line_orig_bus[i]].append(i)
+            self.bus_line_dest[self.line_dest_bus[i]].append(i)
         end_time = time.time()
         print('set data line params: %f' % (end_time - start_time))
 
     def set_data_xfmr_params(self, data):
 
         start_time = time.time()
-        self.xfmr_adm_real = {
-            (r.i,r.j,r.ckt):(r.r12 / (r.r12**2.0 + r.x12**2.0))
-            for r in data.raw.transformers.values()}
-        self.xfmr_adm_imag = {
-            (r.i,r.j,r.ckt):(-r.x12 / (r.r12**2.0 + r.x12**2.0))
-            for r in data.raw.transformers.values()}
-        self.xfmr_adm_mag_real = {
-            (r.i,r.j,r.ckt):r.mag1 # todo normalize?
-            for r in data.raw.transformers.values()}
-        self.xfmr_adm_mag_imag = {
-            (r.i,r.j,r.ckt):r.mag2 # todo normalize?
-            for r in data.raw.transformers.values()}
-        self.xfmr_tap_mag = {
-            (r.i,r.j,r.ckt):(r.windv1/r.windv2)
-            for r in data.raw.transformers.values()}
-        self.xfmr_tap_ang = {
-            (r.i,r.j,r.ckt):(r.ang1*math.pi/180.0)
-            for r in data.raw.transformers.values()}
-        self.xfmr_pow_mag_max = {
-            (r.i,r.j,r.ckt):(r.rata1/self.base_mva) # todo check normalization
-            for r in data.raw.transformers.values()}
-        self.ctg_xfmr_pow_mag_max = {
-            (r.i,r.j,r.ckt):(r.ratc1/self.base_mva) # todo check normalization
-            for r in data.raw.transformers.values()}
-        self.xfmr_status = {
-            (r.i,r.j,r.ckt):r.stat
-            for r in data.raw.transformers.values()}
+        xfmrs = list(data.raw.transformers.values())
+        self.num_xfmr = len(xfmrs)
+        self.xfmr_i = [r.i for r in xfmrs]
+        self.xfmr_j = [r.j for r in xfmrs]
+        self.xfmr_k = [r.ckt for r in xfmrs]
+        self.xfmr_orig_bus = [self.bus_map[self.xfmr_i[i]] for i in range(self.num_xfmr)]
+        self.xfmr_dest_bus = [self.bus_map[self.xfmr_j[i]] for i in range(self.num_xfmr)]
+        self.xfmr_map = {(self.xfmr_i[i], self.xfmr_j[i], self.xfmr_ckt[i]):i for i range(self.num_xfmr)}
+        self.xfmr_status = np.array([r.stat for r in xfmrs])
+        self.xfmr_adm_real = np.array([r.r12 / (r.r12**2.0 + r.x12**2.0) for r in xfmrs]) * self.xfmr_status
+        self.xfmr_adm_imag = np.array([-r.x12 / (r.r12**2.0 + r.x12**2.0) for r in xfmrs]) * self.xfmr_status
+        self.xfmr_adm_mag_real = np.array([r.mag1 for r in xfmrs]) * self.xfmr_status # todo normalize?
+        self.xfmr_adm_mag_imag = np.array([r.mag2 for r in xfmrs]) * self.xfmr_status # todo normalize?
+        self.xfmr_tap_mag = np.array([(r.windv1 / r.windv2) if r.stat else 1.0 for r in xfmrs])
+        self.xfmr_tap_ang = np.array([r.ang1 * math.pi / 180.0 for r in xfmrs]) * self.xfmr_status
+        self.xfmr_pow_mag_max = np.array([r.rata1 / self.base_mva for r in xfmrs]) # todo check normalization
+        self.ctg_xfmr_pow_mag_max = np.array([r.ratc1 / self.base_mva for r in xfmrs]) # todo check normalization
+        self.bus_xfmr_orig = {i:[] for i in range(self.num_bus)}
+        self.bus_xfmr_dest = {i:[] for i in range(self.num_bus)}
+        for i in range(self.num_xfmr):
+            self.bus_xfmr_orig[self.xfmr_orig_bus[i]].append(i)
+            self.bus_xfmr_dest[self.xfmr_dest_bus[i]].append(i)
         end_time = time.time()
         print('set data xfmr params: %f' % (end_time - start_time))
 
@@ -637,29 +639,41 @@ class Evaluation:
 
         start_time = time.time()
         # swsh
-        self.swsh_status = {
-            r.i:r.stat
-            for r in data.raw.switched_shunts.values()}
-        self.swsh_adm_imag_max = {
-            r.i:((max(0.0, r.n1 * r.b1) +
-                  max(0.0, r.n2 * r.b2) +
-                  max(0.0, r.n3 * r.b3) +
-                  max(0.0, r.n4 * r.b4) +
-                  max(0.0, r.n5 * r.b5) +
-                  max(0.0, r.n6 * r.b6) +
-                  max(0.0, r.n7 * r.b7) +
-                  max(0.0, r.n8 * r.b8)) / self.base_mva)
-            for r in data.raw.switched_shunts.values()}
-        self.swsh_adm_imag_min = {
-            r.i:((min(0.0, r.n1 * r.b1) +
-                  min(0.0, r.n2 * r.b2) +
-                  min(0.0, r.n3 * r.b3) +
-                  min(0.0, r.n4 * r.b4) +
-                  min(0.0, r.n5 * r.b5) +
-                  min(0.0, r.n6 * r.b6) +
-                  min(0.0, r.n7 * r.b7) +
-                  min(0.0, r.n8 * r.b8)) / self.base_mva)
-            for r in data.raw.switched_shunts.values()}
+        swshs = list(data.raw.switched_shunts.values())
+        self.num_swsh = len(swshs)
+        self.swsh_i = [r.i for r in swshs]
+        self.swsh_bus = [self.bus_map[self.swsh_i[i]] for i in range(self.num_swsh)]
+        self.swsh_map = {self.swsh_i[i]:i for i in range(self.num_swsh)}
+        self.swsh_status = np.array([r.stat for r in swshs])
+        self.swsh_adm_imag_max = np.array([
+            (max(0.0, r.n1 * r.b1) +
+             max(0.0, r.n2 * r.b2) +
+             max(0.0, r.n3 * r.b3) +
+             max(0.0, r.n4 * r.b4) +
+             max(0.0, r.n5 * r.b5) +
+             max(0.0, r.n6 * r.b6) +
+             max(0.0, r.n7 * r.b7) +
+             max(0.0, r.n8 * r.b8)) / self.base_mva
+            for r in swshs]) * self.swsh_status
+        self.swsh_adm_imag_min = np.array([
+            (min(0.0, r.n1 * r.b1) +
+             min(0.0, r.n2 * r.b2) +
+             min(0.0, r.n3 * r.b3) +
+             min(0.0, r.n4 * r.b4) +
+             min(0.0, r.n5 * r.b5) +
+             min(0.0, r.n6 * r.b6) +
+             min(0.0, r.n7 * r.b7) +
+             min(0.0, r.n8 * r.b8)) / self.base_mva
+            for r in swshs]) * self.swsh_status
+        self.bus_swsh = {i:[] for i in range(self.num_bus)}
+        for i in range(self.num_swsh):
+            self.bus_swsh[self.swsh_bus[i]].append(i)
+        self.bus_swsh_adm_imag_max = np.array([
+            np.sum(self.swsh_adm_imag_max[self.bus_swsh[i]])
+            for i in range(self.num)])
+        self.bus_swsh_adm_imag_min = np.array([
+            np.sum(self.swsh_adm_imag_min[self.bus_swsh[i]])
+            for i in range(self.num)])
         end_time = time.time()
         print('set data swsh params: %f' % (end_time - start_time))
 
@@ -686,76 +700,6 @@ class Evaluation:
         #'''
         end_time = time.time()
         print('set data gen cost params: %f' % (end_time - start_time))
-
-    def set_data_bus_maps(self, data):
-
-        start_time = time.time()
-        # maps from buses to components
-        # this section is long (140 s) - much reduced now (~1s) see below
-
-        # fasster method ~1s
-        self.bus_load = {i:[] for i in self.bus}
-        self.bus_fxsh = {i:[] for i in self.bus}
-        self.bus_gen = {i:[] for i in self.bus}
-        self.bus_line_orig = {i:[] for i in self.bus}
-        self.bus_line_dest = {i:[] for i in self.bus}
-        self.bus_xfmr_orig = {i:[] for i in self.bus}
-        self.bus_xfmr_dest = {i:[] for i in self.bus}
-        for k in self.load:
-            self.bus_load[k[0]].append(k)
-        for k in self.fxsh:
-            self.bus_fxsh[k[0]].append(k)
-        for k in self.gen:
-            self.bus_gen[k[0]].append(k)
-        for k in self.line:
-            self.bus_line_orig[k[0]].append(k)
-        for k in self.line:
-            self.bus_line_dest[k[1]].append(k)
-        for k in self.xfmr:
-            self.bus_xfmr_orig[k[0]].append(k)
-        for k in self.xfmr:
-            self.bus_xfmr_dest[k[1]].append(k)
-
-        # original, slow method
-        '''
-        self.bus_load = {
-            i:[k for k in self.load if k[0] == i]
-            for i in self.bus}
-        self.bus_fxsh = {
-            i:[k for k in self.fxsh if k[0] == i]
-            for i in self.bus}
-        self.bus_gen = {
-            i:[k for k in self.gen if k[0] == i]
-            for i in self.bus}
-        self.bus_line_orig = {
-            i:[k for k in self.line if k[0] == i]
-            for i in self.bus}
-        self.bus_line_dest = {
-            i:[k for k in self.line if k[1] == i]
-            for i in self.bus}
-        self.bus_xfmr_orig = {
-            i:[k for k in self.xfmr if k[0] == i]
-            for i in self.bus}
-        self.bus_xfmr_dest = {
-            i:[k for k in self.xfmr if k[1] == i]
-            for i in self.bus}
-        '''
-        end_time = time.time()
-        print('set data bus maps: %f' % (end_time - start_time))
-
-    def set_data_bus_swsh_params(self, data):
-
-        start_time = time.time()
-        self.bus_swsh_adm_imag_max = {i:0.0 for i in self.bus}
-        self.bus_swsh_adm_imag_max.update(
-            {i:self.swsh_adm_imag_max[i]
-             for i in self.swsh if self.swsh_status[i]})
-        self.bus_swsh_adm_imag_min = {i:0.0 for i in self.bus}
-        self.bus_swsh_adm_imag_min.update(
-            {i:self.swsh_adm_imag_min[i]
-             for i in self.swsh if self.swsh_status[i]})
-        end_time = time.time()
-        print('set data bus swsh params: %f' % (end_time - start_time))
 
     def set_data_ctg_params(self, data):
 
@@ -1228,26 +1172,9 @@ class Evaluation:
         eval_line_pow_time = end_time - start_time
         print('eval line pow time: %f' % eval_line_pow_time)
 
-
-        
-        #self.bus_line_orig
+    def eval_line_pow_fast_demo(self):
 
         start_time = time.time()
-        num_bus = len(self.bus)
-        num_line = len(self.line)
-        bus_map = {self.bus[i]:i for i in range(num_bus)}
-        line_map = {self.line[i]:i for i in range(num_line)}
-        line_orig_bus = [bus_map[r[0]] for r in self.line]
-        line_dest_bus = [bus_map[r[1]] for r in self.line]
-        bus_line_orig_matrix = sp.csc_matrix(
-            ([1.0 for i in range(num_line)],
-             (line_orig_bus, list(range(num_line)))),
-            (num_bus, num_line))
-        bus_line_dest_matrix = sp.csc_matrix(
-            ([1.0 for i in range(num_line)],
-             (line_dest_bus, list(range(num_line)))),
-            (num_bus, num_line))
-        #????
         line_status = np.array([self.line_status[k] for k in self.line])
         line_adm_real = np.array([self.line_adm_real[k] for k in self.line])
         line_adm_imag = np.array([self.line_adm_imag[k] for k in self.line])
@@ -1271,16 +1198,10 @@ class Evaluation:
         eval_line_pow_time = end_time - start_time
         print('eval line pow time: %f' % (4.0 * eval_line_pow_time))
 
-        start_time = time.time()
-        bus_line_pow_real_injection = - bus_line_orig_matrix.dot(line_pow_orig_real) # (- ... dest)
-        end_time = time.time()
-        print('bus line pow matrix multiply time: %f' % (4.0 * (end_time - start_time)))
-
         print('eval line pow total time: %f' % (eval_line_pow_startup_time + 4.0 * eval_line_pow_time))
 
     def eval_line_curr_viol(self):
 
-        start_time = time.time()
         self.line_curr_orig_mag_max_viol = {
             k:max(
                 0.0,
@@ -1295,13 +1216,9 @@ class Evaluation:
                  self.line_pow_dest_imag[k]**2.0)**0.5 -
                 self.line_curr_mag_max[k] * self.bus_volt_mag[k[1]])
             for k in self.line}
-        end_time = time.time()
-        eval_line_curr_viol_time = end_time - start_time
-        print('eval line curr viol time: %f' % eval_line_curr_viol_time)
 
     def eval_xfmr_pow(self):
 
-        start_time = time.time()
         self.xfmr_pow_orig_real = {
             k:( (self.xfmr_adm_real[k] / self.xfmr_tap_mag[k]**2.0 + self.xfmr_adm_mag_real[k]) * self.bus_volt_mag[k[0]]**2.0 +
                 ( - self.xfmr_adm_real[k] / self.xfmr_tap_mag[k] * math.cos(self.bus_volt_ang[k[0]] - self.bus_volt_ang[k[1]] - self.xfmr_tap_ang[k])
@@ -1330,9 +1247,6 @@ class Evaluation:
                 self.bus_volt_mag[k[0]] * self.bus_volt_mag[k[1]]
                 if self.xfmr_status[k] else 0.0)
             for k in self.xfmr}
-        end_time = time.time()
-        eval_xfmr_pow_time = end_time - start_time
-        print('eval xfmr pow time: %f' % eval_xfmr_pow_time)
 
     def eval_xfmr_pow_viol(self):
 
@@ -1380,7 +1294,6 @@ class Evaluation:
             print("xfmrs orig: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_orig_real[k]) for k in self.bus_xfmr_orig[i]]))
             print("xfmrs dest: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
 
-        start_time = time.time()
         self.bus_pow_balance_real_viol = {
             i:abs(
                 sum([self.gen_pow_real[k] for k in self.bus_gen[i] if self.gen_status[k]]) -
@@ -1402,9 +1315,6 @@ class Evaluation:
                 sum([self.xfmr_pow_orig_imag[k] for k in self.bus_xfmr_orig[i] if self.xfmr_status[k]]) -
                 sum([self.xfmr_pow_dest_imag[k] for k in self.bus_xfmr_dest[i] if self.xfmr_status[k]]))
             for i in self.bus}
-        end_time = time.time()
-        eval_bus_pow_balance_time = end_time - start_time
-        print('eval bus pow balance time: %f' % eval_bus_pow_balance_time)
 
     def eval_ctg_bus_volt_viol(self):
 
@@ -1703,7 +1613,6 @@ class Evaluation:
 
     def eval_penalty(self):
 
-        start_time = time.time()
         self.penalty = base_case_penalty_weight * (
             np.sum(
                 eval_piecewise_linear_penalty(
@@ -1729,9 +1638,6 @@ class Evaluation:
                     self.bus_pow_balance_imag_viol.values(),
                     self.penalty_block_pow_imag_max,
                     self.penalty_block_pow_imag_coeff)))
-        end_time = time.time()
-        eval_penalty_time = end_time - start_time
-        print('eval penalty time: %f' % eval_penalty_time)
 
     def eval_ctg_penalty(self):
 
@@ -2316,7 +2222,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     e.set_data(p) #todo1
     time_elapsed = time.time() - start_time
     print("set data time: %u" % time_elapsed)
-
+    
     # set penalty params (later read from case.prm)
     start_time = time.time()
     e.set_params() #todo1
