@@ -14,7 +14,7 @@ import argparse
 #import evaluation1 as evaluation
 #import evaluation2 as evaluation # functioning code, with timing prototypes of numpy/scipy method
 #import evaluation3 as evaluation # developing numpy/scipy method
-import evaluation # = evaluation2 
+import evaluation # = evaluation2, minus the numpy/scipy stuff
 import csv
     
 def run():
