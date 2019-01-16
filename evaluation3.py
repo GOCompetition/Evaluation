@@ -88,6 +88,10 @@ def extra_max(keys, values):
         value = values[index]
         return (key, value)
 
+def clean_string(s):
+    t = s.replace("'","").replace('"','').replace(' ','')
+    return t
+        
 class Result:
 
     def __init__(self, ctgs):
@@ -867,7 +871,8 @@ class Evaluation:
         start_time = time.time()
         sol_bus_i = solution1.bus_df.i.values
         sol_gen_i = solution1.gen_df.i.values
-        sol_gen_id = solution1.gen_df.id.values
+        #sol_gen_id = solution1.gen_df.id.values
+        sol_gen_id = map(clean_string, list(solution1.gen_df.id.values))
 
         # which is faster? do the same for gens
         #sol_bus_map = {sol_bus_i[i]:i for i in range(self.num_bus)}
@@ -876,12 +881,13 @@ class Evaluation:
         #sol_gen_map = {(sol_gen_i[i], sol_gen_id[i]):i for i in range(self.num_gen)}
         sol_gen_key = zip(sol_gen_i, sol_gen_id)
         sol_gen_map = dict(zip(sol_gen_key, list(range(self.num_gen))))
+        #print sol_gen_i, sol_gen_id, sol_gen_key, sol_gen_map, self.gen_key, 
         # up through here is fast enough ~ 0.001 s
         
         # which is faster?
         #bus_permutation = [sol_bus_map[self.bus_i[r]] for r in range(self.num_bus)] # this line is slow ~0.015s. is there a faster python-y way to do it?
-        #bus_permutation = [sol_bus_map[k] for k in self.bus_i]
-        bus_permutation = list(itemgetter(*(self.bus_i))(sol_bus_map))
+        bus_permutation = [sol_bus_map[k] for k in self.bus_i]
+        #bus_permutation = list(itemgetter(*(self.bus_i))(sol_bus_map))
         #bus_permutation = itemgetter(*(self.bus_i))(sol_bus_map) # this does not work - list is needed, unfortunately, and takes some time
         #a = {'foo':0, 'bar':1, 'baz':2}
         #b = ['bar', 'baz', 'foo']
@@ -895,8 +901,8 @@ class Evaluation:
         # up through here takes 0.015 s
         #gen_permutation = [sol_gen_map[(self.gen_i[r], self.gen_id[r])] for r in range(self.num_gen)]
         #gen_permutation = [sol_gen_map[self.gen_key[r]] for r in range(self.num_gen)]
-        #gen_permutation = [sol_gen_map[k] for k in self.gen_key]
-        gen_permutation = list(itemgetter(*(self.gen_key))(sol_gen_map))
+        gen_permutation = [sol_gen_map[k] for k in self.gen_key]
+        #gen_permutation = list(itemgetter(*(self.gen_key))(sol_gen_map))
         # up through here takes 0.015 s
         
         # need it to handle arbitrary bus order in solution files
@@ -917,15 +923,18 @@ class Evaluation:
         ''' set values from the solution objects
         convert to per unit (p.u.) convention'''
 
-        self.ctg_current = self.ctg_map[solution2.ctg_label]
+        self.ctg_current = self.ctg_map[clean_string(solution2.ctg_label)]
         sol_bus_i = solution2.bus_df.i.values
         sol_gen_i = solution2.gen_df.i.values
-        sol_gen_id = solution2.gen_df.id.values
+        #sol_gen_id = solution2.gen_df.id.values
+        sol_gen_id = map(clean_string, list(solution2.gen_df.id.values))
         sol_bus_map = dict(zip(sol_bus_i, list(range(self.num_bus))))
         sol_gen_key = zip(sol_gen_i, sol_gen_id)
         sol_gen_map = dict(zip(sol_gen_key, list(range(self.num_gen))))
-        bus_permutation = list(itemgetter(*(self.bus_i))(sol_bus_map))
-        gen_permutation = list(itemgetter(*(self.gen_key))(sol_gen_map))
+        #bus_permutation = list(itemgetter(*(self.bus_i))(sol_bus_map))
+        #gen_permutation = list(itemgetter(*(self.gen_key))(sol_gen_map))
+        bus_permutation = [sol_bus_map[k] for k in self.bus_i]
+        gen_permutation = [sol_gen_map[k] for k in self.gen_key]
         self.ctg_bus_volt_mag = solution2.bus_df.vm.values[bus_permutation]
         self.ctg_bus_volt_ang = solution2.bus_df.va.values[bus_permutation] * (math.pi / 180.0)
         self.ctg_bus_swsh_adm_imag = solution2.bus_df.b.values[bus_permutation] / self.base_mva
@@ -2160,7 +2169,8 @@ class Solution1:
             dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
             nrows=num_bus,
             engine='c',
-            skiprows=2)
+            skiprows=2,
+            skipinitialspace=True)
         self.gen_df = pd.read_csv(
             file_name,
             sep=',',
@@ -2169,7 +2179,8 @@ class Solution1:
             dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'pq':np.float_},
             nrows=num_gen,
             engine='c',
-            skiprows=(4 + num_bus))
+            skiprows=(4 + num_bus),
+            skipinitialspace=True)
         self.num_bus = self.bus_df.shape[0]
         self.num_gen = self.gen_df.shape[0]
         '''
@@ -2735,18 +2746,18 @@ class Solution2:
         # parse file string to pandas df
         ctg_df = pd.read_csv(
             ctg_str, sep=',', header=None, names=['label'], dtype={'label':str},
-            nrows=1, engine='c', skiprows=2)
+            nrows=1, engine='c', skiprows=2, skipinitialspace=True)
         bus_df = pd.read_csv(
             bus_str, sep=',', header=None, names=['i', 'vm', 'va', 'b'],
             dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-            nrows=num_bus, engine='c', skiprows=2)
+            nrows=num_bus, engine='c', skiprows=2, skipinitialspace=True)
         gen_df = pd.read_csv(
             gen_str, sep=',', header=None, names=['i', 'id', 'pg', 'qg'],
             dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
-            nrows=num_gen, engine='c', skiprows=2)
+            nrows=num_gen, engine='c', skiprows=2, skipinitialspace=True)
         delta_df = pd.read_csv(
             delta_str, sep=',', header=None, names=['delta'],
-            dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2)
+            dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2, skipinitialspace=True)
                 
         self.bus_df = bus_df
         self.gen_df = gen_df
