@@ -6,7 +6,7 @@ import time
 from itertools import islice
 import numpy as np
 import traceback
-from scipy import sparse as sp
+#from scipy import sparse as sp
 #from io import open
 
 """
@@ -1229,7 +1229,7 @@ class Evaluation:
         print('eval line pow time: %f' % eval_line_pow_time)
 
 
-        
+        '''
         #self.bus_line_orig
 
         start_time = time.time()
@@ -1277,6 +1277,7 @@ class Evaluation:
         print('bus line pow matrix multiply time: %f' % (4.0 * (end_time - start_time)))
 
         print('eval line pow total time: %f' % (eval_line_pow_startup_time + 4.0 * eval_line_pow_time))
+        '''
 
     def eval_line_curr_viol(self):
 
