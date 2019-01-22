@@ -982,7 +982,21 @@ class Evaluation:
         #print('set ctg data time: %f' % (end_time - start_time))
 
     def write_header(self, det_name):
-        """write header line for detailed output"""
+        """write header line for detailed output
+        the detailed output file has a header row, then a row for the base case, then a row for each contingency.
+        each row is a comma separated list of fields.
+
+        A short description of each field is given in the end of line comment after each field name in the code below.
+        The description gives references to the relevant equations in the formulation,
+        specified by the equation numbers in the formulation document.
+        Formulation numbers in the document may change as they are generated automatically,
+        but reasonable efforts are made to keep the descriptions here consistent with the document.
+        Most of the fields come in (idx, val) pairs, where idx refers to the index or key of the maximum violation in
+        a class of constraints, and val refers to the value of the maximum violation.
+        Most of the fields apply to the individual contingency or base case specified in the current row.
+        The one exception is the 'obj' field, which gives the cumulative objective value for the base
+        case and all contingencies up through the current row.
+        """
 
         with open(det_name, 'w') as out:
         #with open(det_name, 'w', newline='') as out:
@@ -990,39 +1004,43 @@ class Evaluation:
         #with open(det_name, 'wb') as out:
             csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             csv_writer.writerow(
-                ['ctg', 'infeas', 'pen', 'cost', 'obj',
-                 'vmax-idx',
-                 'vmax-val',
-                 'vmin-idx',
-                 'vmin-val',
-                 'bmax-idx',
-                 'bmax-val',
-                 'bmin-idx',
-                 'bmin-val',
-                 'pbal-idx',
-                 'pbal-val',
-                 'qbal-idx',
-                 'qbal-val',
-                 'pgmax-idx',
-                 'pgmax-val',
-                 'pgmin-idx',
-                 'pgmin-val',
-                 'qgmax-idx',
-                 'qgmax-val',
-                 'qgmin-idx',
-                 'qgmin-val',
-                 'qvg1-idx',
-                 'qvg1-val',
-                 'qvg2-idx',
-                 'qvg2-val',
-                 'lineomax-idx',
-                 'lineomax-val',
-                 'linedmax-idx',
-                 'linedmax-val',
-                 'xfmromax-idx',
-                 'xfmromax-val',
-                 'xfmrdmax-idx',
-                 'xfmrdmax-val',
+                ['ctg', # contingency label for the current contingency, empty if base case
+                 'infeas', # binary indicator of infeasibility for the base case or contingency of the current row - 1 indicates infeasible
+                 'pen', # penalty value on soft constraint violations in the base case or current contingency
+                 'cost', # generator cost (base case only), 0 in contingencies
+                 'obj', # obj, = pen + cost, cumulative (i.e. base case + all ctgs through the current row)
+                 'vmax-idx', # bus number of maximum violation of bus voltage magnitude upper bounds
+                 'vmax-val', # value of maximum violation of bus voltage magnitude upper bounds
+                 'vmin-idx', # bus number of maximum violation of bus voltage magnitude lower bounds
+                 'vmin-val', # value of maximum violation of bus voltage magnitude lower bounds
+                 'bmax-idx', # bus number of maximum violation of switched shunt susceptance upper bounds
+                 'bmax-val', # value of maximum violation of switched shunt susceptance upper bounds
+                 'bmin-idx', # bus number of maximum violation of switched shunt susceptance lower bounds
+                 'bmin-val', # value of maximum violation of switched shunt susceptance lower bounds
+                 'pbal-idx', # bus number of maximum violation of real power balance contraints
+                 'pbal-val', # value of maximum violation of real power balance contraints
+                 'qbal-idx', # bus number of maximum violation of reactive power balance contraints
+                 'qbal-val', # value of maximum violation of reactive power balance contraints
+                 'pgmax-idx', # bus and unit id of maximum violation of generator real power upper bounds
+                 'pgmax-val', # value of maximum violation of generator real power upper bounds
+                 'pgmin-idx', # bus and unit id of maximum violation of generator real power lower bounds
+                 'pgmin-val', # value of maximum violation of generator real power lower bounds
+                 'qgmax-idx', # bus and unit id of maximum violation of generator reactive power upper bounds
+                 'qgmax-val', # value of maximum violation of generator reactive power upper bounds
+                 'qgmin-idx', # bus and unit id of maximum violation of generator reactive power lower bounds
+                 'qgmin-val', # value of maximum violation of generator reactive power lower bounds
+                 'qvg1-idx', # bus and unit id of maximum violation of generator pv/pq switching constraints of type 1 (undervoltage implies reactive power at max)
+                 'qvg1-val', # value of maximum violation of generator pv/pq switching constraints of type 1 (undervoltage implies reactive power at max)
+                 'qvg2-idx', # bus and unit id of maximum violation of generator pv/pq switching constraints of type 2 (overvoltage implies reactive power at min)
+                 'qvg2-val', # value of maximum violation of generator pv/pq switching constraints of type 2 (overvoltage implies reactive power at min)
+                 'lineomax-idx', # origin destination and circuit id of maximum violation of line origin flow bounds
+                 'lineomax-val', # value of maximum violation of line origin flow bounds
+                 'linedmax-idx', # origin destination and circuit id of maximum violation of line destination flow bounds
+                 'linedmax-val', # value of maximum violation of line destination flow bounds
+                 'xfmromax-idx', # origin destination and circuit id of maximum violation of transformer origin flow bounds
+                 'xfmromax-val', # value of maximum violation of transformer origin flow bounds
+                 'xfmrdmax-idx', # origin destination and circuit id of maximum violation of transformer destination flow bounds
+                 'xfmrdmax-val', # value of maximum violation of transformer destination flow bounds
             ])
             #'''
 
