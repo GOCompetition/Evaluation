@@ -1172,12 +1172,21 @@ class Evaluation:
         # Let [pmin, pmax] denote the operating bounds of a generator that is in service
         # assume [pcmin, pcmax] is a subset of [pmin, pmax]
         # let pg denote the operating point
+        #
         # if pg falls outside of [pcmin, pcmax] then it is outside of [pmin, pmax]
         # and therefore the solution is infeasible, so any cost we assign is not consequential
         # Thus it is ok if we assign cost 0 in this case
         # in general we assign cost 0 to generators that are out of service
         # assume the points on a generator cost curve are given in order of increasing p (i.e. x coordinate)
         # assume the generator cost curve is convex
+        #
+        # update 2019-01-22
+        # no longer assume pg in [pcmin, pcmax]
+        # assume >= 2 points on pc curve
+        # assume pc x-points are strictly increasing
+        # assume pc (x,y) points are convex (nondecreasing second differences)
+        # extend first and last secants to left and right resp.
+        # need a separate module for data checking independent of solution evaluation
 
         start_time = time.time()
         self.gen_cost = np.zeros(self.num_gen)
@@ -1189,23 +1198,30 @@ class Evaluation:
             #print num_pl, pl_x, pl_y
             if self.gen_status[k] == 0.0:
                 continue
-            if self.gen_pow_real[k] < pl_x[0]:
-                continue
-            if self.gen_pow_real[k] > pl_x[num_pl - 1]:
-                continue
+            #if self.gen_pow_real[k] < pl_x[0]: # do not check these
+            #    continue
+            #if self.gen_pow_real[k] > pl_x[num_pl - 1]:
+            #    continue
             y_value = 0.0
             slope = 0.0
             x_change = 0.0
             done = False
-            for i in range(num_pl - 1):
+            for i in range(num_pl - 1): # i = 0 covers first secant and extension to left
                 if self.gen_pow_real[k] <= pl_x[i + 1]:
                     y_value = pl_y[i]
-                    if pl_x[i + 1] > pl_x[i]:
-                        slope = (pl_y[i + 1] - pl_y[i]) / (pl_x[i + 1] - pl_x[i])
-                        x_change = self.gen_pow_real[k] - pl_x[i]
+                    slope = (pl_y[i + 1] - pl_y[i]) / (pl_x[i + 1] - pl_x[i])
+                    x_change = self.gen_pow_real[k] - pl_x[i]
+                    #if pl_x[i + 1] > pl_x[i]: # do not check this here. need an external data checker to ensure pl_x points are strictly increasing
+                    #    slope = (pl_y[i + 1] - pl_y[i]) / (pl_x[i + 1] - pl_x[i])
+                    #    x_change = self.gen_pow_real[k] - pl_x[i]
                     done = True
                     break
-            assert(done) # if this fails then there is a logical error
+            if not done:
+                assert (self.gen_pow_real[k] > pl_x[num_pl - 1]) # need to extend last secant to right
+                i = num_pl - 2 # num_pl >= 2 (need at least 2 points for a secant)
+                y_value = pl_y[i]
+                slope = (pl_y[i + 1] - pl_y[i]) / (pl_x[i + 1] - pl_x[i])
+                x_change = self.gen_pow_real[k] - pl_x[i]
             self.gen_cost[k] = y_value + slope * x_change
                 
 
