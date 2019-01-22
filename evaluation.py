@@ -1468,6 +1468,27 @@ class Evaluation:
                 print('pgk (from sol2): %f' % self.ctg_gen_pow_real[g])
         '''
 
+        ''' debug
+        debug = False
+        ctg_label = 'G_000017SENECA33U1'
+        gen_i = 17
+        gen_id = '1'
+        gen = self.gen_map[(gen_i, gen_id)]
+        if self.ctg_label[self.ctg_current] == ctg_label:
+            debug = True
+            print('ctg_label: %s' % self.ctg_label[self.ctg_current])
+            print('gen i: %s' % gen_i)
+            print('gen id: %s' % gen_id)
+            print('gen: %s' % gen)
+            print('gen out of service:')
+            print(self.gen_out_of_service)
+            print('ctg gens out:')
+            print(self.ctg_gens_out[self.ctg_current])
+            print('ctg gen out of service:')
+            print(self.ctg_gen_out_of_service)
+            #gens_out_of_service = set(self.gen_out_of_service) | set(self.ctg_gens_out[self.ctg_current])
+        '''
+
         # new method - not a significant time cost
         start_time = time.time()
         self.ctg_gen_pow_real = np.maximum(
@@ -1639,7 +1660,7 @@ class Evaluation:
                 print("xfmrs dest: %s" % str([(k, self.ctg_xfmr_active[k], self.ctg_xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
         '''
 
-        self.ctg_bus_pow_balance_real_viol = (
+        self.ctg_bus_pow_balance_real_viol = np.abs(
             self.bus_gen_matrix.dot(self.ctg_gen_pow_real) -
             self.ctg_bus_load_pow_real -
             self.ctg_bus_fxsh_pow_real -
@@ -1647,7 +1668,7 @@ class Evaluation:
             self.bus_line_dest_matrix.dot(self.ctg_line_pow_dest_real) -
             self.bus_xfmr_orig_matrix.dot(self.ctg_xfmr_pow_orig_real) -
             self.bus_xfmr_dest_matrix.dot(self.ctg_xfmr_pow_dest_real))
-        self.ctg_bus_pow_balance_imag_viol = (
+        self.ctg_bus_pow_balance_imag_viol = np.abs(
             self.bus_gen_matrix.dot(self.ctg_gen_pow_imag) -
             self.ctg_bus_load_pow_imag -
             self.ctg_bus_fxsh_pow_imag -
@@ -1656,6 +1677,23 @@ class Evaluation:
             self.bus_line_dest_matrix.dot(self.ctg_line_pow_dest_imag) -
             self.bus_xfmr_orig_matrix.dot(self.ctg_xfmr_pow_orig_imag) -
             self.bus_xfmr_dest_matrix.dot(self.ctg_xfmr_pow_dest_imag))
+
+        ''' debug
+        debug = False
+        ctg_label = 'G_000017SENECA33U1'
+        bus_i = 17
+        #gen_i = 17
+        #gen_id = '1'
+        bus = self.bus_map[bus_i]
+        #gen = self.gen_map[(gen_i, gen_id)]
+        if self.ctg_label[self.ctg_current] == ctg_label:
+            debug = True
+            print('ctg_label: %s' % self.ctg_label[self.ctg_current])
+            print('bus i: %s' % bus_i)
+            print('bus: %s' % bus)
+            print('bus ctg pow balance real viol: %f' % self.ctg_bus_pow_balance_real_viol[bus])
+        '''
+
 
         ''' something we could do with numpy but not with dictionaries - what about lists?
         self.ctg_bus_pow_balance_real_viol = {
