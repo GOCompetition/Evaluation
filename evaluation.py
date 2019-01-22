@@ -50,6 +50,9 @@ penalty_block_pow_abs_coeff = [1000.0, 5000.0, 1000000.0] # USD/MWA-h. when conv
 # weight on base case in objective
 base_case_penalty_weight = 0.5 # dimensionless. corresponds to delta in the formulation
 
+# tolerance on hard constraints
+hard_constr_tol = 1e-12
+
 def eval_piecewise_linear_penalty(residual, penalty_block_max, penalty_block_coeff):
     '''residual, penaltyblock_max, penalty_block_coeff are 1-dimensional numpy arrays'''
 
@@ -1164,7 +1167,7 @@ class Evaluation:
 
     def eval_ctg_update_infeas(self):
 
-        if self.ctg_infeas > 0:
+        if self.ctg_infeas > hard_constr_tol:
             self.infeas = 1
     
     def eval_cost(self):
@@ -1869,7 +1872,7 @@ class Evaluation:
             self.max_gen_pow_real_min_viol[1],
             self.max_gen_pow_imag_max_viol[1],
             self.max_gen_pow_imag_min_viol[1])
-        self.infeas = 1 if self.max_nonobj_viol > 0.0 else 0
+        self.infeas = 1 if self.max_nonobj_viol > hard_constr_tol else 0
 
     def eval_ctg_infeas(self):
 
@@ -1891,7 +1894,7 @@ class Evaluation:
             self.ctg_max_gen_pow_imag_min_viol[1],
             self.ctg_max_gen_pvpq1_viol[1],
             self.ctg_max_gen_pvpq2_viol[1])
-        self.ctg_infeas = 1 if self.ctg_max_nonobj_viol > 0.0 else 0
+        self.ctg_infeas = 1 if self.ctg_max_nonobj_viol > hard_constr_tol else 0
         self.max_obj_viol = max(self.max_obj_viol, self.ctg_max_obj_viol)
         self.max_nonobj_viol = max(self.max_nonobj_viol, self.ctg_max_nonobj_viol)
 
