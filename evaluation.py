@@ -775,7 +775,6 @@ class Evaluation:
         # todo clean up maybe
         # defines some attributes that need to be initialized above
         # piecewise linear cost functions
-        #'''
         
         self.gen_num_pl = [0 for i in range(self.num_gen)]
         self.gen_pl_x = [None for i in range(self.num_gen)]
@@ -794,8 +793,41 @@ class Evaluation:
             self.gen_pl_y[gen] = np.zeros(r_npairs)
             for i in range(r_npairs):
                 self.gen_pl_x[gen][i] = t.points[i].x / self.base_mva
-                self.gen_pl_y[gen][i] = t.points[i].y            
-        #'''
+                self.gen_pl_y[gen][i] = t.points[i].y
+            # from here on is checking assumptions and cleaning data - this should be done in a separate module to release clean datasets only
+            assert(r_npairs > 1)
+            for i in range(r_npairs - 1):
+                assert (self.gen_pl_x[gen][i + 1] - self.gen_pl_x[gen][i]) >= 0.0
+            i_to_keep = [0]
+            for i in range(r_npairs - 1):
+                if self.gen_pl_x[gen][i + 1] > self.gen_pl_x[gen][i]:
+                    i_to_keep.append(i + 1)
+            self.gen_num_pl[gen] = len(i_to_keep)
+            self.gen_pl_x[gen] = [self.gen_pl_x[gen][i] for i in i_to_keep]
+            self.gen_pl_y[gen] = [self.gen_pl_y[gen][i] for i in i_to_keep]
+            # check cost function convexity - this should be done in a separate module
+            #'''
+            if self.gen_num_pl[gen] > 2:
+                d1 = [
+                    ((self.gen_pl_y[gen][i + 1] - self.gen_pl_y[gen][i]) /
+                     (self.gen_pl_x[gen][i + 1] - self.gen_pl_x[gen][i]))
+                    for i in range(self.gen_num_pl[gen] - 1)]
+                d2 = [(d1[i + 1] - d1[i]) for i in range(self.gen_num_pl[gen] - 2)]
+                for i in range(len(d2)):
+                    if d2[i] < 0.0:
+                        print('cost convexity error')
+                        print('gen i: %s' % r_bus)
+                        print('gen id: %s' % r_genid)
+                        print r_npairs
+                        print [(t.points[i].x, t.points[i].y) for i in range(r_npairs)]
+                        print self.gen_num_pl[gen]
+                        print self.gen_pl_x[gen]
+                        print self.gen_pl_y[gen]
+                        print d1
+                        print d2
+                        print i
+                        raise Exception('cost convexity error')
+            #'''
         end_time = time.time()
         print('set data gen cost params: %f' % (end_time - start_time))
 
