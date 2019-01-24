@@ -806,7 +806,7 @@ class Evaluation:
             self.gen_pl_x[gen] = [self.gen_pl_x[gen][i] for i in i_to_keep]
             self.gen_pl_y[gen] = [self.gen_pl_y[gen][i] for i in i_to_keep]
             # check cost function convexity - this should be done in a separate module
-            #'''
+            '''
             if self.gen_num_pl[gen] > 2:
                 d1 = [
                     ((self.gen_pl_y[gen][i + 1] - self.gen_pl_y[gen][i]) /
@@ -827,7 +827,7 @@ class Evaluation:
                         print d2
                         print i
                         raise Exception('cost convexity error')
-            #'''
+            '''
         end_time = time.time()
         print('set data gen cost params: %f' % (end_time - start_time))
 
