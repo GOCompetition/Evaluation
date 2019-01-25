@@ -51,7 +51,11 @@ penalty_block_pow_abs_coeff = [1000.0, 5000.0, 1000000.0] # USD/MWA-h. when conv
 base_case_penalty_weight = 0.5 # dimensionless. corresponds to delta in the formulation
 
 # tolerance on hard constraints
+#hard_constr_tol = 0.0
 hard_constr_tol = 1e-12
+
+# pandas float precision for reading from solution files
+pandas_float_precision=None # None: ordinary converter, 'high', 'round_trip'
 
 def eval_piecewise_linear_penalty(residual, penalty_block_max, penalty_block_coeff):
     '''residual, penaltyblock_max, penalty_block_coeff are 1-dimensional numpy arrays'''
@@ -806,7 +810,7 @@ class Evaluation:
             self.gen_pl_x[gen] = [self.gen_pl_x[gen][i] for i in i_to_keep]
             self.gen_pl_y[gen] = [self.gen_pl_y[gen][i] for i in i_to_keep]
             # check cost function convexity - this should be done in a separate module
-            '''
+            #'''
             if self.gen_num_pl[gen] > 2:
                 d1 = [
                     ((self.gen_pl_y[gen][i + 1] - self.gen_pl_y[gen][i]) /
@@ -818,16 +822,19 @@ class Evaluation:
                         print('cost convexity error')
                         print('gen i: %s' % r_bus)
                         print('gen id: %s' % r_genid)
-                        print r_npairs
-                        print [(t.points[i].x, t.points[i].y) for i in range(r_npairs)]
-                        print self.gen_num_pl[gen]
-                        print self.gen_pl_x[gen]
+                        print('num pairs: %s' % r_npairs)
+                        print('pairs:')
+                        print([(t.points[i].x, t.points[i].y) for i in range(r_npairs)])
+                        #print self.gen_num_pl[gen]
+                        print('x points:')
+                        print(self.gen_pl_x[gen])
+                        print('y points:')
                         print self.gen_pl_y[gen]
-                        print d1
-                        print d2
-                        print i
-                        raise Exception('cost convexity error')
-            '''
+                        print('i: %s' % i)
+                        print('slopes:')
+                        print(d1)
+                        #raise Exception('cost convexity error') # 
+            #'''
         end_time = time.time()
         print('set data gen cost params: %f' % (end_time - start_time))
 
@@ -2252,7 +2259,7 @@ def solution_read_sections_from_lines(lines_in, section_start_line_str=None, has
     end_time = time.time()
     print('solution_read_sections_from_lines time: %f' % (end_time - start_time))
     return sections
-        
+
 class Solution1:
     '''In physical units, i.e. data convention, i.e. same as input and output data files'''
 
@@ -2277,7 +2284,8 @@ class Solution1:
             nrows=num_bus,
             engine='c',
             skiprows=2,
-            skipinitialspace=True)
+            skipinitialspace=True,
+            float_precision=pandas_float_precision)
         self.gen_df = pd.read_csv(
             file_name,
             sep=',',
@@ -2287,7 +2295,8 @@ class Solution1:
             nrows=num_gen,
             engine='c',
             skiprows=(4 + num_bus),
-            skipinitialspace=True)
+            skipinitialspace=True,
+            float_precision=pandas_float_precision)
         self.num_bus = self.bus_df.shape[0]
         self.num_gen = self.gen_df.shape[0]
         '''
@@ -2355,7 +2364,8 @@ class Solution1:
             dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
             nrows=num_bus,
             engine='c',
-            skiprows=2)
+            skiprows=2,
+            float_precision=pandas_float_precision)
         bus_i = bus_array.i.values
         bus_vm = bus_array.vm.values
         bus_va = bus_array.va.values
@@ -2369,7 +2379,8 @@ class Solution1:
             dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'pq':np.float_},
             nrows=num_gen,
             engine='c',
-            skiprows=(4 + num_bus))
+            skiprows=(4 + num_bus),
+            float_precision=pandas_float_precision)
         gen_i = gen_array.i.values
         gen_id = gen_array.id.values
         gen_pg = gen_array.pg.values
@@ -2411,7 +2422,8 @@ class Solution1:
                 dtype={'label':str},
                 nrows=1,
                 engine='c',
-                skiprows=ctg_ctg_start_row[k])
+                skiprows=ctg_ctg_start_row[k],
+                float_precision=pandas_float_precision)
             bus_array = pd.read_csv(
                 file_name,
                 sep=',',
@@ -2420,7 +2432,8 @@ class Solution1:
                 dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
                 nrows=num_bus,
                 engine='c',
-                skiprows=ctg_bus_start_row[k])
+                skiprows=ctg_bus_start_row[k],
+                float_precision=pandas_float_precision)
             gen_array = pd.read_csv(
                 file_name,
                 sep=',',
@@ -2429,7 +2442,8 @@ class Solution1:
                 dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
                 nrows=num_gen,
                 engine='c',
-                skiprows=ctg_gen_start_row[k])
+                skiprows=ctg_gen_start_row[k],
+                float_precision=pandas_float_precision)
             delta_array = pd.read_csv(
                 file_name,
                 sep=',',
@@ -2438,7 +2452,8 @@ class Solution1:
                 dtype={'delta':np.float_},
                 nrows=1,
                 engine='c',
-                skiprows=ctg_delta_start_row[k])
+                skiprows=ctg_delta_start_row[k],
+                float_precision=pandas_float_precision)
             #print ctg_array.label.values.shape
             print ctg_array.label.values[0]
             #print bus_array.i.values.shape
@@ -2458,7 +2473,8 @@ class Solution1:
             dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
             nrows=num_bus,
             engine='c',
-            skiprows=2)
+            skiprows=2,
+            float_precision=pandas_float_precision)
         self.bus_i = bus_array.i.values.tolist() # should this be a list?
         self.num_bus = len(self.bus_i)
         #print self.num_bus, self.bus_i[self.num_bus - 1]
@@ -2474,7 +2490,8 @@ class Solution1:
             dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'pq':np.float_},
             nrows=num_gen,
             engine='c',
-            skiprows=(4 + num_bus))
+            skiprows=(4 + num_bus),
+            float_precision=pandas_float_precision)
         self.gen_i = gen_array.i.values.tolist() # should this be a list?
         self.gen_id = gen_array.id.values.tolist() # should this be a list?
         self.num_gen = len(self.gen_i)
@@ -2528,7 +2545,8 @@ class Solution1:
             skiprows=ctg_skip_rows,
             engine='c',
             chunksize=1,
-            iterator=True)
+            iterator=True,
+            float_precision=pandas_float_precision)
         bus_reader = pd.read_csv(
             file_name,
             sep=',',
@@ -2539,7 +2557,8 @@ class Solution1:
             skiprows=bus_skip_rows,
             engine='c',
             chunksize=num_bus,
-            iterator=True)
+            iterator=True,
+            float_precision=pandas_float_precision)
         gen_reader = pd.read_csv(
             file_name,
             sep=',',
@@ -2550,7 +2569,8 @@ class Solution1:
             skiprows=gen_skip_rows,
             engine='c',
             chunksize=num_gen,
-            iterator=True)
+            iterator=True,
+            float_precision=pandas_float_precision)
         delta_reader = pd.read_csv(
             file_name,
             sep=',',
@@ -2561,7 +2581,8 @@ class Solution1:
             skiprows=delta_skip_rows,
             engine='c',
             chunksize=1,
-            iterator=True)
+            iterator=True,
+            float_precision=pandas_float_precision)
 
         start_time_1 = time.time()
         for k in range(num_ctg):
@@ -2618,7 +2639,8 @@ class Solution1:
                     dtype={'label':str},
                     nrows=1,
                     engine='c',
-                    skiprows=2)
+                    skiprows=2,
+                    float_precision=pandas_float_precision)
                 print ctg_array.label.values.shape
                 print ctg_array.label.values[0]
                 bus_array = pd.read_csv(
@@ -2630,7 +2652,8 @@ class Solution1:
                     #nrows=num_bus,
                     nrows=1,
                     engine='c',
-                    skiprows=1)
+                    skiprows=1,
+                    float_precision=pandas_float_precision)
                 print bus_array.i.values.shape
                 print bus_array.i.values[0]
                 gen_array = pd.read_csv(
@@ -2641,7 +2664,8 @@ class Solution1:
                     dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
                     nrows=num_gen,
                     engine='c',
-                    skiprows=2)
+                    skiprows=2,
+                    float_precision=pandas_float_precision)
                 delta_array = pd.read_csv(
                     in_file,
                     sep=',',
@@ -2650,7 +2674,8 @@ class Solution1:
                     dtype={'delta':np.float_},
                     nrows=1,
                     engine='c',
-                    skiprows=2)
+                    skiprows=2,
+                    float_precision=pandas_float_precision)
                 print k, time.time() - start_time_1
             end_time_1 = time.time()
             print("sol2 average variable read time (pd 3): %f" % ((end_time_1 - start_time_1) / num_ctg))
@@ -2724,18 +2749,18 @@ class Solution1:
                 # parse file string to pandas df
                 ctg_df = pd.read_csv(
                     ctg_str, sep=',', header=None, names=['label'], dtype={'label':str},
-                    nrows=1, engine='c', skiprows=2)
+                    nrows=1, engine='c', skiprows=2, float_precision=pandas_float_precision)
                 bus_df = pd.read_csv(
                     bus_str, sep=',', header=None, names=['i', 'vm', 'va', 'b'],
                     dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-                    nrows=num_bus, engine='c', skiprows=2)
+                    nrows=num_bus, engine='c', skiprows=2, float_precision=pandas_float_precision)
                 gen_df = pd.read_csv(
                     gen_str, sep=',', header=None, names=['i', 'id', 'pg', 'qg'],
                     dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
-                    nrows=num_gen, engine='c', skiprows=2)
+                    nrows=num_gen, engine='c', skiprows=2, float_precision=pandas_float_precision)
                 delta_df = pd.read_csv(
                     delta_str, sep=',', header=None, names=['delta'],
-                    dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2)
+                    dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2, float_precision=pandas_float_precision)
                 
                 self.bus_df = bus_df
                 self.gen_df = gen_df
@@ -2853,18 +2878,18 @@ class Solution2:
         # parse file string to pandas df
         ctg_df = pd.read_csv(
             ctg_str, sep=',', header=None, names=['label'], dtype={'label':str},
-            nrows=1, engine='c', skiprows=2, skipinitialspace=True)
+            nrows=1, engine='c', skiprows=2, skipinitialspace=True, float_precision=pandas_float_precision)
         bus_df = pd.read_csv(
             bus_str, sep=',', header=None, names=['i', 'vm', 'va', 'b'],
             dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-            nrows=num_bus, engine='c', skiprows=2, skipinitialspace=True)
+            nrows=num_bus, engine='c', skiprows=2, skipinitialspace=True, float_precision=pandas_float_precision)
         gen_df = pd.read_csv(
             gen_str, sep=',', header=None, names=['i', 'id', 'pg', 'qg'],
             dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
-            nrows=num_gen, engine='c', skiprows=2, skipinitialspace=True)
+            nrows=num_gen, engine='c', skiprows=2, skipinitialspace=True, float_precision=pandas_float_precision)
         delta_df = pd.read_csv(
             delta_str, sep=',', header=None, names=['delta'],
-            dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2, skipinitialspace=True)
+            dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2, skipinitialspace=True, float_precision=pandas_float_precision)
                 
         self.bus_df = bus_df
         self.gen_df = gen_df
