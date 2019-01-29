@@ -15,6 +15,7 @@ import os
 import sys
 import math
 import traceback
+import StringIO
 
 def parse_token(token, val_type, default=None):
     val = None
@@ -126,9 +127,266 @@ class Raw:
             return area
         self.areas = {i:area_set_i(Area(), i) for i in area_i_set}
         
-    # TODO
+    def construct_case_identification_section(self):
+
+        out_str = StringIO.StringIO()
+        #writer = csv.writer(out_str, quotechar="'", quoting=csv.QUOTE_NONNUMERIC)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [
+            [None, self.case_identification.sbase, None, None, None, None],
+            ["'GO Competition'"],
+            ["'RAW data'"]]
+        writer.writerows(rows)
+        return out_str.getvalue()
+
+    def construct_bus_section(self):
+        # note use quote_none and quote the strings manually
+        # values of None then are written as empty fields, which is what we want
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [
+            [r.i, None, None, None, r.area, None, None, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
+            for r in self.buses.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end bus section']])
+        return out_str.getvalue()
+
+    def construct_load_section(self):
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str,  quoting=csv.QUOTE_NONE)
+        rows = [
+            [r.i, "'%s'" % r.id, r.status, None, None, r.pl, r.ql, None, None, None, None, None, None, None]
+            for r in self.loads.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end load section']])
+        return out_str.getvalue()
+
+    def construct_fixed_shunt_section(self):
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [
+            [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
+            for r in self.fixed_shunts.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end fixed shunt section']])
+        return out_str.getvalue()
+
+    def construct_generator_section(self):
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [
+            [r.i, "'%s'" % r.id, r.pg, r.qg, r.qt, r.qb,
+             None, None, None, None, None, None, None, None,
+             r.stat, None, r.pt, r.pb, None, None, None,
+             None, None, None, None, None, None, None]
+            for r in self.generators.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end generator section']])
+        return out_str.getvalue()
+
+    def construct_nontransformer_branch_section(self):
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [
+            [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
+             None, r.ratec, None, None, None, None, r.st, None, None,
+             None, None, None, None, None, None, None, None ]
+            for r in self.nontransformer_branches.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end non-transformer branch section']])
+        return out_str.getvalue()
+
+    def construct_transformer_section(self):
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [
+            rr
+            for r in self.transformers.values()
+            for rr in [
+                    [r.i, r.j, 0, "'%s'" % r.ckt, None, None, None,
+                     r.mag1, r.mag2, None, None, r.stat, None, None,
+                     None, None, None, None, None, None, None],
+                    [r.r12, r.x12, None],
+                    [r.windv1, None, r.ang1, r.rata1, None, r.ratc1,
+                     None, None, None, None, None, None, None, None,
+                     None, None, None],
+                    [r.windv2, None]]]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end transformer section']])
+        return out_str.getvalue()
+
+    def construct_area_section(self):
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [
+            [r.i, None, None, None, None]
+            for r in self.areas.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end area section']])
+        return out_str.getvalue()
+
+    def construct_two_terminal_dc_section(self):
+
+        return ''
+
+    def construct_vsc_dc_section(self):
+
+        return ''
+
+    def construct_transformer_impedance_section(self):
+
+        return ''
+
+    def construct_multi_terminal_dc_section(self):
+
+        return ''
+
+    def construct_multi_section_line_section(self):
+
+        return ''
+
+    def construct_zone_section(self):
+
+        return ''
+
+    def construct_interarea_section(self):
+
+        return ''
+
+    def construct_owner_section(self):
+
+        return ''
+
+    def construct_facts_section(self):
+
+        return ''
+
+    def construct_switched_shunt_section(self):
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [
+            [r.i, None, None, r.stat, None, None, None, None, None,
+             r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
+             r.n5, r.b5, r.n6, r.b6, r.n7, r.b7, r.n8, r.b8]
+            for r in self.switched_shunts.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end switched shunt section']])
+        return out_str.getvalue()
+
+    def construct_gne_section(self):
+
+        return ''
+
+    def construct_induction_section(self):
+
+        return ''
+
+    def construct_q_record(self):
+
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        rows = [['Q']]
+        writer.writerows(rows)
+        return out_str.getvalue()
+
     def write(self, file_name):
         '''write a RAW file'''
+
+        with open(file_name, 'w') as out_file:
+            out_file.write(self.construct_case_identification_section())
+            out_file.write(self.construct_bus_section())
+            out_file.write(self.construct_load_section())
+            out_file.write(self.construct_fixed_shunt_section())
+            out_file.write(self.construct_generator_section())
+            out_file.write(self.construct_nontransformer_branch_section())
+            out_file.write(self.construct_transformer_section())
+            out_file.write(self.construct_area_section())
+            out_file.write(self.construct_two_terminal_dc_section())
+            out_file.write(self.construct_vsc_dc_section())
+            out_file.write(self.construct_transformer_impedance_section())
+            out_file.write(self.construct_multi_terminal_dc_section())
+            out_file.write(self.construct_multi_section_line_section())
+            out_file.write(self.construct_zone_section())
+            out_file.write(self.construct_interarea_section())
+            out_file.write(self.construct_owner_section())
+            out_file.write(self.construct_facts_section())
+            out_file.write(self.construct_switched_shunt_section())
+            out_file.write(self.construct_gne_section())
+            out_file.write(self.construct_induction_section())
+            out_file.write(self.construct_q_record())
+
+    def switched_shunts_combine_blocks_steps(self):
+
+        for r in self.switched_shunts.values():
+            b_min = 0.0
+            b_max = 0.0
+            b1 = float(r.n1) * r.b1
+            b2 = float(r.n2) * r.b2
+            b3 = float(r.n3) * r.b3
+            b4 = float(r.n4) * r.b4
+            b5 = float(r.n5) * r.b5
+            b6 = float(r.n6) * r.b6
+            b7 = float(r.n7) * r.b7
+            b8 = float(r.n8) * r.b8
+            for b in [b1, b2, b3, b4, b5, b6, b7, b8]:
+                if b > 0.0:
+                    b_max += b
+                elif b < 0.0:
+                    b_min += b
+                else:
+                    break
+            r.n1 = 0
+            r.b1 = 0.0
+            r.n2 = 0
+            r.b2 = 0.0
+            r.n3 = 0
+            r.b3 = 0.0
+            r.n4 = 0
+            r.b4 = 0.0
+            r.n5 = 0
+            r.b5 = 0.0
+            r.n6 = 0
+            r.b6 = 0.0
+            r.n7 = 0
+            r.b7 = 0.0
+            r.n8 = 0
+            r.b8 = 0.0
+            if b_max > 0.0:
+                r.n1 = 1
+                r.b1 = b_max
+                if b_min < 0.0:
+                    r.n2 = 1
+                    r.b2 = b_min
+            elif b_min < 0.0:
+                r.n1 = 1
+                r.b1 = b_min
+        
+    def set_operating_point_to_offline_solution(self):
+
+        for r in self.buses.values():
+            r.vm = 1.0
+            r.va = 0.0
+        for r in self.generators.values():
+            r.pg = 0.0
+            r.qg = 0.0
+        for r in self.switched_shunts.values():
+            r.binit = 0.0
         
     def read(self, file_name):
 
