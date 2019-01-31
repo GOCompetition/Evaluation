@@ -99,6 +99,7 @@ def extra_max(keys, values):
 
 def clean_string(s):
     t = s.replace("'","").replace('"','').replace(' ','')
+    #t = str(s).replace("'","").replace('"','').replace(' ','')
     return t
         
 class Result:
@@ -643,6 +644,12 @@ class Evaluation:
         #for i in range(self.num_gen):
         #    self.bus_gen[self.gen_bus[i]].append(i)
 
+        #for i in range(self.num_gen):
+        #    if self.gen_i[i] == 630653:
+        #        gi = self.gen_i[i]
+        #        gid = self.gen_id[i]
+        #        print gi, gid, self.gen_map[(gi, gid)]        
+
         self.gen_area = [self.bus_area[r] for r in self.gen_bus]
         self.area_gens = [set() for a in range(self.num_area)]
         for i in range(self.num_gen):
@@ -915,8 +922,15 @@ class Evaluation:
         start_time = time.time()
         sol_bus_i = solution1.bus_df.i.values
         sol_gen_i = solution1.gen_df.i.values
+        #print solution1.gen_df.id
         #sol_gen_id = solution1.gen_df.id.values
         sol_gen_id = map(clean_string, list(solution1.gen_df.id.values))
+
+        #for i in range(self.num_gen):
+        #    gi = sol_gen_i[i]
+        #    gid = sol_gen_id[i]
+        #    if gi == 630653:
+        #        print( (gi, gid) )
 
         # which is faster? do the same for gens
         #sol_bus_map = {sol_bus_i[i]:i for i in range(self.num_bus)}
@@ -1279,6 +1293,7 @@ class Evaluation:
                     done = True
                     break
             if not done:
+                #print self.gen_i[k], self.gen_id[k], self.gen_num_pl[k], self.gen_pl_x[k], self.gen_pl_y[k], self.gen_pow_real[k]
                 assert (self.gen_pow_real[k] > pl_x[num_pl - 1]) # need to extend last secant to right
                 i = num_pl - 2 # num_pl >= 2 (need at least 2 points for a secant)
                 y_value = pl_y[i]
@@ -2296,6 +2311,9 @@ class Solution1:
             dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'pq':np.float_},
             nrows=num_gen,
             engine='c',
+            na_values=None,
+            keep_default_na=False,
+            #quoting=csv.QUOTE_NONE,
             skiprows=(4 + num_bus),
             skipinitialspace=True,
             float_precision=pandas_float_precision)
