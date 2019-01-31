@@ -55,7 +55,9 @@ base_case_penalty_weight = 0.5 # dimensionless. corresponds to delta in the form
 hard_constr_tol = 1e-12
 
 # pandas float precision for reading from solution files
-pandas_float_precision=None # None: ordinary converter, 'high', 'round_trip'
+# None: ordinary converter, 'high', 'round_trip'
+pandas_float_precision=None
+#pandas_float_precision='round_trip'
 
 def eval_piecewise_linear_penalty(residual, penalty_block_max, penalty_block_coeff):
     '''residual, penaltyblock_max, penalty_block_coeff are 1-dimensional numpy arrays'''

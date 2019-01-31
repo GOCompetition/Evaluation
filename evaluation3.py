@@ -20,10 +20,14 @@ import numpy as np
 import pandas as pd
 import traceback
 from scipy import sparse as sp
-#from io import open
-import StringIO
-import cStringIO
+#from io import open as io_open
+#from io import BytesIO, StringIO
+#from StringIO import StringIO
+from cStringIO import StringIO
+#import StringIO
+#import cStringIO
 from operator import itemgetter
+from six import iteritems
 
 """
 TODO
@@ -813,8 +817,8 @@ class Evaluation:
         ctg_branch_keys_out = {
             r.label:set([(e.i, e.j, e.ckt) for e in r.branch_out_events])
             for r in ctgs}
-        ctg_line_keys_out = {k:(v & line_keys) for k,v in ctg_branch_keys_out.iteritems()}
-        ctg_xfmr_keys_out = {k:(v & xfmr_keys) for k,v in ctg_branch_keys_out.iteritems()}
+        ctg_line_keys_out = {k:(v & line_keys) for k,v in iteritems(ctg_branch_keys_out)}
+        ctg_xfmr_keys_out = {k:(v & xfmr_keys) for k,v in iteritems(ctg_branch_keys_out)}
         ctg_areas_affected = {
             k.label:(
                 set([self.bus_area[self.bus_map[r[0]]] for r in ctg_gen_keys_out[k.label]]) |
@@ -2216,432 +2220,6 @@ class Solution1:
         print("sol1 read time: %f" % (end_time - start_time))
 
         #self.read_test(file_name, 10, 10)
-
-    def read_test_np(self, file_name, num_bus, num_gen):
-        
-        start_time = time.time()
-        with open(file_name, 'r') as in_file:
-            discard = list(islice(in_file, 2))
-            print discard
-            lines = list(islice(in_file, num_bus))
-            #bus_array = np.loadtxt(lines[4:6], dtype=[('i', '<i4'), ('vm', '<f8'), ('va', '<f8'), ('b', '<f8')], delimiter=',') # comments, unpack
-            bus_array = np.loadtxt(lines, dtype=[('i', '<i4'), ('vm', '<f8'), ('va', '<f8'), ('b', '<f8')], delimiter=',')
-            #bus_array = np.loadtxt(lines, dtype=[('i', np.int_), ('vm', np.float_), ('va', np.float_), ('b', np.float_)], delimiter=',', unpack=True)
-            print bus_array.shape, bus_array[0:2]
-            discard = list(islice(in_file, 2))
-            print discard
-            lines = list(islice(in_file, num_gen))
-            print lines[0], lines[1], len(lines), lines[len(lines) - 1]
-            #lines = in_file.readlines()
-            #print bus_array
-        end_time = time.time()
-        print("sol1 read time (np): %f" % (end_time - start_time))
-
-    def read_test_pd(self, file_name, num_bus, num_gen):
-        
-        start_time = time.time()
-        bus_array = pd.read_csv(
-            file_name,
-            sep=',',
-            header=None,
-            names=['i', 'vm', 'va', 'b'],
-            dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-            nrows=num_bus,
-            engine='c',
-            skiprows=2)
-        bus_i = bus_array.i.values
-        bus_vm = bus_array.vm.values
-        bus_va = bus_array.va.values
-        bus_b = bus_array.b.values
-        print bus_i.shape, bus_vm.shape, bus_va.shape, bus_b.shape
-        gen_array = pd.read_csv(
-            file_name,
-            sep=',',
-            header=None,
-            names=['i', 'id', 'pg', 'qg'],
-            dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'pq':np.float_},
-            nrows=num_gen,
-            engine='c',
-            skiprows=(4 + num_bus))
-        gen_i = gen_array.i.values
-        gen_id = gen_array.id.values
-        gen_pg = gen_array.pg.values
-        gen_qg = gen_array.qg.values
-        print gen_i.shape, gen_id.shape, gen_pg.shape, gen_qg.shape
-        end_time = time.time()
-        print("sol1 read time (pd): %f" % (end_time - start_time))
-
-
-    def read_sol2_1(self, file_name, num_bus, num_gen):
-        
-        start_time = time.time()
-        #num_ctg = 21960
-        num_ctg = 22
-        ctg_block_size = num_bus + num_gen + 10
-        num_rows = num_ctg * ctg_block_size
-
-        ctg_start_row = 2
-        ctg_end_row = ctg_start_row + 1 - 1
-        bus_start_row = ctg_end_row + 3
-        bus_end_row = bus_start_row + num_bus - 1
-        gen_start_row = bus_end_row + 3
-        gen_end_row = gen_start_row + num_gen - 1
-        delta_start_row = gen_end_row + 3
-        delta_end_row = delta_start_row + 1 - 1
-
-        ctg_ctg_start_row = [i * ctg_block_size + ctg_start_row for i in range(num_ctg)]
-        ctg_bus_start_row = [i * ctg_block_size + bus_start_row for i in range(num_ctg)]
-        ctg_gen_start_row = [i * ctg_block_size + gen_start_row for i in range(num_ctg)]
-        ctg_delta_start_row = [i * ctg_block_size + delta_start_row for i in range(num_ctg)]
-
-        start_time_1 = time.time()
-        for k in range(num_ctg):
-            ctg_array = pd.read_csv(
-                file_name,
-                sep=',',
-                header=None,
-                names=['label'],
-                dtype={'label':str},
-                nrows=1,
-                engine='c',
-                skiprows=ctg_ctg_start_row[k])
-            bus_array = pd.read_csv(
-                file_name,
-                sep=',',
-                header=None,
-                names=['i', 'vm', 'va', 'b'],
-                dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-                nrows=num_bus,
-                engine='c',
-                skiprows=ctg_bus_start_row[k])
-            gen_array = pd.read_csv(
-                file_name,
-                sep=',',
-                header=None,
-                names=['i', 'id', 'pg', 'qg'],
-                dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
-                nrows=num_gen,
-                engine='c',
-                skiprows=ctg_gen_start_row[k])
-            delta_array = pd.read_csv(
-                file_name,
-                sep=',',
-                header=None,
-                names=['delta'],
-                dtype={'delta':np.float_},
-                nrows=1,
-                engine='c',
-                skiprows=ctg_delta_start_row[k])
-            #print ctg_array.label.values.shape
-            print ctg_array.label.values[0]
-            #print bus_array.i.values.shape
-        end_time_1 = time.time()
-        print("sol2 average variable read time (pd 1): %f" % ((end_time_1 - start_time_1) / num_ctg))
-
-        end_time = time.time()
-        print("sol2 read time (pd 1): %f" % (end_time - start_time))
-
-        '''
-        start_time = time.time()
-        bus_array = pd.read_csv(
-            file_name,
-            sep=',',
-            header=None,
-            names=['i', 'vm', 'va', 'b'],
-            dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-            nrows=num_bus,
-            engine='c',
-            skiprows=2)
-        self.bus_i = bus_array.i.values.tolist() # should this be a list?
-        self.num_bus = len(self.bus_i)
-        #print self.num_bus, self.bus_i[self.num_bus - 1]
-        self.bus_map = {self.bus_i[i]:i for i in range(self.num_bus)}
-        self.bus_volt_mag = bus_array.vm.values
-        self.bus_volt_ang = bus_array.va.values
-        self.bus_swsh_adm_imag = bus_array.b.values
-        gen_array = pd.read_csv(
-            file_name,
-            sep=',',
-            header=None,
-            names=['i', 'id', 'pg', 'qg'],
-            dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'pq':np.float_},
-            nrows=num_gen,
-            engine='c',
-            skiprows=(4 + num_bus))
-        self.gen_i = gen_array.i.values.tolist() # should this be a list?
-        self.gen_id = gen_array.id.values.tolist() # should this be a list?
-        self.num_gen = len(self.gen_i)
-        self.gen_map = {(self.gen_i[i], self.gen_id[i]):i for i in range(self.num_gen)}
-        #print self.gen_id[0:10]
-        self.gen_pow_real = gen_array.pg.values
-        self.gen_pow_imag = gen_array.qg.values
-        end_time = time.time()
-        print("sol1 read time: %f" % (end_time - start_time))
-        '''
-
-    def read_sol2_2(self, file_name, num_bus, num_gen):
-        
-        start_time = time.time()
-        #num_ctg = 21960
-        num_ctg = 22
-        ctg_block_size = num_bus + num_gen + 10
-        num_rows = num_ctg * ctg_block_size
-
-        '''
-        def skip_row_in_chunk(i, chunk_size, start_row, num_rows):
-            mod = i % chunk_size
-            return ((mod < start_row) or 
-        '''
-        
-        ctg_start_row = 2
-        ctg_end_row = ctg_start_row + 1 - 1
-        bus_start_row = ctg_end_row + 3
-        bus_end_row = bus_start_row + num_bus - 1
-        gen_start_row = bus_end_row + 3
-        gen_end_row = gen_start_row + num_gen - 1
-        delta_start_row = gen_end_row + 3
-        delta_end_row = delta_start_row + 1 - 1
-
-        def skip_row(i, block_size, start_row, end_row):
-            mod = i % ctg_block_size
-            return ((mod < start_row) or (mod > end_row))
-
-        ctg_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, ctg_start_row, ctg_end_row)]
-        bus_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, bus_start_row, bus_end_row)]
-        gen_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, gen_start_row, gen_end_row)]
-        delta_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, delta_start_row, delta_end_row)]
-
-        ctg_reader = pd.read_csv(
-            file_name,
-            sep=',',
-            header=None,
-            names=['label'],
-            dtype={'label':str},
-            nrows=num_rows,
-            skiprows=ctg_skip_rows,
-            engine='c',
-            chunksize=1,
-            iterator=True)
-        bus_reader = pd.read_csv(
-            file_name,
-            sep=',',
-            header=None,
-            names=['i', 'vm', 'va', 'b'],
-            dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-            nrows=num_rows,
-            skiprows=bus_skip_rows,
-            engine='c',
-            chunksize=num_bus,
-            iterator=True)
-        gen_reader = pd.read_csv(
-            file_name,
-            sep=',',
-            header=None,
-            names=['i', 'id', 'pg', 'qg'],
-            dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
-            nrows=num_rows,
-            skiprows=gen_skip_rows,
-            engine='c',
-            chunksize=num_gen,
-            iterator=True)
-        delta_reader = pd.read_csv(
-            file_name,
-            sep=',',
-            header=None,
-            names=['delta'],
-            dtype={'delta':np.float_},
-            nrows=num_rows,
-            skiprows=delta_skip_rows,
-            engine='c',
-            chunksize=1,
-            iterator=True)
-
-        start_time_1 = time.time()
-        for k in range(num_ctg):
-            ctg_array = ctg_reader.get_chunk()
-            #print ctg_array.label.values.shape
-            #print ctg_array.label.values[0]
-            bus_array = bus_reader.get_chunk()
-            #print bus_array.i.values.shape
-            gen_array = gen_reader.get_chunk()
-            delta_array = delta_reader.get_chunk()
-            print k, time.time() - start_time_1
-        end_time_1 = time.time()
-        print("sol2 average variable read time (pd 2): %f" % ((end_time_1 - start_time_1) / num_ctg))
-
-        end_time = time.time()
-        print("sol2 read time (pd 2): %f" % (end_time - start_time))
-
-    def read_sol2_3(self, file_name, num_bus, num_gen):
-        
-        def skip_row(i, block_size, start_row, end_row):
-            mod = i % ctg_block_size
-            return ((mod < start_row) or (mod > end_row))
-
-        start_time = time.time()
-
-        with open(file_name, 'r') as in_file:
-
-            #num_ctg = 21960
-            num_ctg = 22
-            ctg_block_size = num_bus + num_gen + 10
-            num_rows = num_ctg * ctg_block_size
-        
-            ctg_start_row = 2
-            ctg_end_row = ctg_start_row + 1 - 1
-            bus_start_row = ctg_end_row + 3
-            bus_end_row = bus_start_row + num_bus - 1
-            gen_start_row = bus_end_row + 3
-            gen_end_row = gen_start_row + num_gen - 1
-            delta_start_row = gen_end_row + 3
-            delta_end_row = delta_start_row + 1 - 1
-
-            ctg_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, ctg_start_row, ctg_end_row)]
-            bus_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, bus_start_row, bus_end_row)]
-            gen_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, gen_start_row, gen_end_row)]
-            delta_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, delta_start_row, delta_end_row)]
-            
-            start_time_1 = time.time()
-            for k in range(num_ctg):
-                ctg_array = pd.read_csv(
-                    in_file,
-                    sep=',',
-                    header=None,
-                    names=['label'],
-                    dtype={'label':str},
-                    nrows=1,
-                    engine='c',
-                    skiprows=2)
-                print ctg_array.label.values.shape
-                print ctg_array.label.values[0]
-                bus_array = pd.read_csv(
-                    in_file,
-                    sep=',',
-                    header=None,
-                    names=['i', 'vm', 'va', 'b'],
-                    dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-                    #nrows=num_bus,
-                    nrows=1,
-                    engine='c',
-                    skiprows=1)
-                print bus_array.i.values.shape
-                print bus_array.i.values[0]
-                gen_array = pd.read_csv(
-                    in_file,
-                    sep=',',
-                    header=None,
-                    names=['i', 'id', 'pg', 'qg'],
-                    dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
-                    nrows=num_gen,
-                    engine='c',
-                    skiprows=2)
-                delta_array = pd.read_csv(
-                    in_file,
-                    sep=',',
-                    header=None,
-                    names=['delta'],
-                    dtype={'delta':np.float_},
-                    nrows=1,
-                    engine='c',
-                    skiprows=2)
-                print k, time.time() - start_time_1
-            end_time_1 = time.time()
-            print("sol2 average variable read time (pd 3): %f" % ((end_time_1 - start_time_1) / num_ctg))
-
-        end_time = time.time()
-        print("sol2 read time (pd 3): %f" % (end_time - start_time))
-            
-    def read_sol2_4(self, file_name, num_bus, num_gen):
-        
-        #num_ctg = 21960
-        #num_ctg = 2200
-        num_ctg = 220
-        ctg_block_size = num_bus + num_gen + 10
-        num_rows = num_ctg * ctg_block_size
-
-        ctg_start = 0
-        ctg_end = ctg_start + 2 + 1
-        bus_start = ctg_end
-        bus_end = bus_start + 2 + num_bus
-        gen_start = bus_end
-        gen_end = gen_start + 2 + num_gen
-        delta_start = gen_end
-        delta_end = delta_start + 2 + 1
-        
-        ndigits_test = 40
-        bus_lines_test = ['\n'] + ['\n'] + [('%u,1.%s,0.%s,0.%s\n' % (i, ndigits_test*'0', ndigits_test*'0', ndigits_test*'0')) for i in range(num_bus)]
-
-        start_time = time.time()
-        with open(file_name) as in_file:
-            for k in range(num_ctg):
-                
-                # get lines for each section as a generator
-                ctg_lines = islice(in_file, 2 + 1)
-                bus_lines = islice(in_file, 2 + num_bus)
-                gen_lines = islice(in_file, 2 + num_gen)
-                delta_lines = islice(in_file, 2 + 1)
-
-                # test?
-                #bus_lines = bus_lines_test
-                #bus_str = lines_to_str(bus_lines)
-
-                # write lines to a string buffer
-                def lines_to_str(lines):
-                    #out_str = StringIO.StringIO(''.join(lines))
-                    #out_str = StringIO.StringIO()
-                    #out_str = StringIO.StringIO('foo')
-                    out_str = cStringIO.StringIO()
-                    #out_str = cStringIO.StringIO(''.join(lines))
-                    out_str.writelines(lines)
-                    #out_str.write('foo')
-                    #out_str.flush() # do we need this?
-                    #out_str.close()
-                    #for l in list(lines):
-                        #print l
-                        #out_str.write(str(l))
-                    #out_str.close()
-                    out_str.seek(0) # need this so that read() starts at the beginning of the string
-                    return out_str
-                ctg_str = lines_to_str(ctg_lines)
-                bus_str = lines_to_str(bus_lines)
-                gen_str = lines_to_str(gen_lines)
-                delta_str = lines_to_str(delta_lines)
-
-                # test?
-                #bus_lines = bus_lines_test
-                #bus_str = lines_to_str(bus_lines)
-
-                #ctg_str.open()
-                #print ctg_str.read()
-
-                # parse file string to pandas df
-                ctg_df = pd.read_csv(
-                    ctg_str, sep=',', header=None, names=['label'], dtype={'label':str},
-                    nrows=1, engine='c', skiprows=2)
-                bus_df = pd.read_csv(
-                    bus_str, sep=',', header=None, names=['i', 'vm', 'va', 'b'],
-                    dtype={'i':np.int_, 'vm':np.float_, 'va':np.float_, 'b':np.float_},
-                    nrows=num_bus, engine='c', skiprows=2)
-                gen_df = pd.read_csv(
-                    gen_str, sep=',', header=None, names=['i', 'id', 'pg', 'qg'],
-                    dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
-                    nrows=num_gen, engine='c', skiprows=2)
-                delta_df = pd.read_csv(
-                    delta_str, sep=',', header=None, names=['delta'],
-                    dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2)
-                
-                self.bus_df = bus_df
-                self.gen_df = gen_df
-                self.ctg_label = ctg_df.label.values[0]
-                self.num_bus = bus_df.shape[0]
-                self.num_gen = gen_df.shape[0]
-                self.delta = delta_df.delta.values[0]
-                
-                print('ctg: %s, num bus: %u, num gen: %u, delta: %f' % (self.ctg_label, self.num_bus, self.num_gen, self.delta))
-                
-        end_time = time.time()
-        print("sol2 read time (pd 4): %f" % (end_time - start_time))
-        print("sol2 read time (pd 4, average): %f" % ((end_time - start_time) / num_ctg))
             
     def read_bus_rows(self, rows):
 
@@ -2729,7 +2307,8 @@ class Solution2:
             #out_str = StringIO.StringIO(''.join(lines))
             #out_str = StringIO.StringIO()
             #out_str = StringIO.StringIO('foo')
-            out_str = cStringIO.StringIO()
+            #out_str = BytesIO()
+            out_str = StringIO()
             #out_str = cStringIO.StringIO(''.join(lines))
             out_str.writelines(lines)
             #out_str.write('foo')
@@ -2909,7 +2488,8 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     print(
         '%12u %12u %12.2e %12s %12s' %
         (ctg_counter, ctg_to_go, time_elapsed, time_per_ctg, time_to_go))
-    with open(sol2_name) as sol2_file:
+    with open(sol2_name, 'r') as sol2_file:
+    #with io_open(sol2_name, 'r') as sol2_file:
         for k in range(e.num_ctg):
             s2.read_next_ctg(sol2_file, e.num_bus, e.num_gen)
             e.set_solution2(s2)

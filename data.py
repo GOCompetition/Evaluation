@@ -241,39 +241,66 @@ class Raw:
 
     def construct_two_terminal_dc_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end two terminal dc section']])
+        return out_str.getvalue()
 
     def construct_vsc_dc_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end vsc dc section']])
+        return out_str.getvalue()
 
     def construct_transformer_impedance_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end transformer impedance section']])
+        return out_str.getvalue()
 
     def construct_multi_terminal_dc_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end multi terminal dc section']])
+        return out_str.getvalue()
 
     def construct_multi_section_line_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end multi section line section']])
+        return out_str.getvalue()
 
     def construct_zone_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end zone section']])
+        return out_str.getvalue()
 
     def construct_interarea_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end interarea section']])
+        return out_str.getvalue()
 
     def construct_owner_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end owner section']])
+        return out_str.getvalue()
 
     def construct_facts_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end facts section']])
+        return out_str.getvalue()
 
     def construct_switched_shunt_section(self):
 
@@ -291,11 +318,17 @@ class Raw:
 
     def construct_gne_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end gne section']])
+        return out_str.getvalue()
 
     def construct_induction_section(self):
 
-        return ''
+        out_str = StringIO.StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / end induction section']])
+        return out_str.getvalue()
 
     def construct_q_record(self):
 
