@@ -17,6 +17,11 @@ import math
 import traceback
 import StringIO
 
+# init_defaults_in_unused_field = True # do this anyway - it is not too big
+read_unused_fields = True
+write_defaults_in_unused_fields = False
+write_values_in_unused_fields = True
+
 def parse_token(token, val_type, default=None):
     val = None
     if len(token) > 0:
@@ -118,8 +123,6 @@ class Raw:
         self.transformers = {}
         self.areas = {}
         self.switched_shunts = {}
-        self.params = {
-            'write_field_defaults': True}
 
     def set_areas_from_buses(self):
         
@@ -134,7 +137,14 @@ class Raw:
         out_str = StringIO.StringIO()
         #writer = csv.writer(out_str, quotechar="'", quoting=csv.QUOTE_NONNUMERIC)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                [self.case_identification.ic, self.case_identification.sbase,
+                 self.case_identification.rev, self.case_identification.xfrrat,
+                 self.case_identification.nxfrat, self.case_identification.basfrq],
+                ["'GO Competition'"],
+                ["'RAW data'"]]
+        if write_defaults_in_unused_fields:
             rows = [
                 [0, self.case_identification.sbase, 33, 0, 1, 60.0],
                 ["'GO Competition'"],
@@ -153,7 +163,11 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                [r.i, "'%s'" % r.name, r.baskv, r.ide, r.area, r.zone, r.owner, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
+                for r in self.buses.values()]
+        elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, "'            '", 0.0, 1, r.area, 1, 1, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
                 for r in self.buses.values()]
@@ -170,7 +184,11 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str,  quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                [r.i, "'%s'" % r.id, r.status, r.area, r.zone, r.pl, r.ql, r.ip, r.iq, r.yp, r.yq, r.owner, r.scale, r.intrpt]
+                for r in self.loads.values()]
+        elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.id, r.status, self.buses[r.i].area, 1, r.pl, r.ql, 0.0, 0.0, 0.0, 0.0, 1, 1, 0]
                 for r in self.loads.values()]
@@ -187,7 +205,11 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
+                for r in self.fixed_shunts.values()]
+        elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
                 for r in self.fixed_shunts.values()]
@@ -204,7 +226,14 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                [r.i, "'%s'" % r.id, r.pg, r.qg, r.qt, r.qb,
+                 r.vs, r.ireg, r.mbase, r.zr, r.zx, r.rt, r.xt, r.gtap,
+                 r.stat, r.rmpct, r.pt, r.pb, r.o1, r.f1, r.o2,
+                 r.f2, r.o3, r.f3, r.o4, r.f4, r.wmod, r.wpf]
+                for r in self.generators.values()]
+        elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.id, r.pg, r.qg, r.qt, r.qb,
                  1.0, 0, self.case_identification.sbase, 0.0, 1.0, 0.0, 0.0, 1.0,
@@ -227,7 +256,13 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
+                 r.rateb, r.ratec, r.gi, r.bi, r.gj, r.bj, r.st, r.met, r.len,
+                 r.o1, r.f1, r.o2, r.f2, r.o3, r.f3, r.o4, r.f4 ]
+                for r in self.nontransformer_branches.values()]
+        elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
                  0.0, r.ratec, 0.0, 0.0, 0.0, 0.0, r.st, 1, 0.0,
@@ -248,7 +283,20 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                rr
+                for r in self.transformers.values()
+                for rr in [
+                        [r.i, r.j, r.k, "'%s'" % r.ckt, r.cw, r.cz, r.cm,
+                         r.mag1, r.mag2, r.nmetr, "'%s'" % r.name, r.stat, r.o1, r.f1,
+                         r.o2, r.f2, r.o3, r.f3, r.o4, r.f4, "'%s'" % r.vecgrp],
+                        [r.r12, r.x12, r.sbase12],
+                        [r.windv1, r.nomv1, r.ang1, r.rata1, r.ratb1, r.ratc1,
+                         r.cod1, r.cont1, r.rma1, r.rmi1, r.vma1, r.vmi1, r.ntp1, r.tab1,
+                         r.cr1, r.cx1, r.cnxa1],
+                        [r.windv2, r.nomv2]]]
+        elif write_defaults_in_unused_fields:
             rows = [
                 rr
                 for r in self.transformers.values()
@@ -283,7 +331,11 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                [r.i, r.isw, r.pdes, r.ptol, "'%s'" % r.arname]
+                for r in self.areas.values()]
+        elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, 0, 0.0, 10.0, "'            '"]
                 for r in self.areas.values()]
@@ -363,7 +415,13 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        if self.params['write_field_defaults']:
+        if write_values_in_unused_fields:
+            rows = [
+                [r.i, r.modsw, r.adjm, r.stat, r.vswhi, r.vswlo, r.swrem, r.rmpct, "'%s'" % r.rmidnt,
+                 r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
+                 r.n5, r.b5, r.n6, r.b6, r.n7, r.b7, r.n8, r.b8]
+                for r in self.switched_shunts.values()]
+        elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, 1, 0, r.stat, 1.0, 1.0, 0, 100.0, "'            '",
                  r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
@@ -930,8 +988,9 @@ class Inl:
         '''takes the generator.csv file as input'''
 
     # TODO
-        '''writes the INL data to an INL-formatted file'''
     def write(self, file_name,rawdata,rop):
+        '''writes the INL data to an INL-formatted file'''
+
         file = open(file_name,"w") 
         index=1
         for r in rawdata.generators.values():
@@ -942,11 +1001,6 @@ class Inl:
             index=index+1
         file.write("0 \n")
         file.close() 
-
-
-
-
-
 
     def read(self, file_name):
 
@@ -1169,12 +1223,12 @@ class CaseIdentification:
 
     def __init__(self):
 
-        #self.ic = None
-        self.sbase = None
-        #self.rev = None
-        #self.xfrrat = None
-        #self.nxfrat = None
-        #self.basfrq = None
+        self.ic = 0
+        self.sbase = 100.0
+        self.rev = 33
+        self.xfrrat = 0
+        self.nxfrat = 1
+        self.basfrq = 60.0
 
     def read_from_row(self, row):
 
@@ -1191,19 +1245,19 @@ class Bus:
 
     def __init__(self):
 
-        self.i = None
-        #self.name = None
-        #self.baskv = None
-        #self.ide = None
-        self.area = None
-        #self.zone = None
-        #self.owner = None
-        self.vm = None
-        self.va = None
-        self.nvhi = None
-        self.nvlo = None
-        self.evhi = None
-        self.evlo = None
+        self.i = None # no default allowed - we want this to throw an error
+        self.name = 12*' '
+        self.baskv = 0.0
+        self.ide = 1
+        self.area = 1
+        self.zone = 1
+        self.owner = 1
+        self.vm = 1.0
+        self.va = 0.0
+        self.nvhi = 1.1
+        self.nvlo = 0.9
+        self.evhi = 1.1
+        self.evlo = 0.9
 
     def read_from_row(self, row):
 
@@ -1226,20 +1280,20 @@ class Load:
 
     def __init__(self):
 
-        self.i = None
-        self.id = None
-        self.status = None
-        #self.area = None
-        #self.zone = None
-        self.pl = None
-        self.ql = None
-        #self.ip = None
-        #self.iq = None
-        #self.yp = None
-        #self.yq = None
-        #self.owner = None
-        #self.scale = None
-        #self.intrpt = None
+        self.i = None # no default allowed - should be an error
+        self.id = '1'
+        self.status = 1
+        self.area = 1 # default is area of bus self.i, but this is not available yet
+        self.zone = 1
+        self.pl = 0.0
+        self.ql = 0.0
+        self.ip = 0.0
+        self.iq = 0.0
+        self.yp = 0.0
+        self.yq = 0.0
+        self.owner = 1
+        self.scale = 1
+        self.intrpt = 0
 
     def read_from_row(self, row):
 
@@ -1263,11 +1317,11 @@ class FixedShunt:
 
     def __init__(self):
 
-        self.i = None
-        self.id = None
-        self.status = None
-        self.gl = None
-        self.bl = None
+        self.i = None # no default allowed
+        self.id = '1'
+        self.status = 1
+        self.gl = 0.0
+        self.bl = 0.0
 
     def read_from_row(self, row):
 
@@ -1281,34 +1335,34 @@ class FixedShunt:
 class Generator:
 
     def __init__(self):
-        self.i = None
-        self.id = None
-        self.pg = None
-        self.qg = None
-        self.qt = None
-        self.qb = None
-        #self.vs = None
-        #self.ireg = None
-        #self.mbase = None
-        #self.zr = None
-        #self.zx = None
-        #self.rt = None
-        #self.xt = None
-        #self.gtap = None
-        self.stat = None
-        #self.rmpct = None
-        self.pt = None
-        self.pb = None
-        #self.o1 = None
-        #self.f1 = None
-        #self.o2 = None
-        #self.f2 = None
-        #self.o3 = None
-        #self.f3 = None
-        #self.o4 = None
-        #self.f4 = None
-        #self.wmod = None
-        #self.wpf = None
+        self.i = None # no default allowed
+        self.id = '1'
+        self.pg = 0.0
+        self.qg = 0.0
+        self.qt = 9999.0
+        self.qb = -9999.0
+        self.vs = 1.0
+        self.ireg = 0
+        self.mbase = 100.0 # need to take default value for this from larger Raw class
+        self.zr = 0.0
+        self.zx = 1.0
+        self.rt = 0.0
+        self.xt = 0.0
+        self.gtap = 1.0
+        self.stat = 1
+        self.rmpct = 100.0
+        self.pt = 9999.0
+        self.pb = -9999.0
+        self.o1 = 1
+        self.f1 = 1.0
+        self.o2 = 0
+        self.f2 = 1.0
+        self.o3 = 0
+        self.f3 = 1.0
+        self.o4 = 0
+        self.f4 = 1.0
+        self.wmod = 0
+        self.wpf = 1.0
 
     def read_from_row(self, row):
 
@@ -1346,30 +1400,30 @@ class NontransformerBranch:
 
     def __init__(self):
 
-        self.i = None
-        self.j = None
-        self.ckt = None
-        self.r = None
-        self.x = None
-        self.b = None
-        self.ratea = None
-        #self.rateb = None
-        self.ratec = None
-        #self.gi = None
-        #self.bi = None
-        #self.gj = None
-        #self.bj = None
-        self.st = None
-        #self.met = None
-        #self.len = None
-        #self.o1 = None
-        #self.f1 = None
-        #self.o2 = None
-        #self.f2 = None
-        #self.o3 = None
-        #self.f3 = None
-        #self.o4 = None
-        #self.f4 = None
+        self.i = None # no default
+        self.j = None # no default
+        self.ckt = '1'
+        self.r = None # no default
+        self.x = None # no default
+        self.b = 0.0
+        self.ratea = 0.0
+        self.rateb = 0.0
+        self.ratec = 0.0
+        self.gi = 0.0
+        self.bi = 0.0
+        self.gj = 0.0
+        self.bj = 0.0
+        self.st = 1
+        self.met = 1
+        self.len = 0.0
+        self.o1 = 1
+        self.f1 = 1.0
+        self.o2 = 0
+        self.f2 = 1.0
+        self.o3 = 0
+        self.f3 = 1.0
+        self.o4 = 0
+        self.f4 = 1.0
 
     def read_from_row(self, row):
 
@@ -1403,89 +1457,49 @@ class Transformer:
 
     def __init__(self):
 
-        self.i = None
-        self.j = None
-        #self.k = None
-        self.ckt = None
-        #self.cw = None
-        #self.cz = None
-        #self.cm = None
-        self.mag1 = None
-        self.mag2 = None
-        #self.nmetr = None
-        #self.name = None
-        self.stat = None
-        #self.o1 = None
-        #self.f1 = None
-        #self.o2 = None
-        #self.f2 = None
-        #self.o3 = None
-        #self.f3 = None
-        #self.o4 = None
-        #self.f4 = None
-        #self.vecgrp = None
-        self.r12 = None
-        self.x12 = None
-        #self.sbase12 = None
-        #self.r23 = None
-        #self.x23 = None
-        #self.sbase23 = None
-        #self.r31 = None
-        #self.x31 = None
-        #self.sbase31 = None
-        #self.vmstar = None
-        #self.anstar = None
-        self.windv1 = None
-        #self.nomv1 = None
-        self.ang1 = None
-        self.rata1 = None
-        #self.ratb1 = None
-        self.ratc1 = None
-        #self.cod1 = None
-        #self.cont1 = None
-        #self.rma1 = None
-        #self.rmi1 = None
-        #self.vma1 = None
-        #self.vmi1 = None
-        #self.ntp1 = None
-        #self.tab1 = None
-        #self.cr1 = None
-        #self.cx1 = None
-        #self.cnxa1 = None
-        self.windv2 = None
-        #self.nomv2 = None
-        #self.ang2 = None
-        #self.rata2 = None
-        #self.ratb2 = None
-        #self.ratc2 = None
-        #self.cod2 = None
-        #self.cont2 = None
-        #self.rma2 = None
-        #self.rmi2 = None
-        #self.vma2 = None
-        #self.vmi2 = None
-        #self.ntp2 = None
-        #self.tab2 = None
-        #self.cr2 = None
-        #self.cx2 = None
-        #self.cnxa2 = None
-        #self.windv3 = None
-        #self.nomv3 = None
-        #self.ang3 = None
-        #self.rata3 = None
-        #self.ratb3 = None
-        #self.ratc3 = None
-        #self.cod3 = None
-        #self.cont3 = None
-        #self.rma3 = None
-        #self.rmi3 = None
-        #self.vma3 = None
-        #self.vmi3 = None
-        #self.ntp3 = None
-        #self.tab3 = None
-        #self.cr3 = None
-        #self.cx3 = None
-        #self.cnxa3 = None
+        self.i = None # no default
+        self.j = None # no default
+        self.k = 0
+        self.ckt = '1'
+        self.cw = 1
+        self.cz = 1
+        self.cm = 1
+        self.mag1 = 0.0
+        self.mag2 = 0.0
+        self.nmetr = 2
+        self.name = 12*' '
+        self.stat = 1
+        self.o1 = 1
+        self.f1 = 1.0
+        self.o2 = 0
+        self.f2 = 1.0
+        self.o3 = 0
+        self.f3 = 1.0
+        self.o4 = 0
+        self.f4 = 1.0
+        self.vecgrp = 12*' '
+        self.r12 = 0.0
+        self.x12 = None # no default allowed
+        self.sbase12 = 100.0
+        self.windv1 = 1.0
+        self.nomv1 = 0.0
+        self.ang1 = 0.0
+        self.rata1 = 0.0
+        self.ratb1 = 0.0
+        self.ratc1 = 0.0
+        self.cod1 = 0
+        self.cont1 = 0
+        self.rma1 = 1.1
+        self.rmi1 = 0.9
+        self.vma1 = 1.1
+        self.vmi1 = 0.9
+        self.ntp1 = 33
+        self.tab1 = 0
+        self.cr1 = 0.0
+        self.cx1 = 0.0
+        self.cnxa1 = 0.0
+        self.windv2 = 1.0
+        self.nomv2 = 0.0
 
     @property
     def num_windings(self):
@@ -1697,11 +1711,11 @@ class Area:
 
     def __init__(self):
 
-        self.i = None
-        #self.isw = None
-        #self.pdes = None
-        #self.ptol = None
-        #self.arname = None
+        self.i = None # no default
+        self.isw = 0
+        self.pdes = 0.0
+        self.ptol = 10.0
+        self.arname = 12*' '
 
     def read_from_row(self, row):
 
@@ -1716,8 +1730,8 @@ class Zone:
 
     def __init__(self):
 
-        self.i = None
-        #self.zoname = None
+        self.i = None # no default
+        self.zoname = 12*' '
         
     def read_from_row(self, row):
 
@@ -1729,32 +1743,32 @@ class SwitchedShunt:
 
     def __init__(self):
 
-        self.i = None
-        #self.modsw = None
-        #self.adjm = None
-        self.stat = None
-        #self.vswhi = None
-        #self.vswlo = None
-        #self.swrem = None
-        #self.rmpct = None
-        #self.rmidnt = None
-        self.binit = None
-        self.n1 = None
-        self.b1 = None
-        self.n2 = None
-        self.b2 = None
-        self.n3 = None
-        self.b3 = None
-        self.n4 = None
-        self.b4 = None
-        self.n5 = None
-        self.b5 = None
-        self.n6 = None
-        self.b6 = None
-        self.n7 = None
-        self.b7 = None
-        self.n8 = None
-        self.b8 = None
+        self.i = None # no default
+        self.modsw = 1
+        self.adjm = 0
+        self.stat = 1
+        self.vswhi = 1.0
+        self.vswlo = 1.0
+        self.swrem = 0
+        self.rmpct = 100.0
+        self.rmidnt = 12*' '
+        self.binit = 0.0
+        self.n1 = 0
+        self.b1 = 0.0
+        self.n2 = 0
+        self.b2 = 0.0
+        self.n3 = 0
+        self.b3 = 0.0
+        self.n4 = 0
+        self.b4 = 0.0
+        self.n5 = 0
+        self.b5 = 0.0
+        self.n6 = 0
+        self.b6 = 0.0
+        self.n7 = 0
+        self.b7 = 0.0
+        self.n8 = 0
+        self.b8 = 0.0
 
     def read_from_row(self, row):
 
