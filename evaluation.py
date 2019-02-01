@@ -2337,7 +2337,8 @@ class Solution1:
         '''
         end_time = time.time()
         print("sol1 read time: %f" % (end_time - start_time))
-        
+
+    #'''
     def read_old(self, file_name):
 
         start_time = time.time()
@@ -2352,7 +2353,9 @@ class Solution1:
         print("sol1 read time: %f" % (end_time - start_time))
 
         #self.read_test(file_name, 10, 10)
+    #'''
 
+    '''
     def read_test_np(self, file_name, num_bus, num_gen):
         
         start_time = time.time()
@@ -2372,7 +2375,9 @@ class Solution1:
             #print bus_array
         end_time = time.time()
         print("sol1 read time (np): %f" % (end_time - start_time))
+    '''
 
+    '''
     def read_test_pd(self, file_name, num_bus, num_gen):
         
         start_time = time.time()
@@ -2408,8 +2413,9 @@ class Solution1:
         print gen_i.shape, gen_id.shape, gen_pg.shape, gen_qg.shape
         end_time = time.time()
         print("sol1 read time (pd): %f" % (end_time - start_time))
+    '''
 
-
+    '''
     def read_sol2_1(self, file_name, num_bus, num_gen):
         
         start_time = time.time()
@@ -2483,7 +2489,6 @@ class Solution1:
         end_time = time.time()
         print("sol2 read time (pd 1): %f" % (end_time - start_time))
 
-        '''
         start_time = time.time()
         bus_array = pd.read_csv(
             file_name,
@@ -2521,8 +2526,9 @@ class Solution1:
         self.gen_pow_imag = gen_array.qg.values
         end_time = time.time()
         print("sol1 read time: %f" % (end_time - start_time))
-        '''
+    '''
 
+    '''
     def read_sol2_2(self, file_name, num_bus, num_gen):
         
         start_time = time.time()
@@ -2531,11 +2537,9 @@ class Solution1:
         ctg_block_size = num_bus + num_gen + 10
         num_rows = num_ctg * ctg_block_size
 
-        '''
         def skip_row_in_chunk(i, chunk_size, start_row, num_rows):
             mod = i % chunk_size
             return ((mod < start_row) or 
-        '''
         
         ctg_start_row = 2
         ctg_end_row = ctg_start_row + 1 - 1
@@ -2619,7 +2623,9 @@ class Solution1:
 
         end_time = time.time()
         print("sol2 read time (pd 2): %f" % (end_time - start_time))
+    '''
 
+    '''
     def read_sol2_3(self, file_name, num_bus, num_gen):
         
         def skip_row(i, block_size, start_row, end_row):
@@ -2702,7 +2708,9 @@ class Solution1:
 
         end_time = time.time()
         print("sol2 read time (pd 3): %f" % (end_time - start_time))
-            
+    '''
+
+    '''
     def read_sol2_4(self, file_name, num_bus, num_gen):
         
         #num_ctg = 21960
@@ -2794,6 +2802,7 @@ class Solution1:
         end_time = time.time()
         print("sol2 read time (pd 4): %f" % (end_time - start_time))
         print("sol2 read time (pd 4, average): %f" % ((end_time - start_time) / num_ctg))
+    '''
             
     def read_bus_rows(self, rows):
 
@@ -2906,7 +2915,9 @@ class Solution2:
         gen_df = pd.read_csv(
             gen_str, sep=',', header=None, names=['i', 'id', 'pg', 'qg'],
             dtype={'i':np.int_, 'id':str, 'pg':np.float_, 'qg':np.float_},
-            nrows=num_gen, engine='c', skiprows=2, skipinitialspace=True, float_precision=pandas_float_precision)
+            nrows=num_gen, engine='c', skiprows=2, skipinitialspace=True, float_precision=pandas_float_precision,
+            na_values=None, keep_default_na=False #, #quoting=csv.QUOTE_NONE,
+        )
         delta_df = pd.read_csv(
             delta_str, sep=',', header=None, names=['delta'],
             dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2, skipinitialspace=True, float_precision=pandas_float_precision)
