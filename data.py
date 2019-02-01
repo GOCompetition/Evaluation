@@ -133,7 +133,7 @@ class Raw:
         #writer = csv.writer(out_str, quotechar="'", quoting=csv.QUOTE_NONNUMERIC)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         rows = [
-            [None, self.case_identification.sbase, None, None, None, None],
+            [None, self.case_identification.sbase, 33, None, None, None],
             ["'GO Competition'"],
             ["'RAW data'"]]
         writer.writerows(rows)
