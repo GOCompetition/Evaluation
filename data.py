@@ -118,6 +118,8 @@ class Raw:
         self.transformers = {}
         self.areas = {}
         self.switched_shunts = {}
+        self.params = {
+            'write_field_defaults': True}
 
     def set_areas_from_buses(self):
         
@@ -132,10 +134,16 @@ class Raw:
         out_str = StringIO.StringIO()
         #writer = csv.writer(out_str, quotechar="'", quoting=csv.QUOTE_NONNUMERIC)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        rows = [
-            [None, self.case_identification.sbase, 33, None, None, None],
-            ["'GO Competition'"],
-            ["'RAW data'"]]
+        if self.params['write_field_defaults']:
+            rows = [
+                [0, self.case_identification.sbase, 33, 0, 1, 60.0],
+                ["'GO Competition'"],
+                ["'RAW data'"]]
+        else:
+            rows = [
+                [None, self.case_identification.sbase, 33, None, None, None],
+                ["'GO Competition'"],
+                ["'RAW data'"]]
         writer.writerows(rows)
         return out_str.getvalue()
 
@@ -145,9 +153,14 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        rows = [
-            [r.i, None, None, None, r.area, None, None, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
-            for r in self.buses.values()]
+        if self.params['write_field_defaults']:
+            rows = [
+                [r.i, "'            '", 0.0, 1, r.area, 1, 1, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
+                for r in self.buses.values()]
+        else:
+            rows = [
+                [r.i, None, None, None, r.area, None, None, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
+                for r in self.buses.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / end bus section']])
@@ -157,9 +170,14 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str,  quoting=csv.QUOTE_NONE)
-        rows = [
-            [r.i, "'%s'" % r.id, r.status, None, None, r.pl, r.ql, None, None, None, None, None, None, None]
-            for r in self.loads.values()]
+        if self.params['write_field_defaults']:
+            rows = [
+                [r.i, "'%s'" % r.id, r.status, self.buses[r.i].area, 1, r.pl, r.ql, 0.0, 0.0, 0.0, 0.0, 1, 1, 0]
+                for r in self.loads.values()]
+        else:
+            rows = [
+                [r.i, "'%s'" % r.id, r.status, None, None, r.pl, r.ql, None, None, None, None, None, None, None]
+                for r in self.loads.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / end load section']])
@@ -169,9 +187,14 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        rows = [
-            [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
-            for r in self.fixed_shunts.values()]
+        if self.params['write_field_defaults']:
+            rows = [
+                [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
+                for r in self.fixed_shunts.values()]
+        else:
+            rows = [
+                [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
+                for r in self.fixed_shunts.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / end fixed shunt section']])
@@ -181,12 +204,20 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        rows = [
-            [r.i, "'%s'" % r.id, r.pg, r.qg, r.qt, r.qb,
-             None, None, None, None, None, None, None, None,
-             r.stat, None, r.pt, r.pb, None, None, None,
-             None, None, None, None, None, None, None]
-            for r in self.generators.values()]
+        if self.params['write_field_defaults']:
+            rows = [
+                [r.i, "'%s'" % r.id, r.pg, r.qg, r.qt, r.qb,
+                 1.0, 0, self.case_identification.sbase, 0.0, 1.0, 0.0, 0.0, 1.0,
+                 r.stat, 100.0, r.pt, r.pb, 1, 1.0, 0,
+                 1.0, 0, 1.0, 0, 1.0, 0, 1.0]
+                for r in self.generators.values()]
+        else:
+            rows = [
+                [r.i, "'%s'" % r.id, r.pg, r.qg, r.qt, r.qb,
+                 None, None, None, None, None, None, None, None,
+                 r.stat, None, r.pt, r.pb, None, None, None,
+                 None, None, None, None, None, None, None]
+                for r in self.generators.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / end generator section']])
@@ -196,11 +227,18 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        rows = [
-            [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
-             None, r.ratec, None, None, None, None, r.st, None, None,
-             None, None, None, None, None, None, None, None ]
-            for r in self.nontransformer_branches.values()]
+        if self.params['write_field_defaults']:
+            rows = [
+                [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
+                 0.0, r.ratec, 0.0, 0.0, 0.0, 0.0, r.st, 1, 0.0,
+                 1, 1.0, 0, 1.0, 0, 1.0, 0, 1.0 ]
+                for r in self.nontransformer_branches.values()]
+        else:
+            rows = [
+                [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
+                 None, r.ratec, None, None, None, None, r.st, None, None,
+                 None, None, None, None, None, None, None, None ]
+                for r in self.nontransformer_branches.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / end non-transformer branch section']])
@@ -210,18 +248,32 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        rows = [
-            rr
-            for r in self.transformers.values()
-            for rr in [
-                    [r.i, r.j, 0, "'%s'" % r.ckt, None, None, None,
-                     r.mag1, r.mag2, None, None, r.stat, None, None,
-                     None, None, None, None, None, None, None],
-                    [r.r12, r.x12, None],
-                    [r.windv1, None, r.ang1, r.rata1, None, r.ratc1,
-                     None, None, None, None, None, None, None, None,
-                     None, None, None],
-                    [r.windv2, None]]]
+        if self.params['write_field_defaults']:
+            rows = [
+                rr
+                for r in self.transformers.values()
+                for rr in [
+                        [r.i, r.j, 0, "'%s'" % r.ckt, 1, 1, 1,
+                         r.mag1, r.mag2, 2, "'            '", r.stat, 1, 1.0,
+                         0, 1.0, 0, 1.0, 0, 1.0, "'            '"],
+                        [r.r12, r.x12, self.case_identification.sbase],
+                        [r.windv1, 0.0, r.ang1, r.rata1, 0.0, r.ratc1,
+                         0, 0, 1.1, 0.9, 1.1, 0.9, 33, 0,
+                         0.0, 0.0, 0.0],
+                        [r.windv2, 0.0]]]
+        else:
+            rows = [
+                rr
+                for r in self.transformers.values()
+                for rr in [
+                        [r.i, r.j, 0, "'%s'" % r.ckt, None, None, None,
+                         r.mag1, r.mag2, None, None, r.stat, None, None,
+                         None, None, None, None, None, None, None],
+                        [r.r12, r.x12, None],
+                        [r.windv1, None, r.ang1, r.rata1, None, r.ratc1,
+                         None, None, None, None, None, None, None, None,
+                         None, None, None],
+                        [r.windv2, None]]]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / end transformer section']])
@@ -231,9 +283,14 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        rows = [
-            [r.i, None, None, None, None]
-            for r in self.areas.values()]
+        if self.params['write_field_defaults']:
+            rows = [
+                [r.i, 0, 0.0, 10.0, "'            '"]
+                for r in self.areas.values()]
+        else:
+            rows = [
+                [r.i, None, None, None, None]
+                for r in self.areas.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / end area section']])
@@ -306,11 +363,18 @@ class Raw:
 
         out_str = StringIO.StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        rows = [
-            [r.i, None, None, r.stat, None, None, None, None, None,
-             r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
-             r.n5, r.b5, r.n6, r.b6, r.n7, r.b7, r.n8, r.b8]
-            for r in self.switched_shunts.values()]
+        if self.params['write_field_defaults']:
+            rows = [
+                [r.i, 1, 0, r.stat, 1.0, 1.0, 0, 100.0, "'            '",
+                 r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
+                 r.n5, r.b5, r.n6, r.b6, r.n7, r.b7, r.n8, r.b8]
+                for r in self.switched_shunts.values()]
+        else:
+            rows = [
+                [r.i, None, None, r.stat, None, None, None, None, None,
+                 r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
+                 r.n5, r.b5, r.n6, r.b6, r.n7, r.b7, r.n8, r.b8]
+                for r in self.switched_shunts.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / end switched shunt section']])
