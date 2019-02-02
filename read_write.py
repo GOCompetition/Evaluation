@@ -20,29 +20,23 @@ def main():
 
     parser = argparse.ArgumentParser(description='Evaluate a solution to a problem instance')
     
-    parser.add_argument('raw', help='raw')
-    parser.add_argument('rop', help='rop')
-    parser.add_argument('con', help='con')
-    parser.add_argument('inl', help='inl')
+    parser.add_argument('raw_in', help='raw_in')
+    parser.add_argument('rop_in', help='rop_in')
+    parser.add_argument('con_in', help='con_in')
+    parser.add_argument('inl_in', help='inl_in')
+    parser.add_argument('raw_out', help='raw_out')
+    parser.add_argument('rop_out', help='rop_out')
+    parser.add_argument('con_out', help='con_out')
+    parser.add_argument('inl_out', help='inl_out')
     
     args = parser.parse_args()
 
-    raw_in = args.raw
-    rop_in = args.rop
-    con_in = args.con
-    inl_in = args.inl
-
-    raw_out = raw_in + '.out'
-    rop_out = rop_in + '.out'
-    con_out = con_in + '.out'
-    inl_out = inl_in + '.out'
-
     start_time = time.time()
     p = data.Data()
-    p.raw.read(raw_in)
-    p.rop.read(rop_in)
-    p.con.read(con_in)
-    p.inl.read(inl_in)
+    p.raw.read(args.raw_in)
+    p.rop.read(args.rop_in)
+    p.con.read(args.con_in)
+    p.inl.read(args.inl_in)
     time_elapsed = time.time() - start_time
     print("read data time: %f" % time_elapsed)
     
@@ -68,10 +62,10 @@ def main():
     print("convert data time: %f" % (end_time - start_time))
 
     start_time = time.time()
-    p.raw.write(raw_out)
-    #p.rop.write(rop_out)
-    #p.con.write(con_out)
-    #p.inl.write(inl_out)
+    p.raw.write(args.raw_out)
+    #p.rop.write(args.rop_out)
+    #p.con.write(args.con_out)
+    #p.inl.write(args.inl_out)
     time_elapsed = time.time() - start_time
     print("write data time: %f" % time_elapsed)
 

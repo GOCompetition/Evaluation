@@ -30,7 +30,7 @@ def parse_token(token, val_type, default=None):
         val = val_type(default)
     else:
         try:
-            print('empty field, token: %s, val_type: %s' % (token, val_type))
+            print('required field missing data, token: %s, val_type: %s' % (token, val_type))
             raise Exception('empty field not allowed')
         except Exception as e:
             traceback.print_exc()
@@ -142,18 +142,18 @@ class Raw:
                 [self.case_identification.ic, self.case_identification.sbase,
                  self.case_identification.rev, self.case_identification.xfrrat,
                  self.case_identification.nxfrat, self.case_identification.basfrq],
-                ["'GO Competition'"],
-                ["'RAW data'"]]
-        if write_defaults_in_unused_fields:
+                ["'%s'" % self.case_identification.record_2],
+                ["'%s'" % self.case_identification.record_3]]
+        elif write_defaults_in_unused_fields:
             rows = [
                 [0, self.case_identification.sbase, 33, 0, 1, 60.0],
-                ["'GO Competition'"],
-                ["'RAW data'"]]
+                ["''"],
+                ["''"]]
         else:
             rows = [
                 [None, self.case_identification.sbase, 33, None, None, None],
-                ["'GO Competition'"],
-                ["'RAW data'"]]
+                ["''"],
+                ["''"]]
         writer.writerows(rows)
         return out_str.getvalue()
 
@@ -578,8 +578,8 @@ class Raw:
     def read_from_rows(self, rows):
 
         row_num = 0
-        row = rows[row_num]
-        self.case_identification.read_from_row(row)
+        cid_rows = rows[row_num:(row_num + 3)]
+        self.case_identification.read_from_rows(rows)
         row_num += 2
         while True:
             row_num += 1
@@ -1229,17 +1229,26 @@ class CaseIdentification:
         self.xfrrat = 0
         self.nxfrat = 1
         self.basfrq = 60.0
+        self.record_2 = ''
+        self.record_3 = ''
 
-    def read_from_row(self, row):
+    def read_record_1_from_row(self, row):
 
         row = pad_row(row, 6)
         #row[5] = remove_end_of_line_comment(row[5], '/')
-        #self.ic = parse_token(row[0], int, 0)
         self.sbase = parse_token(row[1], float, default=None)
-        #self.rev = parse_token(row[2], int, 33)
-        #self.xfrrat = parse_token(row[3], float, -1.0)
-        #self.nxfrat = parse_token(row[4], float, 1.0)
-        #self.basfrq = parse_token(row[5], float, 60.0) # need to remove end of line comment
+        if read_unused_fields:
+            self.ic = parse_token(row[0], int, 0)
+            self.rev = parse_token(row[2], int, 33)
+            self.xfrrat = parse_token(row[3], int, 0)
+            self.nxfrat = parse_token(row[4], int, 1)
+            self.basfrq = parse_token(row[5], float, 60.0) # need to remove end of line comment
+
+    def read_from_rows(self, rows):
+
+        self.read_record_1_from_row(rows[0])
+        self.record_2 = '' # not preserving these at this point
+        self.record_3 = '' # do that later
 
 class Bus:
 
@@ -1263,18 +1272,19 @@ class Bus:
 
         row = pad_row(row, 13)
         self.i = parse_token(row[0], int, default=None)
-        #self.name = parse_token(row[1], str, 12*' ')
-        #self.baskv = parse_token(row[2], float, 0.0)
-        #self.ide = parse_token(row[3], int, 1)
         self.area = parse_token(row[4], int, default=None)
-        #self.zone = parse_token(row[5], int, 1)
-        #self.owner = parse_token(row[6], int, 1)
         self.vm = parse_token(row[7], float, default=None)
         self.va = parse_token(row[8], float, default=None)
         self.nvhi = parse_token(row[9], float, default=None)
         self.nvlo = parse_token(row[10], float, default=None)
         self.evhi = parse_token(row[11], float, default=None)
         self.evlo = parse_token(row[12], float, default=None)
+        if read_unused_fields:
+            self.name = parse_token(row[1], str, 12*' ')
+            self.baskv = parse_token(row[2], float, 0.0)
+            self.ide = parse_token(row[3], int, 1)
+            self.zone = parse_token(row[5], int, 1)
+            self.owner = parse_token(row[6], int, 1)
     
 class Load:
 
@@ -1301,17 +1311,18 @@ class Load:
         self.i = parse_token(row[0], int, default=None)
         self.id = parse_token(row[1], str, default=None)
         self.status = parse_token(row[2], int, default=None)
-        #self.area = parse_token(row[3], int, 0)
-        #self.zone = parse_token(row[4], int, 0)
         self.pl = parse_token(row[5], float, default=None)
         self.ql = parse_token(row[6], float, default=None)
-        #self.ip = parse_token(row[7], float, 0.0)
-        #self.iq = parse_token(row[8], float, 0.0)
-        #self.yp = parse_token(row[9], float, 0.0)
-        #self.yq = parse_token(row[10], float, 0.0)
-        #self.owner = parse_token(row[11], int, 0)
-        #self.scale = parse_token(row[12], int, 1)
-        #self.intrpt = parse_token(row[13], int, 0)
+        if read_unused_fields:
+            self.area = parse_token(row[3], int, 1)
+            self.zone = parse_token(row[4], int, 1)
+            self.ip = parse_token(row[7], float, 0.0)
+            self.iq = parse_token(row[8], float, 0.0)
+            self.yp = parse_token(row[9], float, 0.0)
+            self.yq = parse_token(row[10], float, 0.0)
+            self.owner = parse_token(row[11], int, 1)
+            self.scale = parse_token(row[12], int, 1)
+            self.intrpt = parse_token(row[13], int, 0)
 
 class FixedShunt:
 
@@ -1331,6 +1342,8 @@ class FixedShunt:
         self.status = parse_token(row[2], int, default=None)
         self.gl = parse_token(row[3], float, default=None)
         self.bl = parse_token(row[4], float, default=None)
+        if read_unused_fields:
+            pass
 
 class Generator:
 
@@ -1373,28 +1386,29 @@ class Generator:
         self.qg = parse_token(row[3], float, default=None)
         self.qt = parse_token(row[4], float, default=None)
         self.qb = parse_token(row[5], float, default=None)
-        #self.vs = parse_token(row[6], float, 1.0)
-        #self.ireg = parse_token(row[7], int, 0)
-        #self.mbase = parse_token(row[8], float, 0.0)
-        #self.zr = parse_token(row[9], float, 0.0)
-        #self.zx = parse_token(row[10], float, 1.0)
-        #self.rt = parse_token(row[11], float, 0.0)
-        #self.xt = parse_token(row[12], float, 0.0)
-        #self.gtap = parse_token(row[13], float, 1.0)
         self.stat = parse_token(row[14], int, default=None)
-        #self.rmpct = parse_token(row[15], float, 100.0)
         self.pt = parse_token(row[16], float, default=None)
         self.pb = parse_token(row[17], float, default=None)
-        #self.o1 = parse_token(row[18], int, 0)
-        #self.f1 = parse_token(row[19], float, 1.0)
-        #self.o2 = parse_token(row[20], int, 0)
-        #self.f2 = parse_token(row[21], float, 1.0)
-        #self.o3 = parse_token(row[22], int, 0)
-        #self.f3 = parse_token(row[23], float, 1.0)
-        #self.o4 = parse_token(row[24], int, 0)
-        #self.f4 = parse_token(row[25], float, 1.0)
-        #self.wmod = parse_token(row[26], int, 0)
-        #self.wpf = parse_token(row[27], float, 1.0)
+        if read_unused_fields:
+            self.vs = parse_token(row[6], float, 1.0)
+            self.ireg = parse_token(row[7], int, 0)
+            self.mbase = parse_token(row[8], float, 100.0)
+            self.zr = parse_token(row[9], float, 0.0)
+            self.zx = parse_token(row[10], float, 1.0)
+            self.rt = parse_token(row[11], float, 0.0)
+            self.xt = parse_token(row[12], float, 0.0)
+            self.gtap = parse_token(row[13], float, 1.0)
+            self.rmpct = parse_token(row[15], float, 100.0)
+            self.o1 = parse_token(row[18], int, 1)
+            self.f1 = parse_token(row[19], float, 1.0)
+            self.o2 = parse_token(row[20], int, 0)
+            self.f2 = parse_token(row[21], float, 1.0)
+            self.o3 = parse_token(row[22], int, 0)
+            self.f3 = parse_token(row[23], float, 1.0)
+            self.o4 = parse_token(row[24], int, 0)
+            self.f4 = parse_token(row[25], float, 1.0)
+            self.wmod = parse_token(row[26], int, 0)
+            self.wpf = parse_token(row[27], float, 1.0)
 
 class NontransformerBranch:
 
@@ -1435,23 +1449,24 @@ class NontransformerBranch:
         self.x = parse_token(row[4], float, default=None)
         self.b = parse_token(row[5], float, default=None)
         self.ratea = parse_token(row[6], float, default=None)
-        #self.rateb = parse_token(row[7], float, 0.0)
         self.ratec = parse_token(row[8], float, default=None)
-        #self.gi = parse_token(row[9], float, 0.0)
-        #self.bi = parse_token(row[10], float, 0.0)
-        #self.gj = parse_token(row[11], float, 0.0)
-        #self.bj = parse_token(row[12], float, 0.0)
         self.st = parse_token(row[13], int, default=None)
-        #self.met = parse_token(row[14], int, 1)
-        #self.len = parse_token(row[15], float, 0.0)
-        #self.o1 = parse_token(row[16], int, 0)
-        #self.f1 = parse_token(row[17], float, 1.0)
-        #self.o2 = parse_token(row[18], int, 0)
-        #self.f2 = parse_token(row[19], float, 1.0)
-        #self.o3 = parse_token(row[20], int, 0)
-        #self.f3 = parse_token(row[21], float, 1.0)
-        #self.o4 = parse_token(row[22], int, 0)
-        #self.f4 = parse_token(row[23], float, 1.0)
+        if read_unused_fields:
+            self.rateb = parse_token(row[7], float, 0.0)
+            self.gi = parse_token(row[9], float, 0.0)
+            self.bi = parse_token(row[10], float, 0.0)
+            self.gj = parse_token(row[11], float, 0.0)
+            self.bj = parse_token(row[12], float, 0.0)
+            self.met = parse_token(row[14], int, 1)
+            self.len = parse_token(row[15], float, 0.0)
+            self.o1 = parse_token(row[16], int, 1)
+            self.f1 = parse_token(row[17], float, 1.0)
+            self.o2 = parse_token(row[18], int, 0)
+            self.f2 = parse_token(row[19], float, 1.0)
+            self.o3 = parse_token(row[20], int, 0)
+            self.f3 = parse_token(row[21], float, 1.0)
+            self.o4 = parse_token(row[22], int, 0)
+            self.f4 = parse_token(row[23], float, 1.0)
 
 class Transformer:
 
@@ -1657,55 +1672,48 @@ class Transformer:
             raise e
         self.i = parse_token(row[0], int, default=None)
         self.j = parse_token(row[1], int, default=None)
-        #self.k = parse_token(row[2], int, 0)
         self.ckt = parse_token(row[3], str, default=None)
-        #self.cw = parse_token(row[4], int, 1)
-        #self.cz = parse_token(row[5], int, 1)
-        #self.cm = parse_token(row[6], int, 1)
         self.mag1 = parse_token(row[7], float, default=None)
         self.mag2 = parse_token(row[8], float, default=None)
-        #self.nmetr = parse_token(row[9], int, 2)
-        #self.name = parse_token(row[10], str, 12*' ')
         self.stat = parse_token(row[11], int, default=None)
-        #self.o1 = parse_token(row[12], int, 0)
-        #self.f1 = parse_token(row[13], float, 1.0)
-        #self.o2 = parse_token(row[14], int, 0)
-        #self.f2 = parse_token(row[15], float, 1.0)
-        #self.o3 = parse_token(row[16], int, 0)
-        #self.f3 = parse_token(row[17], float, 1.0)
-        #self.o4 = parse_token(row[18], int, 0)
-        #self.f4 = parse_token(row[19], float, 1.0)
-        #self.vecgrp = parse_token(row[20], str, 12*' ')
         self.r12 = parse_token(row[21], float, default=None)
         self.x12 = parse_token(row[22], float, default=None)
-        #self.sbase12 = parse_token(row[23], float, 0.0)
-        #self.r23 = parse_token(row[24], float, 0.0)
-        #self.x23 = parse_token(row[25], float, 0.0)
-        #self.sbase23 = parse_token(row[26], float, 0.0)
-        #self.r31 = parse_token(row[27], float, 0.0)
-        #self.x31 = parse_token(row[28], float, 0.0)
-        #self.sbase31 = parse_token(row[29], float, 0.0)
-        #self.vmstar = parse_token(row[30], float, 1.0)
-        #self.anstar = parse_token(row[31], float, 0.0)
         self.windv1 = parse_token(row[24], float, default=None)
-        #self.nomv1 = parse_token(row[25], float, 0.0)
         self.ang1 = parse_token(row[26], float, default=None)
         self.rata1 = parse_token(row[27], float, default=None)
-        #self.ratb1 = parse_token(row[28], float, 0.0)
         self.ratc1 = parse_token(row[29], float, default=None)
-        #self.cod1 = parse_token(row[30], int, 0)
-        #self.cont1 = parse_token(row[31], int, 0)
-        #self.rma1 = parse_token(row[32], float, 1.1)
-        #self.rmi1 = parse_token(row[33], float, 0.9)
-        #self.vma1 = parse_token(row[34], float, 1.1)
-        #self.vmi1 = parse_token(row[35], float, 0.9)
-        #self.ntp1 = parse_token(row[36], int, 33)
-        #self.tab1 = parse_token(row[37], int, 0)
-        #self.cr1 = parse_token(row[38], float, 0.0)
-        #self.cx1 = parse_token(row[39], float, 0.0)
-        #self.cnxa1 = parse_token(row[40], float, 0.0)
         self.windv2 = parse_token(row[41], float, default=None)
-        #self.nomv2 = parse_token(row[42], float, 0.0)
+        if read_unused_fields:
+            self.k = parse_token(row[2], int, 0)
+            self.cw = parse_token(row[4], int, 1)
+            self.cz = parse_token(row[5], int, 1)
+            self.cm = parse_token(row[6], int, 1)
+            self.nmetr = parse_token(row[9], int, 2)
+            self.name = parse_token(row[10], str, 12*' ')
+            self.o1 = parse_token(row[12], int, 1)
+            self.f1 = parse_token(row[13], float, 1.0)
+            self.o2 = parse_token(row[14], int, 0)
+            self.f2 = parse_token(row[15], float, 1.0)
+            self.o3 = parse_token(row[16], int, 0)
+            self.f3 = parse_token(row[17], float, 1.0)
+            self.o4 = parse_token(row[18], int, 0)
+            self.f4 = parse_token(row[19], float, 1.0)
+            self.vecgrp = parse_token(row[20], str, 12*' ')
+            self.sbase12 = parse_token(row[23], float, 0.0)
+            self.nomv1 = parse_token(row[25], float, 0.0)
+            self.ratb1 = parse_token(row[28], float, 0.0)
+            self.cod1 = parse_token(row[30], int, 0)
+            self.cont1 = parse_token(row[31], int, 0)
+            self.rma1 = parse_token(row[32], float, 1.1)
+            self.rmi1 = parse_token(row[33], float, 0.9)
+            self.vma1 = parse_token(row[34], float, 1.1)
+            self.vmi1 = parse_token(row[35], float, 0.9)
+            self.ntp1 = parse_token(row[36], int, 33)
+            self.tab1 = parse_token(row[37], int, 0)
+            self.cr1 = parse_token(row[38], float, 0.0)
+            self.cx1 = parse_token(row[39], float, 0.0)
+            self.cnxa1 = parse_token(row[40], float, 0.0)
+            self.nomv2 = parse_token(row[42], float, 0.0)
 
 class Area:
 
@@ -1721,10 +1729,11 @@ class Area:
 
         row = pad_row(row, 5)
         self.i = parse_token(row[0], int, default=None)
-        #self.isw = parse_token(row[1], int, 0)
-        #self.pdes = parse_token(row[2], float, 0.0)
-        #self.ptol = parse_token(row[3], float, 10.0)
-        #self.arname = parse_token(row[4], str, 12*' ')
+        if read_unused_fields:
+            self.isw = parse_token(row[1], int, 0)
+            self.pdes = parse_token(row[2], float, 0.0)
+            self.ptol = parse_token(row[3], float, 10.0)
+            self.arname = parse_token(row[4], str, 12*' ')
 
 class Zone:
 
@@ -1737,7 +1746,8 @@ class Zone:
 
         row = pad_row(row, 2)
         self.i = parse_token(row[0], int, default=None)
-        #self.zoname = parse_token(row[1], str, 12*' ')
+        if read_unused_fields:
+            self.zoname = parse_token(row[1], str, 12*' ')
 
 class SwitchedShunt:
 
@@ -1774,14 +1784,7 @@ class SwitchedShunt:
 
         row = pad_row(row, 26)
         self.i = parse_token(row[0], int, default=None)
-        #self.modsw = parse_token(row[1], int, 1)
-        #self.adjm = parse_token(row[2], int, 0)
         self.stat = parse_token(row[3], int, default=None)
-        #self.vswhi = parse_token(row[4], float, 1.0)
-        #self.vswlo = parse_token(row[5], float, 1.0)
-        #self.swrem = parse_token(row[6], int, 0)
-        #self.rmpct = parse_token(row[7], float, 100.0)
-        #self.rmidnt = parse_token(row[8], str, 12*' ')
         self.binit = parse_token(row[9], float, default=None)
         self.n1 = parse_token(row[10], int, default=None)
         self.b1 = parse_token(row[11], float, default=None)
@@ -1799,6 +1802,14 @@ class SwitchedShunt:
         self.b7 = parse_token(row[23], float, default=None)
         self.n8 = parse_token(row[24], int, default=None)
         self.b8 = parse_token(row[25], float, default=None)
+        if read_unused_fields:
+            self.modsw = parse_token(row[1], int, 1)
+            self.adjm = parse_token(row[2], int, 0)
+            self.vswhi = parse_token(row[4], float, 1.0)
+            self.vswlo = parse_token(row[5], float, 1.0)
+            self.swrem = parse_token(row[6], int, 0)
+            self.rmpct = parse_token(row[7], float, 100.0)
+            self.rmidnt = parse_token(row[8], str, 12*' ')
         
 class GeneratorDispatchRecord:
 
