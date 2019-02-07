@@ -15,7 +15,7 @@ import os
 import sys
 import math
 import traceback
-import StringIO
+from io import StringIO
 
 # init_defaults_in_unused_field = True # do this anyway - it is not too big
 read_unused_fields = True

@@ -6,7 +6,7 @@ Jesse will continue to use test.py and test.sh for further development of the ev
 import argparse
 import evaluation
 import csv
-    
+
 def run():
 
     raw = './examples/case2/case.raw'
@@ -17,7 +17,7 @@ def run():
     sol2 = './examples/case2/sol2.txt'
     summary = './summary.csv'
     detail = './detail.csv'
-    
+
     try:
         (obj, cost, penalty, max_obj_viol, max_nonobj_viol, infeas) = evaluation.run(
             raw, rop, con, inl, sol1, sol2, summary, detail)

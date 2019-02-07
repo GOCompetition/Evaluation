@@ -21,8 +21,10 @@ import pandas as pd
 import traceback
 from scipy import sparse as sp
 #from io import open
-import StringIO
-import cStringIO
+#import StringIO
+#import cStringIO
+from io import StringIO
+from io import BytesIO
 from operator import itemgetter
 
 """
@@ -101,7 +103,7 @@ def clean_string(s):
     t = s.replace("'","").replace('"','').replace(' ','')
     #t = str(s).replace("'","").replace('"','').replace(' ','')
     return t
-        
+
 class Result:
 
     def __init__(self, ctgs):
@@ -184,7 +186,7 @@ class Result:
             else:
                 k = max(x.keys(), key=(lambda k: x[k][1]))
                 return (k, x[k])
-        
+
         self.total_obj = sum(self.ctg_obj.values())
         self.total_cost = sum(self.ctg_cost.values())
         self.total_penalty = sum(self.ctg_penalty.values())
@@ -356,7 +358,7 @@ class Evaluation:
         self.area = []
         self.swsh = []
         self.ctg = []
-        
+
         self.bus_volt_mag_min = {}
         self.bus_volt_mag_max = {}
         self.bus_volt_mag = {}
@@ -567,7 +569,7 @@ class Evaluation:
         self.bus_volt_mag_min = np.array([r.nvlo for r in buses])
         self.ctg_bus_volt_mag_max = np.array([r.evhi for r in buses])
         self.ctg_bus_volt_mag_min = np.array([r.evlo for r in buses])
-        
+
         areas = [r.area for r in buses]
         self.num_area = len(areas)
         self.area_i = [i for i in areas]
@@ -620,7 +622,7 @@ class Evaluation:
         print('set data fxsh params: %f' % (end_time - start_time))
 
     def set_data_gen_params(self, data):
-    
+
         start_time = time.time()
         gens = list(data.raw.generators.values())
         self.gen_key = [(r.i, r.id) for r in gens]
@@ -648,7 +650,7 @@ class Evaluation:
         #    if self.gen_i[i] == 630653:
         #        gi = self.gen_i[i]
         #        gid = self.gen_id[i]
-        #        print gi, gid, self.gen_map[(gi, gid)]        
+        #        print gi, gid, self.gen_map[(gi, gid)]
 
         self.gen_area = [self.bus_area[r] for r in self.gen_bus]
         self.area_gens = [set() for a in range(self.num_area)]
@@ -663,7 +665,7 @@ class Evaluation:
         print('set data gen params: %f' % (end_time - start_time))
 
     def set_data_line_params(self, data):
-        
+
         start_time = time.time()
         lines = list(data.raw.nontransformer_branches.values())
         self.line_key = [(r.i, r.j, r.ckt) for r in lines]
@@ -788,7 +790,7 @@ class Evaluation:
         # todo clean up maybe
         # defines some attributes that need to be initialized above
         # piecewise linear cost functions
-        
+
         self.gen_num_pl = [0 for i in range(self.num_gen)]
         self.gen_pl_x = [None for i in range(self.num_gen)]
         self.gen_pl_y = [None for i in range(self.num_gen)]
@@ -838,11 +840,11 @@ class Evaluation:
                         print('x points:')
                         print(self.gen_pl_x[gen])
                         print('y points:')
-                        print self.gen_pl_y[gen]
+                        print(self.gen_pl_y[gen])
                         print('i: %s' % i)
                         print('slopes:')
                         print(d1)
-                        #raise Exception('cost convexity error') # 
+                        #raise Exception('cost convexity error') #
             #'''
         end_time = time.time()
         print('set data gen cost params: %f' % (end_time - start_time))
@@ -864,8 +866,10 @@ class Evaluation:
         ctg_branch_keys_out = {
             r.label:set([(e.i, e.j, e.ckt) for e in r.branch_out_events])
             for r in ctgs}
-        ctg_line_keys_out = {k:(v & line_keys) for k,v in ctg_branch_keys_out.iteritems()}
-        ctg_xfmr_keys_out = {k:(v & xfmr_keys) for k,v in ctg_branch_keys_out.iteritems()}
+        #ctg_line_keys_out = {k:(v & line_keys) for k,v in ctg_branch_keys_out.iteritems()}
+        #ctg_xfmr_keys_out = {k:(v & xfmr_keys) for k,v in ctg_branch_keys_out.iteritems()}
+        ctg_line_keys_out = {k:(v & line_keys) for k,v in ctg_branch_keys_out.items()}
+        ctg_xfmr_keys_out = {k:(v & xfmr_keys) for k,v in ctg_branch_keys_out.items()}
         ctg_areas_affected = {
             k.label:(
                 set([self.bus_area[self.bus_map[r[0]]] for r in ctg_gen_keys_out[k.label]]) |
@@ -907,7 +911,7 @@ class Evaluation:
 
     def set_params(self):
         '''set parameters, e.g. tolerances, penalties, and convert to PU'''
-        
+
         self.penalty_block_pow_real_max = np.array(penalty_block_pow_real_max) / self.base_mva
         self.penalty_block_pow_real_coeff = np.array(penalty_block_pow_real_coeff) * self.base_mva
         self.penalty_block_pow_imag_max = np.array(penalty_block_pow_imag_max) / self.base_mva
@@ -939,9 +943,9 @@ class Evaluation:
         #sol_gen_map = {(sol_gen_i[i], sol_gen_id[i]):i for i in range(self.num_gen)}
         sol_gen_key = zip(sol_gen_i, sol_gen_id)
         sol_gen_map = dict(zip(sol_gen_key, list(range(self.num_gen))))
-        #print sol_gen_i, sol_gen_id, sol_gen_key, sol_gen_map, self.gen_key, 
+        #print sol_gen_i, sol_gen_id, sol_gen_key, sol_gen_map, self.gen_key,
         # up through here is fast enough ~ 0.001 s
-        
+
         # which is faster?
         #bus_permutation = [sol_bus_map[self.bus_i[r]] for r in range(self.num_bus)] # this line is slow ~0.015s. is there a faster python-y way to do it?
         bus_permutation = [sol_bus_map[k] for k in self.bus_i]
@@ -962,7 +966,7 @@ class Evaluation:
         gen_permutation = [sol_gen_map[k] for k in self.gen_key]
         #gen_permutation = list(itemgetter(*(self.gen_key))(sol_gen_map))
         # up through here takes 0.015 s
-        
+
         # need it to handle arbitrary bus order in solution files
         # is there a faster way to do it?
         # maybe arrange all the bus-indexed vectors in a matrix - not much time left to save though
@@ -1143,7 +1147,7 @@ class Evaluation:
                  ])
 
     def write_ctg(self, det_name):
-        """write detail of ctg evaluation"""        
+        """write detail of ctg evaluation"""
 
         with open(det_name, 'a') as out:
         #with open(det_name, 'a', newline='') as out:
@@ -1221,7 +1225,7 @@ class Evaluation:
         #self.eval_ctg_gen_pow_real_viol() # this is not used - ctg_gen_pow_real is computed by eval, and bounds are automatic
         self.eval_ctg_gen_pow_imag_viol()
         self.eval_ctg_line_pow()
-        self.eval_ctg_line_curr_viol() 
+        self.eval_ctg_line_curr_viol()
         self.eval_ctg_xfmr_pow()
         self.eval_ctg_xfmr_pow_viol()
         self.eval_ctg_bus_swsh_adm_imag_viol()
@@ -1242,7 +1246,7 @@ class Evaluation:
 
         if self.ctg_infeas > hard_constr_tol:
             self.infeas = 1
-    
+
     def eval_cost(self):
         # Let [pcmin, pcmax] denote the domain of definition of the cost function
         # Let [pmin, pmax] denote the operating bounds of a generator that is in service
@@ -1300,7 +1304,7 @@ class Evaluation:
                 slope = (pl_y[i + 1] - pl_y[i]) / (pl_x[i + 1] - pl_x[i])
                 x_change = self.gen_pow_real[k] - pl_x[i]
             self.gen_cost[k] = y_value + slope * x_change
-                
+
 
         '''
         self.gen_cost = {
@@ -2017,7 +2021,7 @@ class Evaluation:
         print('compute detail time: %f' % (end_time - start_time))
 
     def compute_ctg_detail(self):
-        
+
         self.ctg_max_bus_volt_mag_max_viol = extra_max(self.bus_i, self.ctg_bus_volt_mag_max_viol)
         self.ctg_max_bus_volt_mag_min_viol = extra_max(self.bus_i, self.ctg_bus_volt_mag_min_viol)
         self.ctg_max_bus_swsh_adm_imag_max_viol = extra_max(self.bus_i, self.ctg_bus_swsh_adm_imag_max_viol)
@@ -2115,15 +2119,15 @@ class Evaluation:
 
         with open(out_name, 'ab') as out:
             csv_writer = csv.writer(out, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
-        
+
             if self.scenario_number == '1':
-                
+
                 csv_writer.writerow([
                 '','','','','',
                 'Maximum base case constraint violations','','','','','','','','','','','','','',
                 'Maximum contingency case constraint violations'
                 ])
-                
+
                 csv_writer.writerow([
                 'Scenario',
                 'Objective',
@@ -2236,7 +2240,7 @@ def solution_read_sections_from_lines(lines_in, section_start_line_str=None, has
         delimiter=delimiter_str,
         quotechar=quote_str,
         skipinitialspace=skip_initial_space)
-    
+
     start_time_0 = time.time()
     lines = list(lines)
     end_time_0 = time.time()
@@ -2290,7 +2294,7 @@ class Solution1:
         self.gen_pow_imag = {}
 
     def read(self, file_name, num_bus, num_gen):
-        
+
         start_time = time.time()
         self.bus_df = pd.read_csv(
             file_name,
@@ -2357,7 +2361,7 @@ class Solution1:
 
     '''
     def read_test_np(self, file_name, num_bus, num_gen):
-        
+
         start_time = time.time()
         with open(file_name, 'r') as in_file:
             discard = list(islice(in_file, 2))
@@ -2379,7 +2383,7 @@ class Solution1:
 
     '''
     def read_test_pd(self, file_name, num_bus, num_gen):
-        
+
         start_time = time.time()
         bus_array = pd.read_csv(
             file_name,
@@ -2417,7 +2421,7 @@ class Solution1:
 
     '''
     def read_sol2_1(self, file_name, num_bus, num_gen):
-        
+
         start_time = time.time()
         #num_ctg = 21960
         num_ctg = 22
@@ -2530,7 +2534,7 @@ class Solution1:
 
     '''
     def read_sol2_2(self, file_name, num_bus, num_gen):
-        
+
         start_time = time.time()
         #num_ctg = 21960
         num_ctg = 22
@@ -2539,8 +2543,8 @@ class Solution1:
 
         def skip_row_in_chunk(i, chunk_size, start_row, num_rows):
             mod = i % chunk_size
-            return ((mod < start_row) or 
-        
+            return ((mod < start_row) or
+
         ctg_start_row = 2
         ctg_end_row = ctg_start_row + 1 - 1
         bus_start_row = ctg_end_row + 3
@@ -2627,7 +2631,7 @@ class Solution1:
 
     '''
     def read_sol2_3(self, file_name, num_bus, num_gen):
-        
+
         def skip_row(i, block_size, start_row, end_row):
             mod = i % ctg_block_size
             return ((mod < start_row) or (mod > end_row))
@@ -2640,7 +2644,7 @@ class Solution1:
             num_ctg = 22
             ctg_block_size = num_bus + num_gen + 10
             num_rows = num_ctg * ctg_block_size
-        
+
             ctg_start_row = 2
             ctg_end_row = ctg_start_row + 1 - 1
             bus_start_row = ctg_end_row + 3
@@ -2654,7 +2658,7 @@ class Solution1:
             bus_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, bus_start_row, bus_end_row)]
             gen_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, gen_start_row, gen_end_row)]
             delta_skip_rows = [i for i in range(num_rows) if skip_row(i, ctg_block_size, delta_start_row, delta_end_row)]
-            
+
             start_time_1 = time.time()
             for k in range(num_ctg):
                 ctg_array = pd.read_csv(
@@ -2712,7 +2716,7 @@ class Solution1:
 
     '''
     def read_sol2_4(self, file_name, num_bus, num_gen):
-        
+
         #num_ctg = 21960
         #num_ctg = 2200
         num_ctg = 220
@@ -2727,14 +2731,14 @@ class Solution1:
         gen_end = gen_start + 2 + num_gen
         delta_start = gen_end
         delta_end = delta_start + 2 + 1
-        
+
         ndigits_test = 40
         bus_lines_test = ['\n'] + ['\n'] + [('%u,1.%s,0.%s,0.%s\n' % (i, ndigits_test*'0', ndigits_test*'0', ndigits_test*'0')) for i in range(num_bus)]
 
         start_time = time.time()
         with open(file_name) as in_file:
             for k in range(num_ctg):
-                
+
                 # get lines for each section as a generator
                 ctg_lines = islice(in_file, 2 + 1)
                 bus_lines = islice(in_file, 2 + num_bus)
@@ -2789,21 +2793,21 @@ class Solution1:
                 delta_df = pd.read_csv(
                     delta_str, sep=',', header=None, names=['delta'],
                     dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2, float_precision=pandas_float_precision)
-                
+
                 self.bus_df = bus_df
                 self.gen_df = gen_df
                 self.ctg_label = ctg_df.label.values[0]
                 self.num_bus = bus_df.shape[0]
                 self.num_gen = gen_df.shape[0]
                 self.delta = delta_df.delta.values[0]
-                
+
                 print('ctg: %s, num bus: %u, num gen: %u, delta: %f' % (self.ctg_label, self.num_bus, self.num_gen, self.delta))
-                
+
         end_time = time.time()
         print("sol2 read time (pd 4): %f" % (end_time - start_time))
         print("sol2 read time (pd 4, average): %f" % ((end_time - start_time) / num_ctg))
     '''
-            
+
     def read_bus_rows(self, rows):
 
         i = 0
@@ -2865,7 +2869,7 @@ class Solution2:
         print(self.gen_pow_imag)
         print("pow_real_change:")
         print(self.pow_real_change)
-        
+
     def read_next_ctg(self, in_file, num_bus, num_gen):
 
         ctg_block_size = num_bus + num_gen + 10
@@ -2878,19 +2882,20 @@ class Solution2:
         gen_end = gen_start + 2 + num_gen
         delta_start = gen_end
         delta_end = delta_start + 2 + 1
-        
+
         # get lines for each section as a generator
         ctg_lines = islice(in_file, 2 + 1)
         bus_lines = islice(in_file, 2 + num_bus)
         gen_lines = islice(in_file, 2 + num_gen)
         delta_lines = islice(in_file, 2 + 1)
-        
+
         # write lines to a string buffer
         def lines_to_str(lines):
             #out_str = StringIO.StringIO(''.join(lines))
             #out_str = StringIO.StringIO()
             #out_str = StringIO.StringIO('foo')
-            out_str = cStringIO.StringIO()
+            ##out_str = cStringIO.StringIO()
+            out_str = StringIO()
             #out_str = cStringIO.StringIO(''.join(lines))
             out_str.writelines(lines)
             #out_str.write('foo')
@@ -2921,14 +2926,14 @@ class Solution2:
         delta_df = pd.read_csv(
             delta_str, sep=',', header=None, names=['delta'],
             dtype={'delta':np.float_}, nrows=1, engine='c', skiprows=2, skipinitialspace=True, float_precision=pandas_float_precision)
-                
+
         self.bus_df = bus_df
         self.gen_df = gen_df
         self.ctg_label = ctg_df.label.values[0]
         self.num_bus = bus_df.shape[0]
         self.num_gen = gen_df.shape[0]
         self.delta = delta_df.delta.values[0]
-                
+
         #print('ctg: %s, num bus: %u, num gen: %u, delta: %f' % (self.ctg_label, self.num_bus, self.num_gen, self.delta))
 
     def read_from_lines(self, lines):
@@ -3005,12 +3010,13 @@ def trans_old(raw_name, rop_name, con_name, inl_nsame,filename):
         p.con.read_from_phase_0(con_name)
         p.con.write(filename+".con")
         p.inl.write(filename+".inl",p.raw,p.rop)
-    
-def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name, detail_name):
+
+def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name,
+        summary_name=None, detail_name=None):
 
     # start timer
     start_time_all = time.time()
-    
+
     # read the data files
     start_time = time.time()
     p = data.Data()
@@ -3020,7 +3026,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     p.inl.read(inl_name)
     time_elapsed = time.time() - start_time
     print("read data time: %u" % time_elapsed)
-    
+
     # show data stats
     print("buses: %u" % len(p.raw.buses))
     print("loads: %u" % len(p.raw.loads))
@@ -3035,12 +3041,12 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     print("active power dispatch records: %u" % len(p.rop.active_power_dispatch_records))
     print("piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions))
     print('contingencies: %u' % len(p.con.contingencies))
-    
+
     # set up evaluation
     e = Evaluation()
     e.set_data(p)
     e.set_params()
-    
+
     # base case solution evaluation
     start_time = time.time()
     s1 = Solution1()
@@ -3101,15 +3107,15 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
         print("num ctg reported unique (sol2 file): %u" % num_ctgs_reported_unique)
     time_elapsed = time.time() - start_time
     print("eval ctg time: %u" % time_elapsed)
-    
+
     time_elapsed = time.time() - start_time_all
     print("eval total time: %u" % time_elapsed)
-    
+
     print("obj: %f" % e.obj)
     print("cost: %f" % e.cost)
     print("penalty: %f" % (e.obj - e.cost))
     print("max_obj_viol: %f" % e.max_obj_viol)
     print("max_nonobj_viol: %f" % e.max_nonobj_viol)
     print("infeas: %u" % e.infeas)
-    
+
     return (e.obj, e.cost, e.obj - e.cost, e.max_obj_viol, e.max_nonobj_viol, e.infeas)
