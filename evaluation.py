@@ -23,8 +23,13 @@ from scipy import sparse as sp
 #from io import open
 #import StringIO
 #import cStringIO
-from io import StringIO
-from io import BytesIO
+try:
+    # Python 2
+    from cStringIO import StringIO
+except ImportError:
+    # Python 3
+    from io import StringIO
+
 from operator import itemgetter
 
 """
