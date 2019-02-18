@@ -52,6 +52,8 @@ def pad_row(row, new_row_len):
                     print('extra field, row:')
                     print(row)
                     raise Exception('extra field not allowed')
+        else:
+            row = remove_end_of_line_comment_from_row(row, '/')
     except Exception as e:
         traceback.print_exc()
         raise e
