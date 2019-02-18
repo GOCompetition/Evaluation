@@ -21,8 +21,12 @@ import pandas as pd
 import traceback
 from scipy import sparse as sp
 #from io import open
-import StringIO
-import cStringIO
+#import StringIO
+#import cStringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 from operator import itemgetter
 
 """
@@ -648,7 +652,7 @@ class Evaluation:
         #    if self.gen_i[i] == 630653:
         #        gi = self.gen_i[i]
         #        gid = self.gen_id[i]
-        #        print gi, gid, self.gen_map[(gi, gid)]        
+        #        print([gi, gid, self.gen_map[(gi, gid)]])
 
         self.gen_area = [self.bus_area[r] for r in self.gen_bus]
         self.area_gens = [set() for a in range(self.num_area)]
@@ -834,11 +838,11 @@ class Evaluation:
                         print('num pairs: %s' % r_npairs)
                         print('pairs:')
                         print([(t.points[i].x, t.points[i].y) for i in range(r_npairs)])
-                        #print self.gen_num_pl[gen]
+                        #print(self.gen_num_pl[gen])
                         print('x points:')
                         print(self.gen_pl_x[gen])
                         print('y points:')
-                        print self.gen_pl_y[gen]
+                        print(self.gen_pl_y[gen])
                         print('i: %s' % i)
                         print('slopes:')
                         print(d1)
@@ -864,8 +868,8 @@ class Evaluation:
         ctg_branch_keys_out = {
             r.label:set([(e.i, e.j, e.ckt) for e in r.branch_out_events])
             for r in ctgs}
-        ctg_line_keys_out = {k:(v & line_keys) for k,v in ctg_branch_keys_out.iteritems()}
-        ctg_xfmr_keys_out = {k:(v & xfmr_keys) for k,v in ctg_branch_keys_out.iteritems()}
+        ctg_line_keys_out = {k:(v & line_keys) for k,v in ctg_branch_keys_out.items()}
+        ctg_xfmr_keys_out = {k:(v & xfmr_keys) for k,v in ctg_branch_keys_out.items()}
         ctg_areas_affected = {
             k.label:(
                 set([self.bus_area[self.bus_map[r[0]]] for r in ctg_gen_keys_out[k.label]]) |
@@ -922,7 +926,7 @@ class Evaluation:
         start_time = time.time()
         sol_bus_i = solution1.bus_df.i.values
         sol_gen_i = solution1.gen_df.i.values
-        #print solution1.gen_df.id
+        #print(solution1.gen_df.id)
         #sol_gen_id = solution1.gen_df.id.values
         sol_gen_id = map(clean_string, list(solution1.gen_df.id.values))
 
@@ -939,7 +943,7 @@ class Evaluation:
         #sol_gen_map = {(sol_gen_i[i], sol_gen_id[i]):i for i in range(self.num_gen)}
         sol_gen_key = zip(sol_gen_i, sol_gen_id)
         sol_gen_map = dict(zip(sol_gen_key, list(range(self.num_gen))))
-        #print sol_gen_i, sol_gen_id, sol_gen_key, sol_gen_map, self.gen_key, 
+        #print([sol_gen_i, sol_gen_id, sol_gen_key, sol_gen_map, self.gen_key])
         # up through here is fast enough ~ 0.001 s
         
         # which is faster?
@@ -952,9 +956,9 @@ class Evaluation:
         #print(str(*b))
         #perm = list(itemgetter(*b)(a))
         #vector = np.array([11,12,13])
-        #print vector[perm]
-        #print perm
-        #print vector.flat[1,2,0]???
+        #print(vector[perm])
+        #print(perm)
+        #print(vector.flat[1,2,0])
 
         # up through here takes 0.015 s
         #gen_permutation = [sol_gen_map[(self.gen_i[r], self.gen_id[r])] for r in range(self.num_gen)]
@@ -1271,7 +1275,7 @@ class Evaluation:
             num_pl = self.gen_num_pl[k]
             pl_x = self.gen_pl_x[k]
             pl_y = self.gen_pl_y[k]
-            #print num_pl, pl_x, pl_y
+            #print([num_pl, pl_x, pl_y])
             if self.gen_status[k] == 0.0:
                 continue
             #if self.gen_pow_real[k] < pl_x[0]: # do not check these
@@ -1293,7 +1297,7 @@ class Evaluation:
                     done = True
                     break
             if not done:
-                #print self.gen_i[k], self.gen_id[k], self.gen_num_pl[k], self.gen_pl_x[k], self.gen_pl_y[k], self.gen_pow_real[k]
+                #print([self.gen_i[k], self.gen_id[k], self.gen_num_pl[k], self.gen_pl_x[k], self.gen_pl_y[k], self.gen_pow_real[k]])
                 assert (self.gen_pow_real[k] > pl_x[num_pl - 1]) # need to extend last secant to right
                 i = num_pl - 2 # num_pl >= 2 (need at least 2 points for a secant)
                 y_value = pl_y[i]
@@ -2322,7 +2326,7 @@ class Solution1:
         '''
         self.bus_i = bus_array.i.values.tolist() # should this be a list?
         self.num_bus = len(self.bus_i)
-        #print self.num_bus, self.bus_i[self.num_bus - 1]
+        #print([self.num_bus, self.bus_i[self.num_bus - 1]])
         self.bus_map = {self.bus_i[i]:i for i in range(self.num_bus)}
         self.bus_volt_mag = bus_array.vm.values
         self.bus_volt_ang = bus_array.va.values
@@ -2331,7 +2335,7 @@ class Solution1:
         self.gen_id = gen_array.id.values.tolist() # should this be a list?
         self.num_gen = len(self.gen_i)
         self.gen_map = {(self.gen_i[i], self.gen_id[i]):i for i in range(self.num_gen)}
-        #print self.gen_id[0:10]
+        #print(self.gen_id[0:10])
         self.gen_pow_real = gen_array.pg.values
         self.gen_pow_imag = gen_array.qg.values
         '''
@@ -2361,18 +2365,18 @@ class Solution1:
         start_time = time.time()
         with open(file_name, 'r') as in_file:
             discard = list(islice(in_file, 2))
-            print discard
+            print(discard)
             lines = list(islice(in_file, num_bus))
             #bus_array = np.loadtxt(lines[4:6], dtype=[('i', '<i4'), ('vm', '<f8'), ('va', '<f8'), ('b', '<f8')], delimiter=',') # comments, unpack
             bus_array = np.loadtxt(lines, dtype=[('i', '<i4'), ('vm', '<f8'), ('va', '<f8'), ('b', '<f8')], delimiter=',')
             #bus_array = np.loadtxt(lines, dtype=[('i', np.int_), ('vm', np.float_), ('va', np.float_), ('b', np.float_)], delimiter=',', unpack=True)
-            print bus_array.shape, bus_array[0:2]
+            print([bus_array.shape, bus_array[0:2]])
             discard = list(islice(in_file, 2))
-            print discard
+            print(discard)
             lines = list(islice(in_file, num_gen))
-            print lines[0], lines[1], len(lines), lines[len(lines) - 1]
+            print([lines[0], lines[1], len(lines), lines[len(lines) - 1]])
             #lines = in_file.readlines()
-            #print bus_array
+            #print(bus_array)
         end_time = time.time()
         print("sol1 read time (np): %f" % (end_time - start_time))
     '''
@@ -2395,7 +2399,7 @@ class Solution1:
         bus_vm = bus_array.vm.values
         bus_va = bus_array.va.values
         bus_b = bus_array.b.values
-        print bus_i.shape, bus_vm.shape, bus_va.shape, bus_b.shape
+        print([bus_i.shape, bus_vm.shape, bus_va.shape, bus_b.shape])
         gen_array = pd.read_csv(
             file_name,
             sep=',',
@@ -2410,7 +2414,7 @@ class Solution1:
         gen_id = gen_array.id.values
         gen_pg = gen_array.pg.values
         gen_qg = gen_array.qg.values
-        print gen_i.shape, gen_id.shape, gen_pg.shape, gen_qg.shape
+        print([gen_i.shape, gen_id.shape, gen_pg.shape, gen_qg.shape])
         end_time = time.time()
         print("sol1 read time (pd): %f" % (end_time - start_time))
     '''
@@ -2480,9 +2484,9 @@ class Solution1:
                 engine='c',
                 skiprows=ctg_delta_start_row[k],
                 float_precision=pandas_float_precision)
-            #print ctg_array.label.values.shape
-            print ctg_array.label.values[0]
-            #print bus_array.i.values.shape
+            #print(ctg_array.label.values.shape)
+            print(ctg_array.label.values[0])
+            #print(bus_array.i.values.shape)
         end_time_1 = time.time()
         print("sol2 average variable read time (pd 1): %f" % ((end_time_1 - start_time_1) / num_ctg))
 
@@ -2502,7 +2506,7 @@ class Solution1:
             float_precision=pandas_float_precision)
         self.bus_i = bus_array.i.values.tolist() # should this be a list?
         self.num_bus = len(self.bus_i)
-        #print self.num_bus, self.bus_i[self.num_bus - 1]
+        #print([self.num_bus, self.bus_i[self.num_bus - 1]])
         self.bus_map = {self.bus_i[i]:i for i in range(self.num_bus)}
         self.bus_volt_mag = bus_array.vm.values
         self.bus_volt_ang = bus_array.va.values
@@ -2521,7 +2525,7 @@ class Solution1:
         self.gen_id = gen_array.id.values.tolist() # should this be a list?
         self.num_gen = len(self.gen_i)
         self.gen_map = {(self.gen_i[i], self.gen_id[i]):i for i in range(self.num_gen)}
-        #print self.gen_id[0:10]
+        #print(self.gen_id[0:10])
         self.gen_pow_real = gen_array.pg.values
         self.gen_pow_imag = gen_array.qg.values
         end_time = time.time()
@@ -2611,13 +2615,13 @@ class Solution1:
         start_time_1 = time.time()
         for k in range(num_ctg):
             ctg_array = ctg_reader.get_chunk()
-            #print ctg_array.label.values.shape
-            #print ctg_array.label.values[0]
+            #print(ctg_array.label.values.shape)
+            #print(ctg_array.label.values[0])
             bus_array = bus_reader.get_chunk()
-            #print bus_array.i.values.shape
+            #print(bus_array.i.values.shape)
             gen_array = gen_reader.get_chunk()
             delta_array = delta_reader.get_chunk()
-            print k, time.time() - start_time_1
+            print([k, time.time() - start_time_1])
         end_time_1 = time.time()
         print("sol2 average variable read time (pd 2): %f" % ((end_time_1 - start_time_1) / num_ctg))
 
@@ -2667,8 +2671,8 @@ class Solution1:
                     engine='c',
                     skiprows=2,
                     float_precision=pandas_float_precision)
-                print ctg_array.label.values.shape
-                print ctg_array.label.values[0]
+                print(ctg_array.label.values.shape)
+                print(ctg_array.label.values[0])
                 bus_array = pd.read_csv(
                     in_file,
                     sep=',',
@@ -2680,8 +2684,8 @@ class Solution1:
                     engine='c',
                     skiprows=1,
                     float_precision=pandas_float_precision)
-                print bus_array.i.values.shape
-                print bus_array.i.values[0]
+                print(bus_array.i.values.shape)
+                print(bus_array.i.values[0])
                 gen_array = pd.read_csv(
                     in_file,
                     sep=',',
@@ -2702,7 +2706,7 @@ class Solution1:
                     engine='c',
                     skiprows=2,
                     float_precision=pandas_float_precision)
-                print k, time.time() - start_time_1
+                print([k, time.time() - start_time_1])
             end_time_1 = time.time()
             print("sol2 average variable read time (pd 3): %f" % ((end_time_1 - start_time_1) / num_ctg))
 
@@ -2757,7 +2761,7 @@ class Solution1:
                     #out_str.flush() # do we need this?
                     #out_str.close()
                     #for l in list(lines):
-                        #print l
+                        #print(l)
                         #out_str.write(str(l))
                     #out_str.close()
                     out_str.seek(0) # need this so that read() starts at the beginning of the string
@@ -2772,7 +2776,7 @@ class Solution1:
                 #bus_str = lines_to_str(bus_lines)
 
                 #ctg_str.open()
-                #print ctg_str.read()
+                #print(ctg_str.read())
 
                 # parse file string to pandas df
                 ctg_df = pd.read_csv(
@@ -2890,7 +2894,8 @@ class Solution2:
             #out_str = StringIO.StringIO(''.join(lines))
             #out_str = StringIO.StringIO()
             #out_str = StringIO.StringIO('foo')
-            out_str = cStringIO.StringIO()
+            #out_str = cStringIO.StringIO()
+            out_str = StringIO()
             #out_str = cStringIO.StringIO(''.join(lines))
             out_str.writelines(lines)
             #out_str.write('foo')
@@ -3006,7 +3011,7 @@ def trans_old(raw_name, rop_name, con_name, inl_nsame,filename):
         p.con.write(filename+".con")
         p.inl.write(filename+".inl",p.raw,p.rop)
     
-def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name, detail_name):
+def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name=None, detail_name=None):
 
     # start timer
     start_time_all = time.time()

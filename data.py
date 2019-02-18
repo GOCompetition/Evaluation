@@ -15,7 +15,7 @@ import os
 import sys
 import math
 import traceback
-import StringIO
+from io import StringIO
 
 # init_defaults_in_unused_field = True # do this anyway - it is not too big
 read_unused_fields = True
@@ -789,9 +789,9 @@ class Rop:
                 r2=rows.next()
                 gen_dispatch.read_from_csv_quadraticinfo(r2)
                 indi=indi+1
-                #print gen_dispatch.bus,gen_dispatch.genid, gen_dispatch.constc,gen_dispatch.linearc,gen_dispatch.quadraticc
+                #print([gen_dispatch.bus,gen_dispatch.genid, gen_dispatch.constc,gen_dispatch.linearc,gen_dispatch.quadraticc])
             self.active_power_dispatch_records[gen_dispatch.bus,gen_dispatch.genid] = gen_dispatch
-        #print gen_dispatch.bus,gen_dispatch.genid, gen_dispatch.constc
+        #print([gen_dispatch.bus,gen_dispatch.genid, gen_dispatch.constc])
         #ds=self.active_power_dispatch_records.get((4, '1'))
 
  
@@ -1163,7 +1163,7 @@ class Con:
 
     def is_three_winding(self, row):
 
-        #print row
+        #print(row)
         if len(row) < 9:
             return False
         elif row[8].upper() == 'TO':
@@ -1231,8 +1231,8 @@ class CaseIdentification:
         self.xfrrat = 0
         self.nxfrat = 1
         self.basfrq = 60.0
-        self.record_2 = ''
-        self.record_3 = ''
+        self.record_2 = 'Grid Optimization Competition'
+        self.record_3 = 'RAW file. Other required input data files include ROP, INL, CON'
 
     def read_record_1_from_row(self, row):
 
@@ -1249,8 +1249,8 @@ class CaseIdentification:
     def read_from_rows(self, rows):
 
         self.read_record_1_from_row(rows[0])
-        self.record_2 = '' # not preserving these at this point
-        self.record_3 = '' # do that later
+        #self.record_2 = '' # not preserving these at this point
+        #self.record_3 = '' # do that later
 
 class Bus:
 
