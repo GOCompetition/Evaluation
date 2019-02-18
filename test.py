@@ -16,6 +16,7 @@ import argparse
 #import evaluation3 as evaluation # developing numpy/scipy method
 import evaluation # current code
 import csv
+import os
     
 def run():
 
@@ -31,6 +32,12 @@ def run():
     parser.add_argument('detail', help='detail')
     
     args = parser.parse_args()
+
+    # Check files exist
+    for f in [args.raw, args.rop, args.con, args.inl, args.sol1, args.sol2]:
+        if not os.path.isfile(f):
+            raise Exception("Can't find {}".format(f))
+            #raise FileNotFoundError("Can't find {}".format(f)) # not in Python 2
     
     try:
         (obj, cost, penalty, max_obj_viol, max_nonobj_viol, infeas) = evaluation.run(
