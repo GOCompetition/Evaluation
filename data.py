@@ -15,7 +15,11 @@ import os
 import sys
 import math
 import traceback
-from io import StringIO
+#from io import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 # init_defaults_in_unused_field = True # do this anyway - it is not too big
 read_unused_fields = True
@@ -136,7 +140,8 @@ class Raw:
         
     def construct_case_identification_section(self):
 
-        out_str = StringIO.StringIO()
+        #out_str = StringIO.StringIO()
+        out_str = StringIO()
         #writer = csv.writer(out_str, quotechar="'", quoting=csv.QUOTE_NONNUMERIC)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
@@ -144,8 +149,12 @@ class Raw:
                 [self.case_identification.ic, self.case_identification.sbase,
                  self.case_identification.rev, self.case_identification.xfrrat,
                  self.case_identification.nxfrat, self.case_identification.basfrq],
-                ["'%s'" % self.case_identification.record_2],
-                ["'%s'" % self.case_identification.record_3]]
+                ["%s" % self.case_identification.record_2], # no quotes here - typical RAW file
+                ["%s" % self.case_identification.record_3]] # no quotes here - typical RAW file
+                #["'%s'" % self.case_identification.record_2],
+                #["'%s'" % self.case_identification.record_3]]
+                #["''"],
+                #["''"]]
         elif write_defaults_in_unused_fields:
             rows = [
                 [0, self.case_identification.sbase, 33, 0, 1, 60.0],
@@ -163,7 +172,7 @@ class Raw:
         # note use quote_none and quote the strings manually
         # values of None then are written as empty fields, which is what we want
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
@@ -179,12 +188,13 @@ class Raw:
                 for r in self.buses.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end bus section']])
+        writer.writerows([['0 / END OF BUS DATA BEGIN LOAD DATA']]) # no comma allowed without escape character
+        #out_str.write('0 / END OF BUS DATA, BEGIN LOAD DATA\n')
         return out_str.getvalue()
 
     def construct_load_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str,  quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
@@ -200,12 +210,12 @@ class Raw:
                 for r in self.loads.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end load section']])
+        writer.writerows([['0 / END OF LOAD DATA BEGIN FIXED SHUNT DATA']])
         return out_str.getvalue()
 
     def construct_fixed_shunt_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
@@ -221,12 +231,12 @@ class Raw:
                 for r in self.fixed_shunts.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end fixed shunt section']])
+        writer.writerows([['0 / END OF FIXED SHUNT DATA BEGIN GENERATOR DATA']])
         return out_str.getvalue()
 
     def construct_generator_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
@@ -251,12 +261,12 @@ class Raw:
                 for r in self.generators.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end generator section']])
+        writer.writerows([['0 / END OF GENERATOR DATA BEGIN BRANCH DATA']])
         return out_str.getvalue()
 
     def construct_nontransformer_branch_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
@@ -278,12 +288,12 @@ class Raw:
                 for r in self.nontransformer_branches.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end non-transformer branch section']])
+        writer.writerows([['0 / END OF BRANCH DATA BEGIN TRANSFORMER DATA']])
         return out_str.getvalue()
 
     def construct_transformer_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
@@ -326,12 +336,12 @@ class Raw:
                         [r.windv2, None]]]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end transformer section']])
+        writer.writerows([['0 / END OF TRANSFORMER DATA BEGIN AREA DATA']])
         return out_str.getvalue()
 
     def construct_area_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
@@ -347,75 +357,75 @@ class Raw:
                 for r in self.areas.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end area section']])
+        writer.writerows([['0 / END OF AREA DATA BEGIN TWO-TERMINAL DC DATA']])
         return out_str.getvalue()
 
     def construct_two_terminal_dc_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end two terminal dc section']])
+        writer.writerows([['0 / END OF TWO-TERMINAL DC DATA BEGIN VSC DC LINE DATA']])
         return out_str.getvalue()
 
     def construct_vsc_dc_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end vsc dc section']])
+        writer.writerows([['0 / END OF VSC DC LINE DATA BEGIN IMPEDANCE CORRECTION DATA']])
         return out_str.getvalue()
 
     def construct_transformer_impedance_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end transformer impedance section']])
+        writer.writerows([['0 / END OF IMPEDANCE CORRECTION DATA BEGIN MULTI-TERMINAL DC DATA']])
         return out_str.getvalue()
 
     def construct_multi_terminal_dc_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end multi terminal dc section']])
+        writer.writerows([['0 / END OF MULTI-TERMINAL DC DATA BEGIN MULTI-SECTION LINE DATA']])
         return out_str.getvalue()
 
     def construct_multi_section_line_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end multi section line section']])
+        writer.writerows([['0 / END OF MULTI-SECTION LINE DATA BEGIN ZONE DATA']])
         return out_str.getvalue()
 
     def construct_zone_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end zone section']])
+        writer.writerows([['0 / END OF ZONE DATA BEGIN INTER-AREA TRANSFER DATA']])
         return out_str.getvalue()
 
     def construct_interarea_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end interarea section']])
+        writer.writerows([['0 / END OF INTER-AREA TRANSFER DATA BEGIN OWNER DATA']])
         return out_str.getvalue()
 
     def construct_owner_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end owner section']])
+        writer.writerows([['0 / END OF OWNER DATA BEGIN FACTS DEVICE DATA']])
         return out_str.getvalue()
 
     def construct_facts_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end facts section']])
+        writer.writerows([['0 / END OF FACTS DEVICE DATA BEGIN SWITCHED SHUNT DATA']])
         return out_str.getvalue()
 
     def construct_switched_shunt_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
@@ -437,26 +447,26 @@ class Raw:
                 for r in self.switched_shunts.values()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end switched shunt section']])
+        writer.writerows([['0 / END OF SWITCHED SHUNT DATA BEGIN GNE DATA']])
         return out_str.getvalue()
 
     def construct_gne_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end gne section']])
+        writer.writerows([['0 / END OF GNE DATA BEGIN INDUCTION MACHINE DATA']])
         return out_str.getvalue()
 
     def construct_induction_section(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
-        writer.writerows([['0 / end induction section']])
+        writer.writerows([['0 / END OF INDUCTION MACHINE DATA']])
         return out_str.getvalue()
 
     def construct_q_record(self):
 
-        out_str = StringIO.StringIO()
+        out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         rows = [['Q']]
         writer.writerows(rows)
@@ -744,7 +754,6 @@ class Rop:
 
     def __init__(self):
 
-        #self.generator_dispatch_records = GeneratorDispatchRecord() # needs to be a dictionary
         self.generator_dispatch_records = {}
         self.active_power_dispatch_records = {}
         self.piecewise_linear_cost_functions = {}
@@ -762,8 +771,6 @@ class Rop:
                 self.active_power_dispatch_records.get((r.i,r.id)).points.append(r.pb+i*(r.pt-r.pb)/(self.active_power_dispatch_records.get((r.i,r.id)).npairs-1))
                 self.active_power_dispatch_records.get((r.i,r.id)).points.append(self.active_power_dispatch_records.get((r.i,r.id)).constc+self.active_power_dispatch_records.get((r.i,r.id)).linearc*(r.pb+i*(r.pt-r.pb)/(self.active_power_dispatch_records.get((r.i,r.id)).npairs-1))+self.active_power_dispatch_records.get((r.i,r.id)).quadraticc*pow(r.pb+i*(r.pt-r.pb)/(self.active_power_dispatch_records.get((r.i,r.id)).npairs-1),2))
             
-        
-
     def read_from_phase_0(self, file_name):
         
         '''takes the generator.csv file as input'''
@@ -794,58 +801,209 @@ class Rop:
         #print([gen_dispatch.bus,gen_dispatch.genid, gen_dispatch.constc])
         #ds=self.active_power_dispatch_records.get((4, '1'))
 
- 
-        
-    def write(self, file_name,rawdata):
-        '''writes the ROP data to an ROP-formatted file'''
-        file = open(file_name,"w") 
-        file.write(" 0 / ROP file\n") 
-        file.write(" 0 / End of Bus Voltage Constraint data, begin Adjustable Bus Shunt data\n") 
-        file.write(" 0 / End of Adjustable Bus Shunt data, begin Bus Load data\n")
-        file.write(" 0 / End of Bus Load data, begin Adjustable Bus Load Tables\n")
-        file.write(" 0 / End of Adjustable Bus Load Tables, begin Generator Dispatch data\n")
-        index=1
-        for r in rawdata.generators.values():
-            row=str(r.i)+", "+str(r.id)+", "+"1.000000"+", "+str(index)+"\n"
-            #ds=self.active_power_dispatch_records.get((r.i,r.id))
-            file.write(row)
-            index=index+1
-        
-        file.write(" 0 / End of Generator Dispatch data, begin Active Power Dispatch Tables\n")
-        index=1
-        for r in rawdata.generators.values():
-            row=str(index)+", "+str(r.pt)+", "+str(r.pb)+", "+"1.000000"+", "+"2"+", "+str(r.stat)+", "+str(index)+"\n"
-            #ds=self.active_power_dispatch_records.get((r.i,r.id))
-            file.write(row)
-            index=index+1
-        
-        file.write(" 0 / End of Active Power Dispatch Tables, begin Generation Reserve data\n")
-        file.write(" 0 / End of Generation Reserve data, begin Generation Reactive Capability data\n")
-        file.write(" 0 / End of Generation Reactive Capability data, begin Adjustable Branch Reactance data\n")
-        file.write(" 0 / End of Adjustable Branch Reactance data, begin Piece - wise Linear Cost Tables\n")
-        index=1
-        for r in rawdata.generators.values():
-            row=str(index)+", "+"LINEAR "+str(index)+", "+str(self.active_power_dispatch_records.get((r.i,r.id)).npairs)+"\n"
-            #ds=self.active_power_dispatch_records.get((r.i,r.id))
-            file.write(row)
-            for r2 in range(self.active_power_dispatch_records.get((r.i,r.id)).npairs):
-                row=str(self.active_power_dispatch_records.get((r.i,r.id)).points[r2*2])+", "
-                row=row+str(self.active_power_dispatch_records.get((r.i,r.id)).points[r2*2+1])+"\n"
-                file.write(row)
-            index=index+1
-        file.write(" 0 / End of Piece-wise Linear Cost Tables, begin Piece-wise Quadratic Cost Tables\n")
-        
-        file.write(" 0 / End of Piece-wise Quadratic Cost Tables, begin Polynomial Cost Tables\n")
-        
-        file.write(" 0 / End of Polynomial Cost Tables, begin Period Reserve data\n")
-        file.write(" 0 / End of Period Reserve data, begin Branch Flow Constraint data\n")
-        file.write(" 0 / End of Branch Flow Constraint data, begin Interface Flow data\n")
-        file.write(" 0 / End of Interface Flow data, begin Linear Constraint Equation Dependency data\n")
-        file.write(" 0 / End of Linear Constraint Equation Dependency data, begin 2-terminal dc Line Constraint data\n")
-        file.write(" 0 / End of 2-terminal dc Line Constraint data")
-        file.close() 
+    def construct_data_modification_section(self):
 
-        
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF MODIFICATION CODE BEGIN BUS VOLTAGE CONSTRAINT DATA']])
+        return out_str.getvalue()
+
+    def construct_bus_voltage_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF BUS VOLTAGE CONSTRAINT DATA BEGIN ADJUSTABLE BUS SHUNT DATA']])
+        return out_str.getvalue()
+
+    def construct_adjustable_bus_shunt_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF ADJUSTABLE BUS SHUNT DATA BEGIN BUS LOAD DATA']])
+        return out_str.getvalue()
+
+    def construct_bus_load_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF BUS LOAD DATA BEGIN ADJUSTABLE BUS LOAD TABLES']])
+        return out_str.getvalue()
+
+    def construct_adjustable_bus_load_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF ADJUSTABLE BUS LOAD TABLES BEGIN GENERATOR DISPATCH DATA']])
+        return out_str.getvalue()
+
+    def construct_generator_dispatch_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        if write_values_in_unused_fields:
+            rows = [
+                [r.bus, "'%s'" % r.genid, r.disp, r.dsptbl]
+                for r in self.generator_dispatch_records.values()]
+        elif write_defaults_in_unused_fields:
+            rows = [
+                [r.bus, "'%s'" % r.genid, 1.0, r.dsptbl]
+                for r in self.generator_dispatch_records.values()]
+        else:
+            rows = [
+                [r.bus, "'%s'" % r.genid, None, r.dsptbl]
+                for r in self.generator_dispatch_records.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF GENERATOR DISPATCH DATA BEGIN ACTIVE POWER DISPATCH TABLES']])
+        return out_str.getvalue()
+
+    def construct_active_power_dispatch_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        if write_values_in_unused_fields:
+            rows = [
+                [r.tbl, r.pmax, r.pmin, r.fuelcost, r.ctyp, r.status, r.ctbl]
+                for r in self.active_power_dispatch_records.values()]
+        elif write_defaults_in_unused_fields:
+            rows = [
+                [r.tbl, 9999.0, -9999.0, 1.0, 1, 1, r.ctbl]
+                for r in self.active_power_dispatch_records.values()]
+        else:
+            rows = [
+                [r.tbl, None, None, None, None, None, r.ctbl]
+                for r in self.active_power_dispatch_records.values()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF ACTIVE POWER DISPATCH TABLES BEGIN GENERATION RESERVE DATA']])
+        return out_str.getvalue()
+
+    def construct_generator_reserve_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF GENERATION RESERVE DATA BEGIN GENERATION REACTIVE CAPABILITY DATA']])
+        return out_str.getvalue()
+
+    def construct_reactive_capability_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF GENERATION REACTIVE CAPABILITY DATA BEGIN ADJUSTABLE BRANCH REACTANCE DATA']])
+        return out_str.getvalue()
+
+    def construct_branch_reactance_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF ADJUSTABLE BRANCH REACTANCE DATA BEGIN PIECE-WISE LINEAR COST TABLES']])
+        return out_str.getvalue()
+
+    def construct_piecewise_linear_cost_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        if write_values_in_unused_fields:
+            rows = [
+                row
+                for r in self.piecewise_linear_cost_functions.values()
+                for row in (
+                        [[r.ltbl, "'%s'" % r.label, r.npairs]] +
+                        [[p.x, p.y] for p in r.points])]
+        elif write_defaults_in_unused_fields:
+            rows = [
+                row
+                for r in self.piecewise_linear_cost_functions.values()
+                for row in (
+                        [[r.ltbl, "''", r.npairs]] +
+                        [[p.x, p.y] for p in r.points])]
+        else:
+            rows = [
+                row
+                for r in self.piecewise_linear_cost_functions.values()
+                for row in (
+                        [[r.ltbl, None, r.npairs]] +
+                        [[p.x, p.y] for p in r.points])]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF PIECE-WISE LINEAR COST TABLES BEGIN PIECEWISE QUADRATIC COST TABLES']])
+        return out_str.getvalue()
+
+    def construct_piecewise_quadratic_cost_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF PIECE-WISE QUADRATIC COST TABLES BEGIN POLYNOMIAL AND EXPONENTIAL COST TABLES']])
+        return out_str.getvalue()
+
+    def construct_polynomial_exponential_cost_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF POLYNOMIAL COST TABLES BEGIN PERIOD RESERVE DATA']])
+        return out_str.getvalue()
+
+    def construct_period_reserve_constraint_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF PERIOD RESERVE DATA BEGIN BRANCH FLOW CONSTRAINT DATA']])
+        return out_str.getvalue()
+
+    def construct_branch_flow_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF BRANCH FLOW CONSTRAINT DATA BEGIN INTERFACE FLOW DATA']])
+        return out_str.getvalue()
+
+    def construct_interface_flow_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF INTERFACE FLOW DATA BEGIN LINEAR CONSTRAINT EQUATION DEPENDENCY DATA']])
+        return out_str.getvalue()
+
+    def construct_linear_constraint_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF LINEAR CONSTRAINT EQUATION DEPENDENCY DATA']])
+        return out_str.getvalue()
+        #0 / End of Linear Constraint Equation Dependency data, begin 2-terminal dc Line Constraint data
+        #0 / End of 2-terminal dc Line Constraint data
+
+    def construct_q_record(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['Q']])
+        return out_str.getvalue()
+
+    def write(self, file_name):
+        '''write an ROP file'''
+
+        with open(file_name, 'w') as out_file:
+
+            out_file.write(self.construct_data_modification_section())
+            out_file.write(self.construct_bus_voltage_section())
+            out_file.write(self.construct_adjustable_bus_shunt_section())
+            out_file.write(self.construct_bus_load_section())
+            out_file.write(self.construct_adjustable_bus_load_section())
+            out_file.write(self.construct_generator_dispatch_section())
+            out_file.write(self.construct_active_power_dispatch_section())
+            out_file.write(self.construct_generator_reserve_section())
+            out_file.write(self.construct_reactive_capability_section())
+            out_file.write(self.construct_branch_reactance_section())
+            out_file.write(self.construct_piecewise_linear_cost_section())
+            out_file.write(self.construct_piecewise_quadratic_cost_section())
+            out_file.write(self.construct_polynomial_exponential_cost_section())
+            out_file.write(self.construct_period_reserve_constraint_section())
+            out_file.write(self.construct_branch_flow_section())
+            out_file.write(self.construct_interface_flow_section())
+            out_file.write(self.construct_linear_constraint_section())
+            #out_file.write(self.construct_q_record()) # no q record in ROP file
+
     def read(self, file_name):
 
         with open(file_name, 'r') as in_file:
@@ -967,7 +1125,6 @@ class Rop:
                 return
             if self.row_is_section_end(row):
                 break
-            #piecewise_linear_cost_function = PiecewiseLinearCostFunction(ActivePowerDispatchRecord)
             piecewise_linear_cost_function = PiecewiseLinearCostFunction()
             num_rows = piecewise_linear_cost_function.get_num_rows_from_row(row)
             rows_temp = rows[
@@ -989,20 +1146,32 @@ class Inl:
     def read_from_phase_0(self, file_name):
         '''takes the generator.csv file as input'''
 
-    # TODO
-    def write(self, file_name,rawdata,rop):
-        '''writes the INL data to an INL-formatted file'''
+    def write(self, file_name):
+        '''write an INL file'''
 
-        file = open(file_name,"w") 
-        index=1
-        for r in rawdata.generators.values():
-            #the default value of machine inertia is 4.0
-            row=str(r.i)+", "+str(r.id)+", "+"4.0"+", "+str(r.pt)+", "+str(r.pb)+", "+str(rop.active_power_dispatch_records.get((r.i,r.id)).powerfactor) +", "+ "0.0"+ "\n"
-            #ds=self.active_power_dispatch_records.get((r.i,r.id))
-            file.write(row)
-            index=index+1
-        file.write("0 \n")
-        file.close() 
+        with open(file_name, 'w') as out_file:
+            out_file.write(self.construct_data_section())
+
+    def construct_data_section(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        if write_values_in_unused_fields:
+            rows = [
+                [r.i, r.id, r.h, r.pmax, r.pmin, r.r, r.d]
+                for r in self.generator_inl_records.values()]
+        elif write_defaults_in_unused_fields:
+            rows = [
+                [r.i, r.id, 4.0, 0.0, 0.0, r.r, 0.0]
+                for r in self.generator_inl_records.values()]
+        else:
+            rows = [
+                [r.i, r.id, "", "", "", r.r, ""]
+                for r in self.generator_inl_records()]
+        writer.writerows(rows)
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        writer.writerows([['0 / END OF DATA']])
+        return out_str.getvalue()
 
     def read(self, file_name):
 
@@ -1231,8 +1400,8 @@ class CaseIdentification:
         self.xfrrat = 0
         self.nxfrat = 1
         self.basfrq = 60.0
-        self.record_2 = 'Grid Optimization Competition'
-        self.record_3 = 'RAW file. Other required input data files include ROP, INL, CON'
+        self.record_2 = 'GRID OPTIMIZATION COMPETITION'
+        self.record_3 = 'INPUT DATA FILES ARE RAW ROP INL CON'
 
     def read_record_1_from_row(self, row):
 
@@ -1817,18 +1986,19 @@ class GeneratorDispatchRecord:
 
     def __init__(self):
 
-        self.bus = None
-        self.genid = None
-        #self.disp = None
-        self.dsptbl = None
+        self.bus = None # no default allowed
+        self.genid = None # no default allowed
+        self.disp = 1.0
+        self.dsptbl = None # no default allowed
 
     def read_from_row(self, row):
 
         row = pad_row(row, 4)
         self.bus = parse_token(row[0], int, default=None)
         self.genid = parse_token(row[1], str, default=None).strip()
-        #self.disp = parse_token(row[2], float, 1.0)
         self.dsptbl = parse_token(row[3], int, default=None)
+        if read_unused_fields:
+            self.disp = parse_token(row[2], float, 1.0)
 
     def read_from_csv(self, row):
         self.bus = parse_token(row[0], int, default=None)
@@ -1838,45 +2008,46 @@ class ActivePowerDispatchRecord:
 
     def __init__(self):
 
-        self.tbl = None
-        #self.pmax = None
-        #self.pmin = None
-        #self.fuelcost = None
-        #self.ctyp = None
-        #self.status = None
-        self.ctbl = None
+        self.tbl = None # no default allowed
+        self.pmax = 9999.0
+        self.pmin = -9999.0
+        self.fuelcost = 1.0
+        self.ctyp = 1
+        self.status = 1
+        self.ctbl = None # no default allowed
 
     def read_from_row(self, row):
 
         row = pad_row(row, 7)
         self.tbl = parse_token(row[0], int, default=None)
-        #self.pmax = parse_token(row[1], float, 9999.0)
-        #self.pmin = parse_token(row[2], float, -9999.0)
-        #self.fuelcost = parse_token(row[3], float, 1.0)
-        #self.ctyp = parse_token(row[4], int, 1)
-        #self.status = parse_token(row[5], int, 1)
         self.ctbl = parse_token(row[6], int, default=None)
+        if read_unused_fields:
+            self.pmax = parse_token(row[1], float, 9999.0)
+            self.pmin = parse_token(row[2], float, -9999.0)
+            self.fuelcost = parse_token(row[3], float, 1.0)
+            self.ctyp = parse_token(row[4], int, 1)
+            self.status = parse_token(row[5], int, 1)
 
 class PiecewiseLinearCostFunction():
 
     def __init__(self):
 
-        self.ltbl = None
-        #self.label = None
-        #self.costzero = None
-        self.npairs = None
-        self.points = []
+        self.ltbl = None # no default value allowed
+        self.label = ''
+        self.npairs = None # no default value allowed
+        self.points = [] # no default value allowed
 
     def read_from_row(self, row):
 
         self.ltbl = parse_token(row[0], int, default=None)
-        #self.label = parse_token(row[1], str, '')
         self.npairs = parse_token(row[2], int, default=None)
         for i in range(self.npairs):
             point = Point()
             point.read_from_row(
                 row[(3 + 2*i):(5 + 2*i)])
             self.points.append(point)
+        if read_unused_fields:
+            self.label = parse_token(row[1], str, '')
 
     def get_num_rows_from_row(self, row):
 
@@ -1915,24 +2086,25 @@ class GeneratorInlRecord:
 
     def __init__(self):
 
-        self.i = None
-        self.id = None
-        #self.h = None
-        #self.pmax = None
-        #self.pmin = None
-        self.r = None
-        #self.d = None
+        self.i = None # no default allowed
+        self.id = None # no default allowed
+        self.h = 4.0
+        self.pmax = 0.0
+        self.pmin = 0.0
+        self.r = 0.05
+        self.d = 0.0
 
     def read_from_row(self, row):
 
         row = pad_row(row, 7)
-        self.i = parse_token(row[0], int, '')
-        self.id = parse_token(row[1], str, '1')
-        #self.h = parse_token(row[2], float, 4.0)
-        #self.pmax = parse_token(row[3], float, 1.0)
-        #self.pmin = parse_token(row[4], float, 0.0)
+        self.i = parse_token(row[0], int, default=None)
+        self.id = parse_token(row[1], str, default=None)
         self.r = parse_token(row[5], float, default=None)
-        #self.d = parse_token(row[6], float, 0.0)
+        if read_unused_fields:
+            self.h = parse_token(row[2], float, 4.0)
+            self.pmax = parse_token(row[3], float, 1.0)
+            self.pmin = parse_token(row[4], float, 0.0)
+            self.d = parse_token(row[6], float, 0.0)
         
 class Contingency:
 

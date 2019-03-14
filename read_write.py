@@ -63,9 +63,9 @@ def main():
 
     start_time = time.time()
     p.raw.write(args.raw_out)
-    #p.rop.write(args.rop_out)
+    p.rop.write(args.rop_out)
     #p.con.write(args.con_out)
-    #p.inl.write(args.inl_out)
+    p.inl.write(args.inl_out)
     time_elapsed = time.time() - start_time
     print("write data time: %f" % time_elapsed)
 
