@@ -1110,7 +1110,7 @@ class Rop:
             out_file.write(self.construct_branch_flow_section())
             out_file.write(self.construct_interface_flow_section())
             out_file.write(self.construct_linear_constraint_section())
-            #out_file.write(self.construct_q_record()) # no q record in ROP file
+            out_file.write(self.construct_q_record()) # no q record in sample ROP file
 
     def read(self, file_name):
 
