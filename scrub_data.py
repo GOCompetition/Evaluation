@@ -58,10 +58,9 @@ def main():
     print("check data time: %f" % time_elapsed)
 
     start_time = time.time()
-    #p.raw.set_operating_point_to_offline_solution()
-    p.raw.switched_shunts_combine_blocks_steps()
+    p.scrub()
     end_time = time.time()
-    print("convert data time: %f" % (end_time - start_time))
+    print("scrub data time: %f" % (end_time - start_time))
 
     start_time = time.time()
     p.write(args.raw_out, args.rop_out, args.inl_out, args.con_out)

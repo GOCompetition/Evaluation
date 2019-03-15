@@ -147,12 +147,12 @@ class Data:
     def scrub(self):
         '''modifies certain data elements to meet Grid Optimization Competition assumptions'''
 
-        pass
+        self.raw.switched_shunts_combine_blocks_steps()
 
     def convert_to_offline(self):
         '''converts the operating point to the offline starting point'''
 
-        pass
+        self.raw.set_operating_point_to_offline_solution()
 
     def check_gen_cost_x_margin(self):
 
