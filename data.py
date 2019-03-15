@@ -136,35 +136,36 @@ class Data:
         self.con.write(con_name)
 
     def check(self):
+        '''Checks Grid Optimization Competition assumptions'''
         
         self.raw.check()
         self.rop.check()
         self.inl.check()
         self.con.check()
-        self.check_gen_cost_x_min_margin()
-        self.check_gen_cost_x_max_margin()
+        self.check_gen_cost_x_margin()
 
-    def check_gen_cost_x_min_margin(self):
+    def scrub(self):
+        '''modifies certain data elements to meet Grid Optimization Competition assumptions'''
 
-        for g in self.raw.get_generators():
-            g_i = g.i
-            g_id = g.id
-            g_pb = g.pb
-            gdr = self.rop.generator_dispatch_records[(g_i, g_id)]
-            apdr = self.rop.active_power_dispatch_records[gdr.dsptbl]
-            plcf = self.rop.piecewise_linear_cost_functions[apdr.ctbl]
-            plcf.check_x_min_margin(g_pb)
+        pass
 
-    def check_gen_cost_x_max_margin(self):
+    def convert_to_offline(self):
+        '''converts the operating point to the offline starting point'''
+
+        pass
+
+    def check_gen_cost_x_margin(self):
 
         for g in self.raw.get_generators():
             g_i = g.i
             g_id = g.id
             g_pt = g.pt
+            g_pb = g.pb
             gdr = self.rop.generator_dispatch_records[(g_i, g_id)]
             apdr = self.rop.active_power_dispatch_records[gdr.dsptbl]
             plcf = self.rop.piecewise_linear_cost_functions[apdr.ctbl]
             plcf.check_x_max_margin(g_pt)
+            plcf.check_x_min_margin(g_pb)
 
 class Raw:
     '''In physical units, i.e. data convention, i.e. input and output data files'''
@@ -183,7 +184,59 @@ class Raw:
 
     def check(self):
 
-        pass
+        self.check_case_identification()
+        self.check_buses()
+        self.check_loads()
+        self.check_fixed_shunts()
+        self.check_generators()
+        self.check_nontransformer_branches()
+        self.check_transformers()
+        self.check_areas()
+        self.check_switched_shunts()
+
+    def check_case_identification(self):
+        
+        self.case_identification.check()
+
+    def check_buses(self):
+
+        for r in self.get_buses():
+            r.check()
+
+    def check_loads(self):
+
+        for r in self.get_loads():
+            r.check()
+
+    def check_fixed_shunts(self):
+
+        for r in self.get_fixed_shunts():
+            r.check()
+
+    def check_generators(self):
+
+        for r in self.get_generators():
+            r.check()
+
+    def check_nontransformer_branches(self):
+
+        for r in self.get_nontransformer_branches():
+            r.check()
+
+    def check_transformers(self):
+
+        for r in self.get_transformers():
+            r.check()
+
+    def check_areas(self):
+
+        for r in self.get_areas():
+            r.check()
+
+    def check_switched_shunts(self):
+
+        for r in self.get_switched_shunts():
+            r.check()
 
     def set_areas_from_buses(self):
         
@@ -849,10 +902,24 @@ class Rop:
         
     def check(self):
 
+        self.check_generator_dispatch_records()
+        self.check_active_power_dispatch_records()
+        self.check_piecewise_linear_cost_functions()
+
+    def check_generator_dispatch_records(self):
+
+        for r in self.get_generator_dispatch_records():
+            r.check()
+
+    def check_active_power_dispatch_records(self):
+        
+        for r in self.get_active_power_dispatch_records():
+            r.check()
+
+    def check_piecewise_linear_cost_functions(self):
+        
         for r in self.get_piecewise_linear_cost_functions():
-            r.check_at_least_two_points()
-            r.check_dx_margin()
-            r.check_ddydx_margin()
+            r.check()
 
     def trancostfuncfrom_phase_0(self,rawdata):
         ds=self.active_power_dispatch_records.get((4, '1'))
@@ -1252,7 +1319,8 @@ class Inl:
 
     def check(self):
 
-        pass
+        for r in self.get_generator_inl_records():
+            r.check()
 
     # TODO
     def read_from_phase_0(self, file_name):
@@ -1345,7 +1413,8 @@ class Con:
 
     def check(self):
 
-        pass
+        for r in self.get_contingencies():
+            r.check()
 
     def read_from_phase_0(self, file_name):
         '''takes the contingency.csv file as input'''
@@ -1538,6 +1607,21 @@ class CaseIdentification:
         self.record_2 = 'GRID OPTIMIZATION COMPETITION'
         self.record_3 = 'INPUT DATA FILES ARE RAW ROP INL CON'
 
+    def check(self):
+
+        self.check_sbase_positive()
+
+    def check_sbase_positive(self):
+
+        if not (self.sbase > 0.0):
+            alert(
+                {'data_type':
+                 'CaseIdentification',
+                 'error_message':
+                 'fails sbase positivitiy. please ensure that sbase > 0.0',
+                 'diagnostics':
+                 {'sbase': self.sbase}})
+
     def read_record_1_from_row(self, row):
 
         row = pad_row(row, 6)
@@ -1573,6 +1657,139 @@ class Bus:
         self.nvlo = 0.9
         self.evhi = 1.1
         self.evlo = 0.9
+
+    def check(self):
+
+        self.check_i_pos()
+        self.check_area_pos()
+        self.check_vm_pos()
+        self.check_nvhi_pos()
+        self.check_nvlo_pos()
+        self.check_evhi_pos()
+        self.check_evlo_pos()
+        self.check_nvhi_nvlo_consistent()
+        self.check_evhi_evlo_consistent()
+        self.check_evhi_nvhi_consistent()
+        self.check_nvlo_evlo_consistent()
+        # check vm within bounds?
+        # check area in areas?
+
+    def check_i_pos(self):
+
+        if not (self.i > 0):
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails i positivity. Please ensure that the i field of every bus is a positive integer',
+                 'diagnostics': {
+                     'i': self.i}})
+
+    def check_area_pos(self):
+
+        if not (self.area > 0):
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails area positivity. Please ensure that the area field of every bus is a positive integer',
+                 'diagnostics': {
+                     'i': self.i,
+                     'area': self.area}})
+    
+    def check_vm_pos(self):
+
+        if not (self.vm > 0.0):
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails vm positivity. Please ensure that the vm field of every bus is a positive real number',
+                 'diagnostics': {
+                     'i': self.i,
+                     'vm': self.vm}})
+
+    def check_nvhi_pos(self):
+
+        if not (self.nvhi > 0.0):
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails nvhi positivity. Please ensure that the nvhi field of every bus is a positive real number',
+                 'diagnostics': {
+                     'i': self.i,
+                     'nvhi': self.nvhi}})
+
+    def check_nvlo_pos(self):
+
+        if not (self.nvlo > 0.0):
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails nvlo positivity. Please ensure that the nvlo field of every bus is a positive real number',
+                 'diagnostics': {
+                     'i': self.i,
+                     'nvlo': self.nvlo}})
+
+    def check_evhi_pos(self):
+
+        if not (self.evhi > 0.0):
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails evhi positivity. Please ensure that the evhi field of every bus is a positive real number',
+                 'diagnostics': {
+                     'i': self.i,
+                     'evhi': self.evhi}})
+
+    def check_evlo_pos(self):
+
+        if not (self.evlo > 0.0):
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails evlo positivity. Please ensure that the evlo field of every bus is a positive real number',
+                 'diagnostics': {
+                     'i': self.i,
+                     'evlo': self.evlo}})
+
+    def check_nvhi_nvlo_consistent(self):
+
+        if self.nvhi - self.nvlo < 0.0:
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails nvhi-nvlo consistency. Please ensure that the nvhi and nvlo fields of every bus satisfy: nvhi - nvlo >= 0.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'nvhi - nvlo': (self.nvhi - self.nvlo),
+                     'nvhi': self.nvhi,
+                     'nvlo': self.nvlo}})
+
+    def check_evhi_evlo_consistent(self):
+
+        if self.evhi - self.evlo < 0.0:
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails evhi-evlo consistency. Please ensure that the evhi and evlo fields of every bus satisfy: evhi - evlo >= 0.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'evhi - evlo': (self.evhi - self.evlo),
+                     'evhi': self.evhi,
+                     'evlo': self.evlo}})
+
+    def check_evhi_nvhi_consistent(self):
+
+        if self.evhi - self.nvhi < 0.0:
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails evhi-nvhi consistency. Please ensure that the evhi and nvhi fields of every bus satisfy: evhi - nvhi >= 0.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'evhi - nvhi': (self.evhi - self.nvhi),
+                     'evhi': self.evhi,
+                     'nvhi': self.nvhi}})
+
+    def check_nvlo_evlo_consistent(self):
+
+        if self.nvlo - self.evlo < 0.0:
+            alert(
+                {'data_type': 'Bus',
+                 'error_message': 'fails nvlo-evlo consistency. Please ensure that the nvlo and evlo fields of every bus satisfy: nvlo - evlo >= 0.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'nvlo - evlo': (self.nvlo - self.evlo),
+                     'nvlo': self.nvlo,
+                     'evlo': self.evlo}})
 
     def read_from_row(self, row):
 
@@ -1611,6 +1828,11 @@ class Load:
         self.scale = 1
         self.intrpt = 0
 
+    def check(self):
+
+        pass
+        # need to check i in buses
+
     def read_from_row(self, row):
 
         row = pad_row(row, 14)
@@ -1639,6 +1861,11 @@ class FixedShunt:
         self.status = 1
         self.gl = 0.0
         self.bl = 0.0
+
+    def check(self):
+
+        pass
+        # need to check i in buses
 
     def read_from_row(self, row):
 
@@ -1682,6 +1909,39 @@ class Generator:
         self.f4 = 1.0
         self.wmod = 0
         self.wpf = 1.0
+
+    def check(self):
+
+        self.check_qt_qb_consistent()
+        self.check_pt_pb_consistent()
+        # check pg, qg within bounds?
+        # need to check i in buses
+
+    def check_qt_qb_consistent(self):
+        
+        if self.qt - self.qb < 0.0:
+            alert(
+                {'data_type': 'Generator',
+                 'error_message': 'fails qt-qb consistency. Please ensure that the qt and qb fields of every generator satisfy: qt - qb >= 0.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'id': self.id,
+                     'qt - qb': (self.qt - self.qb),
+                     'qt': self.qt,
+                     'qb': self.qb}})
+
+    def check_pt_pb_consistent(self):
+        
+        if self.pt - self.pb < 0.0:
+            alert(
+                {'data_type': 'Generator',
+                 'error_message': 'fails pt-pb consistency. Please ensure that the pt and pb fields of every generator satisfy: pt - pb >= 0.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'id': self.id,
+                     'pt - pb': (self.pt - self.pb),
+                     'pt': self.pt,
+                     'pb': self.pb}})
 
     def read_from_row(self, row):
 
@@ -1744,6 +2004,65 @@ class NontransformerBranch:
         self.f3 = 1.0
         self.o4 = 0
         self.f4 = 1.0
+
+    def check(self):
+
+        self.check_r_x_nonzero()
+        self.check_ratea_pos()
+        self.check_ratec_pos()
+        self.check_ratec_ratea_consistent()
+        # need to check i, j in buses
+
+    def check_r_x_nonzero(self):
+        
+        if (self.r == 0.0 and self.x == 0.0):
+            alert(
+                {'data_type': 'NontransformerBranch',
+                 'error_message': 'fails r-x nonzero. Please ensure that at least one of the r and x fields of every nontransformer branch is nonzero. The competition formulation uses z = r + j*x, y = 1/z, g = Re(y), b = Im(y). This computation fails if r == 0.0 and x == 0.0.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'ckt': self.ckt,
+                     'r:': self.r,
+                     'x:': self.x}})
+
+    def check_ratea_pos(self):
+        
+        if not (self.ratea > 0.0):
+            alert(
+                {'data_type': 'NontransformerBranch',
+                 'error_message': 'fails ratea positivity. Please ensure that the ratea field of every nontransformer branch is a positivve real number.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'ckt': self.ckt,
+                     'ratea': self.ratea}})
+
+    def check_ratec_pos(self):
+        
+        if not (self.ratec > 0.0):
+            alert(
+                {'data_type': 'NontransformerBranch',
+                 'error_message': 'fails ratec positivity. Please ensure that the ratec field of every nontransformer branch is a positivve real number.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'ckt': self.ckt,
+                     'ratec': self.ratec}})
+
+    def check_ratec_ratea_consistent(self):
+        
+        if self.ratec - self.ratea < 0.0:
+            alert(
+                {'data_type': 'NontransformerBranch',
+                 'error_message': 'fails ratec-ratea consistency. Please ensure that the ratec and ratea fields of every nontransformer branch satisfy ratec - ratea >= 0.0.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'ckt': self.ckt,
+                     'ratec - ratea': self.ratec - self.ratea,
+                     'ratec': self.ratec,
+                     'ratea': self.ratea}})
 
     def read_from_row(self, row):
 
@@ -1821,6 +2140,111 @@ class Transformer:
         self.cnxa1 = 0.0
         self.windv2 = 1.0
         self.nomv2 = 0.0
+
+    def check(self):
+
+        self.check_r12_x12_nonzero()
+        self.check_rata1_pos()
+        self.check_ratc1_pos()
+        self.check_ratc1_rata1_consistent()
+        self.check_windv1_pos()
+        self.check_windv2_pos()
+        self.check_windv2_eq_1()
+        # need to check i, j in buses
+
+    def check_r12_x12_nonzero(self):
+        
+        if (self.r12 == 0.0 and self.x12 == 0.0):
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'fails r12-x12 nonzero. Please ensure that at least one of the r12 and x12 fields of every transformer is nonzero. The competition formulation uses z = r12 + j*x12, y = 1/z, g = Re(y), b = Im(y). This computation fails if r12 == 0.0 and x12 == 0.0.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'r12:': self.r12,
+                     'x12:': self.x12}})
+
+    def check_rata1_pos(self):
+        
+        if not (self.rata1 > 0.0):
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'fails rata1 positivity. Please ensure that the rata1 field of every transformer is a positive real number.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'rata1': self.rata1}})
+
+    def check_ratc1_pos(self):
+        
+        if not (self.ratc1 > 0.0):
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'fails ratc1 positivity. Please ensure that the ratc1 field of every transformer is a positive real number.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'ratc1': self.ratc1}})
+
+    def check_ratc1_rata1_consistent(self):
+        
+        if not (self.ratc1 - self.rata1 > 0.0):
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'fails ratc1-rata1 consistency. Please ensure that the ratc1 and rata1 fields of every transformer satisfy ratc1 - rata1 >= 0.0.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'ratc1 - rata1': self.ratc1 - self.rata1,
+                     'ratc1': self.ratc1,
+                     'rata1': self.rata1}})
+
+    def check_windv1_pos(self):
+        
+        if not (self.windv1 > 0.0):
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'fails windv1 positivity. Please ensure that the windv1 field of every transformer is a positive real number.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'windv1': self.windv1}})
+
+    def check_windv2_pos(self):
+        
+        if not (self.windv2 > 0.0):
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'fails windv2 positivity. Please ensure that the windv2 field of every transformer is a positive real number.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'windv2': self.windv2}})
+
+    def check_windv2_eq_1(self):
+        
+        if not(self.windv2 == 1.0):
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'fails windv2 exactly equal to 1.0. Please ensure that the windv2 field of every transformer is equal to 1.0. Transformers not satisfying this property can be converted. This ensures that the formulation used by the Grid Optimization Competition is consistent with the model described in PSSE proprietary documentation',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'windv2': self.windv2}})
 
     @property
     def num_windings(self):
@@ -2031,6 +2455,19 @@ class Area:
         self.ptol = 10.0
         self.arname = 12*' '
 
+    def check(self):
+
+        self.check_i_pos()
+
+    def check_i_pos(self):
+        
+        if not(self.i > 0):
+            alert(
+                {'data_type': 'Area',
+                 'error_message': 'fails i positivity. Please ensure that the i field of every area is a positive integer.',
+                 'diagnostics': {
+                     'i': self.i}})
+
     def read_from_row(self, row):
 
         row = pad_row(row, 5)
@@ -2047,6 +2484,19 @@ class Zone:
 
         self.i = None # no default
         self.zoname = 12*' '
+
+    def check(self):
+
+        self.check_i_pos()
+
+    def check_i_pos(self):
+        
+        if not(self.i > 0):
+            alert(
+                {'data_type': 'Zone',
+                 'error_message': 'fails i positivity. Please ensure that the i field of every zone is a positive integer.',
+                 'diagnostics': {
+                     'i': self.i}})
         
     def read_from_row(self, row):
 
@@ -2085,6 +2535,264 @@ class SwitchedShunt:
         self.b7 = 0.0
         self.n8 = 0
         self.b8 = 0.0
+
+    def check(self):
+        '''The Grid Optimization competition uses a continuous susceptance model
+        of shunt switching. Therefore every switched shunt can be characterized by the following data:
+          i     - bus number
+          stat  - status
+          b     - susceptance
+          binit - susceptance at the operating point (starting point)
+          bmin  - minimum susceptance value
+          bmax  - maximum susceptance value
+
+        b is not part of the raw file,
+        but is instead part of the solution of the problem.
+        a value of b should be determined by the solver
+        for the base case (in solution1.txt)
+        and for each contingency (in solution2.txt).
+        
+        i,stat,binit are provided directly by fields of those names in each record
+        of the switched shunt section of the raw file.
+
+        bmin and bmax are provided indirectly by several fields in each record of
+        the switched shunt section of the raw file.
+
+        The Grid Optimization Competition model requires bmin <= 0.0 and bmax >= 0.0/
+
+        For simplicity, data providers should use nonzero values on a minimal set of n1, b1, ..., n8, b8,
+        with the first 0 value terminating the data. I.e.
+          n3 = 0
+          b3 = 0.0
+          n4 = 0
+          b4 = 0.0
+          n5 = 0
+          b5 = 0.0
+          n6 = 0
+          b6 = 0.0
+          n7 = 0
+          b7 = 0.0
+          n8 = 0
+          b8 = 0.0
+        if bmin < 0.0
+            if bmax > 0.0
+                n1 = 1
+                n2 = 1
+                {b1, b2} = {bmin, bmax}
+            else
+                n1 = 1
+                n2 = 0
+                b1 = bmin
+                b2 = 0.0
+        else
+            if bmax > 0.0
+                n1 = 1
+                n2 = 0
+                b1 = bmax
+                b2 = 0.0
+            else
+                n1 = 0
+                n2 = 0
+                b1 = 0.0
+                b2 = 0.0
+        '''
+
+        self.check_b1_b2_opposite_signs()
+        self.check_n1_0_implies_b1_0_n2_0_b2_0()
+        self.check_b1_0_implies_n1_0_n2_0_b2_0()
+        self.check_n1_nonneg()
+        self.check_n2_nonneg()
+        self.check_n3_zero()
+        self.check_n4_zero()
+        self.check_n5_zero()
+        self.check_n6_zero()
+        self.check_n7_zero()
+        self.check_n8_zero()
+        self.check_b3_zero()
+        self.check_b4_zero()
+        self.check_b5_zero()
+        self.check_b6_zero()
+        self.check_b7_zero()
+        self.check_b8_zero()
+                                                
+    def check_b1_b2_opposite_signs(self):
+
+        if (((self.b1 < 0.0) and (self.b2 < 0.0)) or ((self.b1 > 0.0) and (self.b2 > 0.0))):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails b1,b2 opposite sign requirement. For each switched shunt, please ensure that the fields b1, b2 are real numbers with opposite signs, i.e. if b1 < 0.0, then b2 >= 0.0, and if b1 > 0.0, then b2 <= 0.0. This is a minimal nonzero data requirement.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n1': self.n1,
+                     'b1': self.b1,
+                     'n2': self.n2,
+                     'b2': self.b2}})
+
+    def check_n1_0_implies_b1_0_n2_0_b2_0(self):
+
+        if ((self.n1 == 0) and ((self.b1 != 0.0) or (self.n2 != 0) or (self.b2 != 0.0))):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails ((n1==0)->((b1==0.0)&(n2==0)&(b2==0.0))). For each switched shunt, please ensure that the fields n1, b1, n2, b2 satisfy this logical relation. This is a minimal nonzero data requirement.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n1': self.n1,
+                     'b1': self.b1,
+                     'n2': self.n2,
+                     'b2': self.b2}})
+
+    def check_b1_0_implies_n1_0_n2_0_b2_0(self):
+
+        if ((self.b1 == 0.0) and ((self.n1 != 0) or (self.n2 != 0) or (self.b2 != 0.0))):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails ((b1==0.0)->((n1==0)&(n2==0)&(b2==0.0))). For each switched shunt, please ensure that the fields n1, b1, n2, b2 satisfy this logical relation. This is a minimal nonzero data requirement.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n1': self.n1,
+                     'b1': self.b1,
+                     'n2': self.n2,
+                     'b2': self.b2}})
+
+    def check_n1_nonneg(self):
+
+        if self.n1 < 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n1 nonnegativity. Please ensure that the n1 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n1': self.n1}})
+                                                
+    def check_n2_nonneg(self):
+
+        if self.n2 < 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n2 nonnegativity. Please ensure that the n2 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n2': self.n2}})
+    
+    def check_n3_zero(self):
+
+        if not (self.n3 == 0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n3 exactly equal to 0. Please ensure that the n3 field of every switched shunt is exactly equal to 0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n3': self.n3}})
+
+    def check_n4_zero(self):
+
+        if not (self.n4 == 0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n4 exactly equal to 0. Please ensure that the n4 field of every switched shunt is exactly equal to 0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n4': self.n4}})
+
+    def check_n5_zero(self):
+
+        if not (self.n5 == 0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n5 exactly equal to 0. Please ensure that the n5 field of every switched shunt is exactly equal to 0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n5': self.n5}})
+
+    def check_n6_zero(self):
+
+        if not (self.n6 == 0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n6 exactly equal to 0. Please ensure that the n6 field of every switched shunt is exactly equal to 0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n6': self.n6}})
+
+    def check_n7_zero(self):
+
+        if not (self.n7 == 0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n7 exactly equal to 0. Please ensure that the n7 field of every switched shunt is exactly equal to 0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n7': self.n7}})
+
+    def check_n8_zero(self):
+
+        if not (self.n8 == 0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n8 exactly equal to 0. Please ensure that the n8 field of every switched shunt is exactly equal to 0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n8': self.n8}})
+
+    def check_b3_zero(self):
+
+        if not (self.b3 == 0.0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails b3 exactly equal to 0.0. Please ensure that the b3 field of every switched shunt is exactly equal to 0.0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'b3': self.b3}})
+
+    def check_b4_zero(self):
+
+        if not (self.b4 == 0.0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails b4 exactly equal to 0.0. Please ensure that the b4 field of every switched shunt is exactly equal to 0.0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'b4': self.b4}})
+
+    def check_b5_zero(self):
+
+        if not (self.b5 == 0.0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails b5 exactly equal to 0.0. Please ensure that the b5 field of every switched shunt is exactly equal to 0.0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'b5': self.b5}})
+
+    def check_b6_zero(self):
+
+        if not (self.b6 == 0.0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails b6 exactly equal to 0.0. Please ensure that the b6 field of every switched shunt is exactly equal to 0.0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'b6': self.b6}})
+
+    def check_b7_zero(self):
+
+        if not (self.b7 == 0.0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails b7 exactly equal to 0.0. Please ensure that the b7 field of every switched shunt is exactly equal to 0.0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'b7': self.b7}})
+
+    def check_b8_zero(self):
+
+        if not (self.b8 == 0.0):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails b8 exactly equal to 0.0. Please ensure that the b8 field of every switched shunt is exactly equal to 0.0. Since the Grid Optimization competition uses a continuous susceptance model of shunt switching, every switched shunt can be expressed using only the i,stat,binit,n1,b1,n2,b2 fields by means of a conversion.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'b8': self.b8}})
 
     def read_from_row(self, row):
 
@@ -2126,6 +2834,13 @@ class GeneratorDispatchRecord:
         self.disp = 1.0
         self.dsptbl = None # no default allowed
 
+    def check(self):
+
+        pass
+        # need to check that bus,genid is in generators
+        # need to check that dsptbl is in the active power dispatch records
+        # need to check that every generrator has a generator dispatch record
+
     def read_from_row(self, row):
 
         row = pad_row(row, 4)
@@ -2151,6 +2866,20 @@ class ActivePowerDispatchRecord:
         self.status = 1
         self.ctbl = None # no default allowed
 
+    def check(self):
+
+        self.check_tbl_pos()
+        # need to check that ctbl is in the piecewise linear cost functions
+
+    def check_tbl_pos(self):
+
+        if not (self.tbl > 0):
+            alert(
+                {'data_type': 'ActivePowerDispatchRecord',
+                 'error_message': 'fails tbl positivity. Please ensure that the tbl field of every active power dispatch record is a positive integer',
+                 'diagnostics': {
+                     'tbl': self.tbl}})
+
     def read_from_row(self, row):
 
         row = pad_row(row, 7)
@@ -2171,6 +2900,35 @@ class PiecewiseLinearCostFunction():
         self.label = ''
         self.npairs = None # no default value allowed
         self.points = [] # no default value allowed
+
+    def check(self):
+
+        self.check_ltbl_pos()
+        self.check_npairs_eq_len_points()
+        self.check_at_least_two_points()
+        self.check_dx_margin()
+        self.check_ddydx_margin()
+
+    def check_ltbl_pos(self):
+
+        if not (self.ltbl > 0):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fails ltbl positivity. Please ensure that the ltbl field of every piecewise linear cost function is a positive integer',
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+
+    def check_npairs_eq_len_points(self):
+
+        num_points = len(self.points)
+        if not (self.npairs == num_points):
+            alert(
+                {'data_type':'PiecewiseLinearCostFunction',
+                 'error_message':'fails npairs exactly equal to number of points. Please ensure that for each piecewise linear cost function, the npairs field is an integer equal to the number of points provided.',
+                 'diagnostics':{
+                     'ltbl': self.ltbl,
+                     'npairs': self.npairs,
+                     'nx': num_points}})            
 
     def check_at_least_two_points(self):
 
@@ -2300,6 +3058,10 @@ class  QuadraticCostFunctions(GeneratorDispatchRecord,PiecewiseLinearCostFunctio
         self.quadraticc = None
         self.powerfactor = None
 
+    def check(self):
+
+        pass
+
     def read_from_csv_quadraticinfo(self, row):
         if parse_token(row[2], int, '')==0:
             self.constc = parse_token(row[3], float, 0.0)
@@ -2322,6 +3084,14 @@ class GeneratorInlRecord:
         self.r = 0.05
         self.d = 0.0
 
+    def check(self):
+
+        pass
+        #???
+        # need to check (i,id) is in the generators
+        # need to check that every generator is in the INL file
+        # need to check (i,j,k,ckt) consistency between lines and transformers
+
     def read_from_row(self, row):
 
         row = pad_row(row, 7)
@@ -2342,6 +3112,60 @@ class Contingency:
         self.branch_out_events = []
         self.generator_out_events = []
 
+    def check(self):
+
+        self.check_label()
+        self.check_branch_out_events()
+        self.check_generator_out_events()
+        self.check_at_most_one_branch_out_event()
+        self.check_at_most_one_generator_out_event()
+        self.check_at_most_one_branch_or_generator_out_event()
+        # need to check that each outaged component is active in the base case
+
+    def check_label(self):
+
+        pass
+
+    def check_branch_out_events(self):
+
+        for r in self.branch_out_events:
+            r.check()
+
+    def check_generator_out_events(self):
+
+        for r in self.generator_out_events:
+            r.check()
+
+    def check_at_most_one_branch_out_event(self):
+
+        if len(self.branch_out_events) > 1:
+            alert(
+                {'data_type': 'Contingency',
+                 'error_message': 'fails at most 1 branch out event. Please ensure that each contingency has at most 1 branch out event.',
+                 'diagnostics':{
+                     'label': self.label,
+                     'num branch out events': len(self.branch_out_events)}})
+
+    def check_at_most_one_generator_out_event(self):
+
+        if len(self.generator_out_events) > 1:
+            alert(
+                {'data_type': 'Contingency',
+                 'error_message': 'fails at most 1 generator out event. Please ensure that each contingency has at most 1 generator out event.',
+                 'diagnostics':{
+                     'label': self.label,
+                     'num generator out events': len(self.generator_out_events)}})
+
+    def check_at_most_one_branch_or_generator_out_event(self):
+
+        if len(self.branch_out_events) + len(self.generator_out_events) > 1:
+            alert(
+                {'data_type': 'Contingency',
+                 'error_message': 'fails at most 1 branch or generator out event. Please ensure that each contingency has at most 1 branch or generator out event.',
+                 'diagnostics':{
+                     'label': self.label,
+                     'num branch out events + num generator out events': len(self.branch_out_events) + len(self.generator_out_events)}})
+
     def construct_record_rows(self):
 
         rows = (
@@ -2360,6 +3184,10 @@ class Point:
         self.x = None
         self.y = None
 
+    def check(self):
+
+        pass
+
     def read_from_row(self, row):
 
         row = pad_row(row, 2)
@@ -2373,6 +3201,12 @@ class BranchOutEvent:
         self.i = None
         self.j = None
         self.ckt = None
+
+    def check(self):
+
+        pass
+        # need to check (i,j,ckt) is either a line or a transformer
+        # need to check that it is active in the base case
 
     def read_from_row(self, row):
 
@@ -2407,6 +3241,11 @@ class GeneratorOutEvent:
 
         self.i = None
         self.id = None
+
+    def check(self):
+
+        pass
+        # need to check that (i,id) is a generator and that it is active in the base case
 
     def read_from_csv(self, row):
 
