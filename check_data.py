@@ -2,12 +2,12 @@
 syntax:
 
 from a command prompt:
-python read_write.py raw rop con inl
+python check_data.py raw rop con inl
 
 from a Python interpreter:
 import sys
 sys.argv = [raw, rop, con, inl]
-execfile("read_write.py")
+execfile("check_data.py")
 '''
 
 import argparse
@@ -18,16 +18,12 @@ import data
     
 def main():
 
-    parser = argparse.ArgumentParser(description='Evaluate a solution to a problem instance')
+    parser = argparse.ArgumentParser(description='Check data files for a problem instance')
     
     parser.add_argument('raw_in', help='raw_in')
     parser.add_argument('rop_in', help='rop_in')
     parser.add_argument('con_in', help='con_in')
     parser.add_argument('inl_in', help='inl_in')
-    parser.add_argument('raw_out', help='raw_out')
-    parser.add_argument('rop_out', help='rop_out')
-    parser.add_argument('con_out', help='con_out')
-    parser.add_argument('inl_out', help='inl_out')
     
     args = parser.parse_args()
 
@@ -56,17 +52,6 @@ def main():
     p.check()
     time_elapsed = time.time() - start_time
     print("check data time: %f" % time_elapsed)
-
-    start_time = time.time()
-    p.raw.set_operating_point_to_offline_solution()
-    p.raw.switched_shunts_combine_blocks_steps()
-    end_time = time.time()
-    print("convert data time: %f" % (end_time - start_time))
-
-    start_time = time.time()
-    p.write(args.raw_out, args.rop_out, args.inl_out, args.con_out)
-    time_elapsed = time.time() - start_time
-    print("write data time: %f" % time_elapsed)
 
 if __name__ == '__main__':
     main()

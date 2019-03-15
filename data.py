@@ -25,6 +25,12 @@ except ImportError:
 read_unused_fields = True
 write_defaults_in_unused_fields = False
 write_values_in_unused_fields = True
+gen_cost_dx_margin = 1.0e-6 # ensure that consecutive x points differ by at least this amount
+gen_cost_ddydx_margin = 1.0e-6 # ensure that consecutive slopes differ by at least this amount
+gen_cost_x_bounds_margin = 1.0e-6 # ensure that the pgen lower and upper bounds are covered by at least this amount
+
+def alert(alert_dict):
+    print(alert_dict)
 
 def parse_token(token, val_type, default=None):
     val = None
@@ -114,7 +120,52 @@ class Data:
         self.rop = Rop()
         self.inl = Inl()
         self.con = Con()
+
+    def read(self, raw_name, rop_name, inl_name, con_name):
+
+        self.raw.read(raw_name)
+        self.rop.read(rop_name)
+        self.inl.read(inl_name)
+        self.con.read(con_name)
+
+    def write(self, raw_name, rop_name, inl_name, con_name):
+
+        self.raw.write(raw_name)
+        self.rop.write(rop_name)
+        self.inl.write(inl_name)
+        self.con.write(con_name)
+
+    def check(self):
         
+        self.raw.check()
+        self.rop.check()
+        self.inl.check()
+        self.con.check()
+        self.check_gen_cost_x_min_margin()
+        self.check_gen_cost_x_max_margin()
+
+    def check_gen_cost_x_min_margin(self):
+
+        for g in self.raw.get_generators():
+            g_i = g.i
+            g_id = g.id
+            g_pb = g.pb
+            gdr = self.rop.generator_dispatch_records[(g_i, g_id)]
+            apdr = self.rop.active_power_dispatch_records[gdr.dsptbl]
+            plcf = self.rop.piecewise_linear_cost_functions[apdr.ctbl]
+            plcf.check_x_min_margin(g_pb)
+
+    def check_gen_cost_x_max_margin(self):
+
+        for g in self.raw.get_generators():
+            g_i = g.i
+            g_id = g.id
+            g_pt = g.pt
+            gdr = self.rop.generator_dispatch_records[(g_i, g_id)]
+            apdr = self.rop.active_power_dispatch_records[gdr.dsptbl]
+            plcf = self.rop.piecewise_linear_cost_functions[apdr.ctbl]
+            plcf.check_x_max_margin(g_pt)
+
 class Raw:
     '''In physical units, i.e. data convention, i.e. input and output data files'''
 
@@ -130,6 +181,10 @@ class Raw:
         self.areas = {}
         self.switched_shunts = {}
 
+    def check(self):
+
+        pass
+
     def set_areas_from_buses(self):
         
         area_i_set = set([b.area for b in self.buses.values()])
@@ -137,7 +192,39 @@ class Raw:
             area.i = i
             return area
         self.areas = {i:area_set_i(Area(), i) for i in area_i_set}
+
+    def get_buses(self):
+
+        return sorted(self.buses.values(), key=(lambda r: r.i))
+
+    def get_loads(self):
+
+        return sorted(self.loads.values(), key=(lambda r: (r.i, r.id)))
+
+    def get_fixed_shunts(self):
+
+        return sorted(self.fixed_shunts.values(), key=(lambda r: (r.i, r.id)))
+
+    def get_generators(self):
+
+        return sorted(self.generators.values(), key=(lambda r: (r.i, r.id)))
+
+    def get_nontransformer_branches(self):
+
+        return sorted(self.nontransformer_branches.values(), key=(lambda r: (r.i, r.j, r.ckt)))
+
+    def get_transformers(self):
+
+        return sorted(self.transformers.values(), key=(lambda r: (r.i, r.j, r.k, r.ckt)))
+
+    def get_areas(self):
+
+        return sorted(self.areas.values(), key=(lambda r: r.i))
         
+    def get_switched_shunts(self):
+
+        return sorted(self.switched_shunts.values(), key=(lambda r: r.i))
+
     def construct_case_identification_section(self):
 
         #out_str = StringIO.StringIO()
@@ -174,18 +261,20 @@ class Raw:
 
         out_str = StringIO()
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
+        
         if write_values_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.name, r.baskv, r.ide, r.area, r.zone, r.owner, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
-                for r in self.buses.values()]
+                #for r in self.buses.values()] # might as well sort
+                for r in self.get_buses()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, "'            '", 0.0, 1, r.area, 1, 1, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
-                for r in self.buses.values()]
+                for r in self.get_buses()]
         else:
             rows = [
                 [r.i, None, None, None, r.area, None, None, r.vm, r.va, r.nvhi, r.nvlo, r.evhi, r.evlo]
-                for r in self.buses.values()]
+                for r in self.get_buses()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF BUS DATA BEGIN LOAD DATA']]) # no comma allowed without escape character
@@ -199,15 +288,15 @@ class Raw:
         if write_values_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.id, r.status, r.area, r.zone, r.pl, r.ql, r.ip, r.iq, r.yp, r.yq, r.owner, r.scale, r.intrpt]
-                for r in self.loads.values()]
+                for r in self.get_loads()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.id, r.status, self.buses[r.i].area, 1, r.pl, r.ql, 0.0, 0.0, 0.0, 0.0, 1, 1, 0]
-                for r in self.loads.values()]
+                for r in self.get_loads()]
         else:
             rows = [
                 [r.i, "'%s'" % r.id, r.status, None, None, r.pl, r.ql, None, None, None, None, None, None, None]
-                for r in self.loads.values()]
+                for r in self.get_loads()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF LOAD DATA BEGIN FIXED SHUNT DATA']])
@@ -220,15 +309,15 @@ class Raw:
         if write_values_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
-                for r in self.fixed_shunts.values()]
+                for r in self.get_fixed_shunts()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
-                for r in self.fixed_shunts.values()]
+                for r in self.get_fixed_shunts()]
         else:
             rows = [
                 [r.i, "'%s'" % r.id, r.status, r.gl, r.bl]
-                for r in self.fixed_shunts.values()]
+                for r in self.get_fixed_shunts()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF FIXED SHUNT DATA BEGIN GENERATOR DATA']])
@@ -244,21 +333,21 @@ class Raw:
                  r.vs, r.ireg, r.mbase, r.zr, r.zx, r.rt, r.xt, r.gtap,
                  r.stat, r.rmpct, r.pt, r.pb, r.o1, r.f1, r.o2,
                  r.f2, r.o3, r.f3, r.o4, r.f4, r.wmod, r.wpf]
-                for r in self.generators.values()]
+                for r in self.get_generators()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, "'%s'" % r.id, r.pg, r.qg, r.qt, r.qb,
                  1.0, 0, self.case_identification.sbase, 0.0, 1.0, 0.0, 0.0, 1.0,
                  r.stat, 100.0, r.pt, r.pb, 1, 1.0, 0,
                  1.0, 0, 1.0, 0, 1.0, 0, 1.0]
-                for r in self.generators.values()]
+                for r in self.get_generators()]
         else:
             rows = [
                 [r.i, "'%s'" % r.id, r.pg, r.qg, r.qt, r.qb,
                  None, None, None, None, None, None, None, None,
                  r.stat, None, r.pt, r.pb, None, None, None,
                  None, None, None, None, None, None, None]
-                for r in self.generators.values()]
+                for r in self.get_generators()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF GENERATOR DATA BEGIN BRANCH DATA']])
@@ -273,19 +362,19 @@ class Raw:
                 [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
                  r.rateb, r.ratec, r.gi, r.bi, r.gj, r.bj, r.st, r.met, r.len,
                  r.o1, r.f1, r.o2, r.f2, r.o3, r.f3, r.o4, r.f4 ]
-                for r in self.nontransformer_branches.values()]
+                for r in self.get_nontransformer_branches()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
                  0.0, r.ratec, 0.0, 0.0, 0.0, 0.0, r.st, 1, 0.0,
                  1, 1.0, 0, 1.0, 0, 1.0, 0, 1.0 ]
-                for r in self.nontransformer_branches.values()]
+                for r in self.get_nontransformer_branches()]
         else:
             rows = [
                 [r.i, r.j, "'%s'" % r.ckt, r.r, r.x, r.b, r.ratea,
                  None, r.ratec, None, None, None, None, r.st, None, None,
                  None, None, None, None, None, None, None, None ]
-                for r in self.nontransformer_branches.values()]
+                for r in self.get_nontransformer_branches()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF BRANCH DATA BEGIN TRANSFORMER DATA']])
@@ -298,7 +387,7 @@ class Raw:
         if write_values_in_unused_fields:
             rows = [
                 rr
-                for r in self.transformers.values()
+                for r in self.get_transformers()
                 for rr in [
                         [r.i, r.j, r.k, "'%s'" % r.ckt, r.cw, r.cz, r.cm,
                          r.mag1, r.mag2, r.nmetr, "'%s'" % r.name, r.stat, r.o1, r.f1,
@@ -311,7 +400,7 @@ class Raw:
         elif write_defaults_in_unused_fields:
             rows = [
                 rr
-                for r in self.transformers.values()
+                for r in self.get_transformers()
                 for rr in [
                         [r.i, r.j, 0, "'%s'" % r.ckt, 1, 1, 1,
                          r.mag1, r.mag2, 2, "'            '", r.stat, 1, 1.0,
@@ -324,7 +413,7 @@ class Raw:
         else:
             rows = [
                 rr
-                for r in self.transformers.values()
+                for r in self.get_transformers()
                 for rr in [
                         [r.i, r.j, 0, "'%s'" % r.ckt, None, None, None,
                          r.mag1, r.mag2, None, None, r.stat, None, None,
@@ -346,15 +435,15 @@ class Raw:
         if write_values_in_unused_fields:
             rows = [
                 [r.i, r.isw, r.pdes, r.ptol, "'%s'" % r.arname]
-                for r in self.areas.values()]
+                for r in self.get_areas()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, 0, 0.0, 10.0, "'            '"]
-                for r in self.areas.values()]
+                for r in self.get_areas()]
         else:
             rows = [
                 [r.i, None, None, None, None]
-                for r in self.areas.values()]
+                for r in self.get_areas()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF AREA DATA BEGIN TWO-TERMINAL DC DATA']])
@@ -432,19 +521,19 @@ class Raw:
                 [r.i, r.modsw, r.adjm, r.stat, r.vswhi, r.vswlo, r.swrem, r.rmpct, "'%s'" % r.rmidnt,
                  r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
                  r.n5, r.b5, r.n6, r.b6, r.n7, r.b7, r.n8, r.b8]
-                for r in self.switched_shunts.values()]
+                for r in self.get_switched_shunts()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, 1, 0, r.stat, 1.0, 1.0, 0, 100.0, "'            '",
                  r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
                  r.n5, r.b5, r.n6, r.b6, r.n7, r.b7, r.n8, r.b8]
-                for r in self.switched_shunts.values()]
+                for r in self.get_switched_shunts()]
         else:
             rows = [
                 [r.i, None, None, r.stat, None, None, None, None, None,
                  r.binit, r.n1, r.b1, r.n2, r.b2, r.n3, r.b3, r.n4, r.b4,
                  r.n5, r.b5, r.n6, r.b6, r.n7, r.b7, r.n8, r.b8]
-                for r in self.switched_shunts.values()]
+                for r in self.get_switched_shunts()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF SWITCHED SHUNT DATA BEGIN GNE DATA']])
@@ -758,6 +847,13 @@ class Rop:
         self.active_power_dispatch_records = {}
         self.piecewise_linear_cost_functions = {}
         
+    def check(self):
+
+        for r in self.get_piecewise_linear_cost_functions():
+            r.check_at_least_two_points()
+            r.check_dx_margin()
+            r.check_ddydx_margin()
+
     def trancostfuncfrom_phase_0(self,rawdata):
         ds=self.active_power_dispatch_records.get((4, '1'))
 
@@ -801,6 +897,18 @@ class Rop:
         #print([gen_dispatch.bus,gen_dispatch.genid, gen_dispatch.constc])
         #ds=self.active_power_dispatch_records.get((4, '1'))
 
+    def get_generator_dispatch_records(self):
+
+        return sorted(self.generator_dispatch_records.values(), key=(lambda r: (r.bus, r.genid)))
+
+    def get_active_power_dispatch_records(self):
+
+        return sorted(self.active_power_dispatch_records.values(), key=(lambda r: r.tbl))
+
+    def get_piecewise_linear_cost_functions(self):
+
+        return sorted(self.piecewise_linear_cost_functions.values(), key=(lambda r: r.ltbl))
+
     def construct_data_modification_section(self):
 
         out_str = StringIO()
@@ -843,15 +951,15 @@ class Rop:
         if write_values_in_unused_fields:
             rows = [
                 [r.bus, "'%s'" % r.genid, r.disp, r.dsptbl]
-                for r in self.generator_dispatch_records.values()]
+                for r in self.get_generator_dispatch_records()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.bus, "'%s'" % r.genid, 1.0, r.dsptbl]
-                for r in self.generator_dispatch_records.values()]
+                for r in self.get_generator_dispatch_records()]
         else:
             rows = [
                 [r.bus, "'%s'" % r.genid, None, r.dsptbl]
-                for r in self.generator_dispatch_records.values()]
+                for r in self.get_generator_dispatch_records()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF GENERATOR DISPATCH DATA BEGIN ACTIVE POWER DISPATCH TABLES']])
@@ -864,15 +972,15 @@ class Rop:
         if write_values_in_unused_fields:
             rows = [
                 [r.tbl, r.pmax, r.pmin, r.fuelcost, r.ctyp, r.status, r.ctbl]
-                for r in self.active_power_dispatch_records.values()]
+                for r in self.get_active_power_dispatch_records()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.tbl, 9999.0, -9999.0, 1.0, 1, 1, r.ctbl]
-                for r in self.active_power_dispatch_records.values()]
+                for r in self.get_active_power_dispatch_records()]
         else:
             rows = [
                 [r.tbl, None, None, None, None, None, r.ctbl]
-                for r in self.active_power_dispatch_records.values()]
+                for r in self.get_active_power_dispatch_records()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF ACTIVE POWER DISPATCH TABLES BEGIN GENERATION RESERVE DATA']])
@@ -906,21 +1014,21 @@ class Rop:
         if write_values_in_unused_fields:
             rows = [
                 row
-                for r in self.piecewise_linear_cost_functions.values()
+                for r in self.get_piecewise_linear_cost_functions()
                 for row in (
                         [[r.ltbl, "'%s'" % r.label, r.npairs]] +
                         [[p.x, p.y] for p in r.points])]
         elif write_defaults_in_unused_fields:
             rows = [
                 row
-                for r in self.piecewise_linear_cost_functions.values()
+                for r in self.get_piecewise_linear_cost_functions()
                 for row in (
                         [[r.ltbl, "''", r.npairs]] +
                         [[p.x, p.y] for p in r.points])]
         else:
             rows = [
                 row
-                for r in self.piecewise_linear_cost_functions.values()
+                for r in self.get_piecewise_linear_cost_functions()
                 for row in (
                         [[r.ltbl, None, r.npairs]] +
                         [[p.x, p.y] for p in r.points])]
@@ -1142,6 +1250,10 @@ class Inl:
 
         self.generator_inl_records = {}
 
+    def check(self):
+
+        pass
+
     # TODO
     def read_from_phase_0(self, file_name):
         '''takes the generator.csv file as input'''
@@ -1152,6 +1264,10 @@ class Inl:
         with open(file_name, 'w') as out_file:
             out_file.write(self.construct_data_section())
 
+    def get_generator_inl_records(self):
+
+        return sorted(self.generator_inl_records.values(), key=(lambda r: (r.i, r.id)))
+
     def construct_data_section(self):
 
         out_str = StringIO()
@@ -1159,15 +1275,15 @@ class Inl:
         if write_values_in_unused_fields:
             rows = [
                 [r.i, r.id, r.h, r.pmax, r.pmin, r.r, r.d]
-                for r in self.generator_inl_records.values()]
+                for r in self.get_generator_inl_records()]
         elif write_defaults_in_unused_fields:
             rows = [
                 [r.i, r.id, 4.0, 0.0, 0.0, r.r, 0.0]
-                for r in self.generator_inl_records.values()]
+                for r in self.get_generator_inl_records()]
         else:
             rows = [
                 [r.i, r.id, "", "", "", r.r, ""]
-                for r in self.generator_inl_records()]
+                for r in self.get_generator_inl_records()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF DATA']])
@@ -1227,6 +1343,10 @@ class Con:
 
         self.contingencies = {}
 
+    def check(self):
+
+        pass
+
     def read_from_phase_0(self, file_name):
         '''takes the contingency.csv file as input'''
         with open(file_name, 'r') as in_file:
@@ -1259,20 +1379,35 @@ class Con:
                 contingency.generator_out_events.append(generator_out_event)
                 self.contingency.generator_out_event.read_from_csv(tmprow)
 
+    def get_contingencies(self):
+
+        return sorted(self.contingencies.values(), key=(lambda r: r.label))
+
+    def construct_data_records(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE, delimiter=' ')
+        rows = [
+            row
+            for r in self.get_contingencies()
+            for row in r.construct_record_rows()]
+        writer.writerows(rows)
+        return out_str.getvalue()
+
+    def construct_end_record(self):
+
+        out_str = StringIO()
+        writer = csv.writer(out_str, quoting=csv.QUOTE_NONE, delimiter=' ')
+        rows = [['END']]
+        writer.writerows(rows)
+        return out_str.getvalue()        
+
     def write(self, file_name):
-        file = open(file_name,"w") 
-        #for r in self.contingencies.values():
-        for r in self.contingencies:
-            row="CONTINGENCY   "+r+"\n"
-            #ds=self.active_power_dispatch_records.get((r.i,r.id))
-            file.write(row)
-            if cmp(r[0:4],'LINE')==0:
-                row="DISCONNECT LINE FROM BUS   "+str(self.contingencies.get(r).i)+" TO BUS  "+str(self.contingencies.get(r).j)+ " CKT  " + str(self.contingencies.get(r).ckt)+"\n"
-            elif cmp(r[0:3],'GEN')==0: 
-                row="REMOVE MACHINE  "+str(self.contingencies.get(r).id)+" FROM BUS  "+str(self.contingencies.get(r).i)+"\n"
-            file.write(row)
-            file.write("END\n")
-        file.write("END\n")   
+        '''write a CON file'''
+
+        with open(file_name, 'w') as out_file:
+            out_file.write(self.construct_data_records())
+            out_file.write(self.construct_end_record())
 
     def read(self, file_name):
 
@@ -2037,6 +2172,99 @@ class PiecewiseLinearCostFunction():
         self.npairs = None # no default value allowed
         self.points = [] # no default value allowed
 
+    def check_at_least_two_points(self):
+
+        num_points = len(self.points)
+        if num_points < 2:
+            alert(
+                {'data_type':'PiecewiseLinearCostFunction',
+                 'error_message':'fails to have at least 2 points. Please provide at least 2 sample points for each piecewise linear cost function',
+                 'diagnostics':{
+                     'ltbl': self.ltbl,
+                     'nx': num_points}})
+
+    def check_dx_margin(self):
+
+        num_points = len(self.points)
+        x = [self.points[i].x for i in range(num_points)]
+        dx = [x[i + 1] - x[i] for i in range(num_points - 1)]
+        for i in range(num_points - 1):
+            if dx[i] < gen_cost_dx_margin:
+                alert(
+                    {'data_type':'PiecewiseLinearCostFunction',
+                     'error_message':(
+                         'fails dx margin at points (i, i + 1). Please ensure that the sample points on each piecewise linear cost function are listed in order of increasing x coordinate, with each consecutive pair of x points differing by at least: %10.2e (MW)' %
+                         gen_cost_dx_margin),
+                     'diagnostics':{
+                         'ltbl': self.ltbl,
+                         'i': i,
+                         'dx[i]': dx[i],
+                         'x[i]': x[i],
+                         'x[i + 1]': x[i + 1]}})
+
+    def check_ddydx_margin(self):
+
+        num_points = len(self.points)
+        x = [self.points[i].x for i in range(num_points)]
+        y = [self.points[i].y for i in range(num_points)]
+        dx = [x[i + 1] - x[i] for i in range(num_points - 1)]
+        dy = [y[i + 1] - y[i] for i in range(num_points - 1)]
+        dydx = [dy[i] / dx[i] for i in range(num_points - 1)]
+        ddydx = [dydx[i + 1] - dydx[i] for i in range(num_points - 2)]
+        for i in range(num_points - 2):
+            if ddydx[i] < gen_cost_ddydx_margin:
+                alert(
+                    {'data_type':'PiecewiseLinearCostFunction',
+                     'error_message':(
+                         'fails ddydx margin at points (i, i + 1, i + 2). Please ensure that the sample points on each piecewise linear cost function have increasing slopes, with each consecutive pair of slopese differing by at least: %10.2e (USD/MW-h)' %
+                         gen_cost_ddydx_margin),
+                     'diagnostics':{
+                         'ltbl': self.ltbl,
+                         'i': i,
+                         'ddydx[i]': ddydx[i],
+                         'dydx[i]': dydx[i],
+                         'dydx[i + 1]': dydx[i + 1],
+                         'x[i]': x[i],
+                         'x[i + 1]': x[i + 1],
+                         'x[i + 2]': x[i + 2],
+                         'y[i]': y[i],
+                         'y[i + 1]': y[i + 1],
+                         'y[i + 2]': y[i + 2]}})
+
+    def check_x_min_margin(self, pmin):
+
+        num_points = len(self.points)
+        x = [self.points[i].x for i in range(num_points)]
+        xmin = min(x)
+        if pmin - xmin < gen_cost_x_bounds_margin:
+            alert(
+                {'data_type':'PiecewiseLinearCostFunction',
+                 'error_message':(
+                     'fails x min margin. Please ensure that for each piecewise linear cost function f for a generator g, the x coordinate of at least one of the sample points of f is less than pmin of g by at least: %10.2e (MW)' %
+                     gen_cost_x_bounds_margin),
+                 'diagnostics':{
+                     'ltbl': self.ltbl,
+                     'pmin - xmin': (pmin - xmin),
+                     'pmin': pmin,
+                     'xmin': xmin}})
+
+    def check_x_max_margin(self, pmax):
+
+        num_points = len(self.points)
+        x = [self.points[i].x for i in range(num_points)]
+        xmax = max(x)
+        if xmax - pmax < gen_cost_x_bounds_margin:
+            alert(
+                {'data_type':'PiecewiseLinearCostFunction',
+                 'error_message':(
+                    'fails x max margin. Please ensure that for each piecewise linear cost function f for a generator g, the x coordinate of at least one of the sample points of f is greater than pmax of g by at least: %10.2e (MW)' %
+                    gen_cost_x_bounds_margin),
+                 'diagnostics':{
+                     'ltbl': self.ltbl,
+                     'xmax - pmax': (xmax - pmax),
+                     'pmax': pmax,
+                     'xmax': xmax}})
+
     def read_from_row(self, row):
 
         self.ltbl = parse_token(row[0], int, default=None)
@@ -2114,6 +2342,17 @@ class Contingency:
         self.branch_out_events = []
         self.generator_out_events = []
 
+    def construct_record_rows(self):
+
+        rows = (
+            [['CONTINGENCY', self.label]] +
+            [r.construct_record_row()
+             for r in self.branch_out_events] +
+            [r.construct_record_row()
+             for r in self.generator_out_events] +
+            [['END']])
+        return rows
+
 class Point:
 
     def __init__(self):
@@ -2158,6 +2397,10 @@ class BranchOutEvent:
         self.ckt = parse_token(row[12], str, '1')
     '''
 
+    def construct_record_row(self):
+
+        return ['OPEN', 'BRANCH', 'FROM', 'BUS', self.i, 'TO', 'BUS', self.j, 'CIRCUIT', self.ckt]
+
 class GeneratorOutEvent:
 
     def __init__(self):
@@ -2174,3 +2417,7 @@ class GeneratorOutEvent:
 
         self.i = parse_token(row[5], int, default=None)
         self.id = parse_token(row[2], str, default=None)
+
+    def construct_record_row(self):
+
+        return ['REMOVE', 'UNIT', self.id, 'FROM', 'BUS', self.i]
