@@ -2602,6 +2602,8 @@ class SwitchedShunt:
         self.check_b1_0_implies_n1_0_n2_0_b2_0()
         self.check_n1_nonneg()
         self.check_n2_nonneg()
+        self.check_n1_le_1()
+        self.check_n2_le_1()
         self.check_n3_zero()
         self.check_n4_zero()
         self.check_n5_zero()
@@ -2670,6 +2672,27 @@ class SwitchedShunt:
             alert(
                 {'data_type': 'SwitchedShunt',
                  'error_message': 'fails n2 nonnegativity. Please ensure that the n2 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n2': self.n2}})
+    
+    def check_n1_le_1(self):
+
+        if self.n1 > 1:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n1 at most 1. Please ensure that the n1 field of every switched shunt is an integer <= 1.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n1': self.n1}})
+    
+
+    def check_n2_le_1(self):
+
+        if self.n2 > 1:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n2 at most 1. Please ensure that the n2 field of every switched shunt is an integer <= 1.',
                  'diagnostics': {
                      'i': self.i,
                      'n2': self.n2}})
