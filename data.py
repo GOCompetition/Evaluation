@@ -28,6 +28,7 @@ write_values_in_unused_fields = True
 gen_cost_dx_margin = 1.0e-6 # ensure that consecutive x points differ by at least this amount
 gen_cost_ddydx_margin = 1.0e-6 # ensure that consecutive slopes differ by at least this amount
 gen_cost_x_bounds_margin = 1.0e-6 # ensure that the pgen lower and upper bounds are covered by at least this amount
+raise_extra_field = False # set to true to raise an exception if extra fields are encountered. This can be a problem if a comma appears in an end-of-line comment.
 
 def alert(alert_dict):
     print(alert_dict)
@@ -61,7 +62,8 @@ def pad_row(row, new_row_len):
                 if len(row) > new_row_len:
                     print('extra field, row:')
                     print(row)
-                    raise Exception('extra field not allowed')
+                    if raise_extra_field:
+                        raise Exception('extra field not allowed')
         else:
             row = remove_end_of_line_comment_from_row(row, '/')
     except Exception as e:
@@ -88,7 +90,7 @@ def check_row_missing_fields(row, row_len_expected):
         traceback.print_exc()
         raise e
 
-def remove_end_of_line_comment_from_row(row, end_of_line_str):
+def remove_end_of_line_comment_from_row_first_occurence(row, end_of_line_str):
 
     index = [r.find(end_of_line_str) for r in row]
     len_row = len(row)
@@ -101,6 +103,25 @@ def remove_end_of_line_comment_from_row(row, end_of_line_str):
         row_new[len_row_new - 1] = remove_end_of_line_comment(row_new[len_row_new - 1], end_of_line_str)
     else:
         row_new = [r for r in row]
+    return row_new
+
+def remove_end_of_line_comment_from_row(row, end_of_line_str):
+
+    index = [r.find(end_of_line_str) for r in row]
+    len_row = len(row)
+    entries_with_end_of_line_strs = [i for i in range(len_row) if index[i] > -1]
+    num_entries_with_end_of_line_strs = len(entries_with_end_of_line_strs)
+    if num_entries_with_end_of_line_strs > 0:
+        #last_entry_with_end_of_line_str = min(entries_with_end_of_line_strs)
+        #len_row_new = last_entry_with_end_of_line_str + 1
+        row_new = [r for r in row]
+        #row_new = [row[i] for i in range(len_row_new)]
+        for i in entries_with_end_of_line_strs:
+            row_new[i] = remove_end_of_line_comment(row_new[i], end_of_line_str)
+        #row_new[len_row_new - 1] = remove_end_of_line_comment(row_new[len_row_new - 1], end_of_line_str)
+    else:
+        #row_new = [r for r in row]
+        row_new = row
     return row_new
 
 def remove_end_of_line_comment(token, end_of_line_str):
@@ -1795,7 +1816,10 @@ class Bus:
 
         row = pad_row(row, 13)
         self.i = parse_token(row[0], int, default=None)
-        self.area = parse_token(row[4], int, default=None)
+        try:
+            self.area = parse_token(row[4], int, default=None)
+        except:
+            print row
         self.vm = parse_token(row[7], float, default=None)
         self.va = parse_token(row[8], float, default=None)
         self.nvhi = parse_token(row[9], float, default=None)
@@ -2194,7 +2218,7 @@ class Transformer:
 
     def check_ratc1_rata1_consistent(self):
         
-        if not (self.ratc1 - self.rata1 > 0.0):
+        if self.ratc1 - self.rata1 < 0.0:
             alert(
                 {'data_type': 'Transformer',
                  'error_message': 'fails ratc1-rata1 consistency. Please ensure that the ratc1 and rata1 fields of every transformer satisfy ratc1 - rata1 >= 0.0.',
