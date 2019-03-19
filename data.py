@@ -164,6 +164,9 @@ class Data:
         self.inl.check()
         self.con.check()
         self.check_gen_cost_x_margin()
+        self.check_no_offline_generators_in_contingencies()
+        self.check_no_offline_lines_in_contingencies()
+        self.check_no_offline_transformers_in_contingencies()
 
     def scrub(self):
         '''modifies certain data elements to meet Grid Optimization Competition assumptions'''
@@ -187,6 +190,103 @@ class Data:
             plcf = self.rop.piecewise_linear_cost_functions[apdr.ctbl]
             plcf.check_x_max_margin(g_pt)
             plcf.check_x_min_margin(g_pb)
+
+    def check_no_offline_generators_in_contingencies(self):
+        '''check that no generators that are offline in the base case
+        are going out of service in a contingency'''
+
+        gens = self.raw.get_generators()
+        offline_gen_keys = [(g.i, g.id) for g in gens if not (g.stat > 0)]
+        ctgs = self.con.get_contingencies()
+        gen_ctgs = [c for c in ctgs if len(c.generator_out_events) > 0]
+        gen_ctg_out_event_map = {
+            c:c.generator_out_events[0]
+            for c in gen_ctgs}
+        gen_ctg_gen_key_ctg_map = {
+            (v.i, v.id):k
+            for k, v in gen_ctg_out_event_map.items()}
+        offline_gens_outaged_in_ctgs_keys = set(offline_gen_keys) & set(gen_ctg_gen_key_ctg_map.keys())
+        for g in offline_gens_outaged_in_ctgs_keys:
+            gen = self.raw.generators[g]
+            ctg = gen_ctg_gen_key_ctg_map[g]
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'fails no offline generators going out of service in contingencies. Please ensure that every generator that goes out of service in a contingency is in service in the base case, i.e. has stat=1.',
+                 'diagnostics':
+                 {'gen i': gen.i,
+                  'gen id': gen.id,
+                  'gen stat': gen.stat,
+                  'ctg label': c.label,
+                  'ctg gen event i': ctg.generator_out_events[0].i,
+                  'ctg gen event id': ctg.generator_out_events[0].id}})
+
+    def check_no_offline_lines_in_contingencies(self):
+        '''check that no lines (nontranformer branches) that are offline in the base case
+        are going out of service in a contingency'''
+
+        lines = self.raw.get_nontransformer_branches()
+        offline_line_keys = [(g.i, g.j, g.ckt) for g in lines if not (g.st > 0)]
+        ctgs = self.con.get_contingencies()
+        branch_ctgs = [c for c in ctgs if len(c.branch_out_events) > 0]
+        branch_ctg_out_event_map = {
+            c:c.branch_out_events[0]
+            for c in branch_ctgs}
+        branch_ctg_branch_key_ctg_map = {
+            (v.i, v.j, v.ckt):k
+            for k, v in branch_ctg_out_event_map.items()}
+        offline_lines_outaged_in_ctgs_keys = set(offline_line_keys) & set(branch_ctg_branch_key_ctg_map.keys())
+        for g in offline_lines_outaged_in_ctgs_keys:
+            line = self.raw.nontransformer_branches[g]
+            ctg = branch_ctg_branch_key_ctg_map[g]
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'fails no offline lines going out of service in contingencies. Please ensure that every line (nontransformer branch) that goes out of service in a contingency is in service in the base case, i.e. has st=1.',
+                 'diagnostics':
+                 {'line i': line.i,
+                  'line j': line.j,
+                  'line ckt': line.ckt,
+                  'line st': line.st,
+                  'ctg label': ctg.label,
+                  'ctg branch event i': ctg.branch_out_events[0].i,
+                  'ctg branch event j': ctg.branch_out_events[0].j,
+                  'ctg branch event ckt': ctg.branch_out_events[0].ckt}})
+
+    def check_no_offline_transformers_in_contingencies(self):
+        '''check that no branches that are offline in the base case
+        are going out of service in a contingency'''
+
+        transformers = self.raw.get_transformers()
+        offline_transformer_keys = [(g.i, g.j, g.k) for g in transformers if not (g.stat > 0)]
+        ctgs = self.con.get_contingencies()
+        branch_ctgs = [c for c in ctgs if len(c.branch_out_events) > 0]
+        branch_ctg_out_event_map = {
+            c:c.branch_out_events[0]
+            for c in branch_ctgs}
+        branch_ctg_branch_key_ctg_map = {
+            (v.i, v.j, v.ckt):k
+            for k, v in branch_ctg_out_event_map.items()}
+        offline_transformers_outaged_in_ctgs_keys = set(offline_transformer_keys) & set(branch_ctg_branch_key_ctg_map.keys())
+        for g in offline_transformers_outaged_in_ctgs_keys:
+            transformer = self.raw.transformers[g]
+            ctg = branch_ctg_branch_key_ctg_map[g]
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'fails no offline transformers going out of service in contingencies. Please ensure that every transformer that goes out of service in a contingency is in service in the base case, i.e. has stat=1.',
+                 'diagnostics':
+                 {'transformer i': transformer.i,
+                  'transformer j': transformer.j,
+                  'transformer ckt': transformer.ckt,
+                  'transformer stat': transformer.stat,
+                  'ctg label': ctg.label,
+                  'ctg branch event i': ctg.branch_out_events[0].i,
+                  'ctg branch event j': ctg.branch_out_events[0].j,
+                  'ctg branch event ckt': ctg.branch_out_events[0].ckt}})
 
 class Raw:
     '''In physical units, i.e. data convention, i.e. input and output data files'''
@@ -1695,6 +1795,10 @@ class Bus:
         # check vm within bounds?
         # check area in areas?
 
+    def clean_name(self):
+
+        self.name = ''
+
     def check_i_pos(self):
 
         if not (self.i > 0):
@@ -1856,6 +1960,12 @@ class Load:
 
         pass
         # need to check i in buses
+
+    def clean_id(self):
+        '''remove spaces and non-allowed characters
+        hope that this does not introduce duplication'''
+
+        self.id = clean_short_str(self.id)
 
     def read_from_row(self, row):
 
@@ -2479,6 +2589,10 @@ class Area:
         self.ptol = 10.0
         self.arname = 12*' '
 
+    def clean_arname(self):
+
+        self.arname = ''
+
     def check(self):
 
         self.check_i_pos()
@@ -2508,6 +2622,10 @@ class Zone:
 
         self.i = None # no default
         self.zoname = 12*' '
+
+    def clean_zoname(self):
+
+        self.zoname = ''
 
     def check(self):
 
@@ -2559,6 +2677,10 @@ class SwitchedShunt:
         self.b7 = 0.0
         self.n8 = 0
         self.b8 = 0.0
+
+    def clean_rmidnt(self):
+
+        self.rmidnt = ''
 
     def check(self):
         '''The Grid Optimization competition uses a continuous susceptance model
@@ -3169,7 +3291,14 @@ class Contingency:
         self.check_at_most_one_branch_or_generator_out_event()
         # need to check that each outaged component is active in the base case
 
+    def clean_label(self):
+        '''remove spaces and non-allowed characters
+        better to just give each contingency a label that is a positive integer'''
+
+        pass
+
     def check_label(self):
+        '''check that there are no spaces or non-allowed characters'''
 
         pass
 
