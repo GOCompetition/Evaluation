@@ -27,7 +27,7 @@ write_defaults_in_unused_fields = False
 write_values_in_unused_fields = True
 gen_cost_dx_margin = 1.0e-6 # ensure that consecutive x points differ by at least this amount
 gen_cost_ddydx_margin = 1.0e-6 # ensure that consecutive slopes differ by at least this amount
-gen_cost_x_bounds_margin = 1.0e-6 # ensure that the pgen lower and upper bounds are covered by at least this amount
+gen_cost_x_bounds_margin = 0.0e-6 # ensure that the pgen lower and upper bounds are covered by at least this amount
 raise_extra_field = False # set to true to raise an exception if extra fields are encountered. This can be a problem if a comma appears in an end-of-line comment.
 
 def alert(alert_dict):
