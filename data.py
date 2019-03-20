@@ -1920,10 +1920,7 @@ class Bus:
 
         row = pad_row(row, 13)
         self.i = parse_token(row[0], int, default=None)
-        try:
-            self.area = parse_token(row[4], int, default=None)
-        except:
-            print row
+        self.area = parse_token(row[4], int, default=None)
         self.vm = parse_token(row[7], float, default=None)
         self.va = parse_token(row[8], float, default=None)
         self.nvhi = parse_token(row[9], float, default=None)
