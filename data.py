@@ -29,6 +29,7 @@ gen_cost_dx_margin = 1.0e-6 # ensure that consecutive x points differ by at leas
 gen_cost_ddydx_margin = 1.0e-6 # ensure that consecutive slopes differ by at least this amount
 gen_cost_x_bounds_margin = 0.0e-6 # ensure that the pgen lower and upper bounds are covered by at least this amount
 raise_extra_field = False # set to true to raise an exception if extra fields are encountered. This can be a problem if a comma appears in an end-of-line comment.
+raise_con_quote = False # set to true to raise an exception if the con file has quotes. might as well accept this since we are rewriting the files
 
 def alert(alert_dict):
     print(alert_dict)
@@ -60,8 +61,10 @@ def pad_row(row, new_row_len):
             elif len(row) > new_row_len:
                 row = remove_end_of_line_comment_from_row(row, '/')
                 if len(row) > new_row_len:
-                    print('extra field, row:')
-                    print(row)
+                    alert(
+                        {'data_type': 'Data',
+                         'error_message': 'extra field, please ensure that all rows have the correcct number of fields',
+                         'diagnostics': str(row)})
                     if raise_extra_field:
                         raise Exception('extra field not allowed')
         else:
@@ -1138,15 +1141,15 @@ class Rop:
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         if write_values_in_unused_fields:
             rows = [
-                [r.bus, "'%s'" % r.genid, r.disp, r.dsptbl]
+                [r.bus, r.genid, r.disp, r.dsptbl]
                 for r in self.get_generator_dispatch_records()]
         elif write_defaults_in_unused_fields:
             rows = [
-                [r.bus, "'%s'" % r.genid, 1.0, r.dsptbl]
+                [r.bus, r.genid, 1.0, r.dsptbl]
                 for r in self.get_generator_dispatch_records()]
         else:
             rows = [
-                [r.bus, "'%s'" % r.genid, None, r.dsptbl]
+                [r.bus, r.genid, None, r.dsptbl]
                 for r in self.get_generator_dispatch_records()]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
@@ -1608,7 +1611,12 @@ class Con:
                 if l.find("'") > -1 or l.find('"') > -1:
                     print('no quotes allowed, line:')
                     print(l)
-                    raise Exception('no quotes allowed in CON')
+                    alert(
+                        {'data_type': 'Con',
+                         'error_message': 'no quotes allowed in CON file',
+                         'diagnostics': l})
+                    if raise_con_quote:
+                        raise Exception('no quotes allowed in CON')
         except Exception as e:
             traceback.print_exc()
             raise e
@@ -1955,8 +1963,18 @@ class Load:
 
     def check(self):
 
-        pass
+        self.check_id_len_1_or_2()
         # need to check i in buses
+
+    def check_id_len_1_or_2(self):
+
+        if not(len(self.id) in [1, 2]):
+            alert(
+                {'data_type': 'Load',
+                 'error_message': 'fails id string len 1 or 2. Please ensure that the id field of every load is a 1- or 2-character string with no blank characters',
+                 'diagnostics': {
+                     'i': self.i,
+                     'id': self.id}})
 
     def clean_id(self):
         '''remove spaces and non-allowed characters
@@ -1968,7 +1986,7 @@ class Load:
 
         row = pad_row(row, 14)
         self.i = parse_token(row[0], int, default=None)
-        self.id = parse_token(row[1], str, default=None)
+        self.id = parse_token(row[1], str, default=None).strip()
         self.status = parse_token(row[2], int, default=None)
         self.pl = parse_token(row[5], float, default=None)
         self.ql = parse_token(row[6], float, default=None)
@@ -1995,14 +2013,24 @@ class FixedShunt:
 
     def check(self):
 
-        pass
+        self.check_id_len_1_or_2()
         # need to check i in buses
+
+    def check_id_len_1_or_2(self):
+
+        if not(len(self.id) in [1, 2]):
+            alert(
+                {'data_type': 'FixedShunt',
+                 'error_message': 'fails id string len 1 or 2. Please ensure that the id field of every fixed shunt is a 1- or 2-character string with no blank characters',
+                 'diagnostics': {
+                     'i': self.i,
+                     'id': self.id}})
 
     def read_from_row(self, row):
 
         row = pad_row(row, 5)
         self.i = parse_token(row[0], int, default=None)
-        self.id = parse_token(row[1], str, default=None)
+        self.id = parse_token(row[1], str, default=None).strip()
         self.status = parse_token(row[2], int, default=None)
         self.gl = parse_token(row[3], float, default=None)
         self.bl = parse_token(row[4], float, default=None)
@@ -2043,10 +2071,21 @@ class Generator:
 
     def check(self):
 
+        self.check_id_len_1_or_2()
         self.check_qt_qb_consistent()
         self.check_pt_pb_consistent()
         # check pg, qg within bounds?
         # need to check i in buses
+
+    def check_id_len_1_or_2(self):
+
+        if not(len(self.id) in [1, 2]):
+            alert(
+                {'data_type': 'Generator',
+                 'error_message': 'fails id string len 1 or 2. Please ensure that the id field of every generator is a 1- or 2-character string with no blank characters',
+                 'diagnostics': {
+                     'i': self.i,
+                     'id': self.id}})
 
     def check_qt_qb_consistent(self):
         
@@ -2078,7 +2117,7 @@ class Generator:
 
         row = pad_row(row, 28)
         self.i = parse_token(row[0], int, default=None)
-        self.id = parse_token(row[1], str, default=None)
+        self.id = parse_token(row[1], str, default=None).strip()
         self.pg = parse_token(row[2], float, default=None)
         self.qg = parse_token(row[3], float, default=None)
         self.qt = parse_token(row[4], float, default=None)
@@ -2138,11 +2177,23 @@ class NontransformerBranch:
 
     def check(self):
 
+        self.check_ckt_len_1_or_2()
         self.check_r_x_nonzero()
         self.check_ratea_pos()
         self.check_ratec_pos()
         self.check_ratec_ratea_consistent()
         # need to check i, j in buses
+
+    def check_ckt_len_1_or_2(self):
+
+        if not(len(self.ckt) in [1, 2]):
+            alert(
+                {'data_type': 'NontransformerBranch',
+                 'error_message': 'fails ckt string len 1 or 2. Please ensure that the id field of every nontransformer branch is a 1- or 2-character string with no blank characters',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'ckt': self.ckt}})
 
     def check_r_x_nonzero(self):
         
@@ -2200,7 +2251,7 @@ class NontransformerBranch:
         row = pad_row(row, 24)
         self.i = parse_token(row[0], int, default=None)
         self.j = parse_token(row[1], int, default=None)
-        self.ckt = parse_token(row[2], str, default=None)
+        self.ckt = parse_token(row[2], str, default=None).strip()
         self.r = parse_token(row[3], float, default=None)
         self.x = parse_token(row[4], float, default=None)
         self.b = parse_token(row[5], float, default=None)
@@ -2274,6 +2325,7 @@ class Transformer:
 
     def check(self):
 
+        self.check_ckt_len_1_or_2()
         self.check_r12_x12_nonzero()
         self.check_rata1_pos()
         self.check_ratc1_pos()
@@ -2282,6 +2334,18 @@ class Transformer:
         self.check_windv2_pos()
         self.check_windv2_eq_1()
         # need to check i, j in buses
+
+    def check_ckt_len_1_or_2(self):
+
+        if not(len(self.ckt) in [1, 2]):
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'fails ckt string len 1 or 2. Please ensure that the ckt field of every transformer is a 1- or 2-character string with no blank characters',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt}})
 
     def check_r12_x12_nonzero(self):
         
@@ -2533,7 +2597,7 @@ class Transformer:
             raise e
         self.i = parse_token(row[0], int, default=None)
         self.j = parse_token(row[1], int, default=None)
-        self.ckt = parse_token(row[3], str, default=None)
+        self.ckt = parse_token(row[3], str, default=None).strip()
         self.mag1 = parse_token(row[7], float, default=None)
         self.mag2 = parse_token(row[8], float, default=None)
         self.stat = parse_token(row[11], int, default=None)
@@ -3199,7 +3263,7 @@ class PiecewiseLinearCostFunction():
                 row[(3 + 2*i):(5 + 2*i)])
             self.points.append(point)
         if read_unused_fields:
-            self.label = parse_token(row[1], str, '')
+            self.label = parse_token(row[1], str, '').strip()
 
     def get_num_rows_from_row(self, row):
 
@@ -3262,7 +3326,7 @@ class GeneratorInlRecord:
 
         row = pad_row(row, 7)
         self.i = parse_token(row[0], int, default=None)
-        self.id = parse_token(row[1], str, default=None)
+        self.id = parse_token(row[1], str, default=None).strip()
         self.r = parse_token(row[5], float, default=None)
         if read_unused_fields:
             self.h = parse_token(row[2], float, 4.0)
@@ -3386,7 +3450,7 @@ class BranchOutEvent:
         check_row_missing_fields(row, 10)
         self.i = parse_token(row[4], int, default=None)
         self.j = parse_token(row[7], int, default=None)
-        self.ckt = parse_token(row[9], str, default=None)
+        self.ckt = parse_token(row[9], str, default=None).strip()
 
     def read_from_csv(self, row):
 
@@ -3428,7 +3492,7 @@ class GeneratorOutEvent:
     def read_from_row(self, row):
 
         self.i = parse_token(row[5], int, default=None)
-        self.id = parse_token(row[2], str, default=None)
+        self.id = parse_token(row[2], str, default=None).strip()
 
     def construct_record_row(self):
 
