@@ -1209,6 +1209,7 @@ class Evaluation:
         self.eval_bus_swsh_adm_imag_viol()
         self.eval_bus_swsh_pow()
         self.eval_bus_pow_balance()
+        #self.print_bus_pow_balance()
         self.compute_detail()
         self.eval_infeas()
         self.eval_penalty()
@@ -1231,6 +1232,7 @@ class Evaluation:
         self.eval_ctg_bus_swsh_adm_imag_viol()
         self.eval_ctg_bus_swsh_pow()
         self.eval_ctg_bus_pow_balance()
+        #self.print_ctg_bus_pow_balance()
         self.eval_ctg_gen_pvpq_viol()
         self.compute_ctg_detail()
         self.eval_ctg_infeas()
@@ -1477,6 +1479,24 @@ class Evaluation:
     def eval_bus_swsh_pow(self):
 
         self.bus_swsh_pow_imag = -self.bus_swsh_adm_imag * self.bus_volt_mag**2.0
+
+    def print_bus_pow_balance(self):
+
+        print("bus number:")
+        print(self.bus_i)
+        print("bus real power balance violation:")
+        print(self.bus_pow_balance_real_viol)
+        print("bus reactive power balance violation:")
+        print(self.bus_pow_balance_imag_viol)
+
+    def print_ctg_bus_pow_balance(self):
+
+        print("bus number:")
+        print(self.bus_i)
+        print("ctg bus real power balance violation:")
+        print(self.ctg_bus_pow_balance_real_viol)
+        print("ctg bus reactive power balance violation:")
+        print(self.ctg_bus_pow_balance_imag_viol)
 
     def eval_bus_pow_balance(self):
 
