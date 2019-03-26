@@ -221,7 +221,7 @@ class Data:
                  {'gen i': gen.i,
                   'gen id': gen.id,
                   'gen stat': gen.stat,
-                  'ctg label': c.label,
+                  'ctg label': ctg.label,
                   'ctg gen event i': ctg.generator_out_events[0].i,
                   'ctg gen event id': ctg.generator_out_events[0].id}})
 
@@ -2598,6 +2598,22 @@ class Transformer:
         self.i = parse_token(row[0], int, default=None)
         self.j = parse_token(row[1], int, default=None)
         self.ckt = parse_token(row[3], str, default=None).strip()
+        # check no 3-winding
+        k = parse_token(row[2], int, default=None)
+        if not (k == 0):
+            try:
+                alert(
+                    {'data_type': 'Transformer',
+                     'error_message': 'fails no 3 winding transformer. Please model any 3 winding transformer as a configuration of 2 winding transformers',
+                     'diagnostics': {
+                         'i': self.i,
+                         'j': self.j,
+                         'k': k,
+                         'ckt': self.ckt}})
+                raise Exception('3 winding transformers not allowed')
+            except Exception as e:
+                traceback.print_exc()
+                raise e
         self.mag1 = parse_token(row[7], float, default=None)
         self.mag2 = parse_token(row[8], float, default=None)
         self.stat = parse_token(row[11], int, default=None)
@@ -2823,6 +2839,8 @@ class SwitchedShunt:
         self.check_b6_zero()
         self.check_b7_zero()
         self.check_b8_zero()
+        self.check_bmin_le_binit()
+        self.check_binit_le_bmax()
                                                 
     def check_b1_b2_opposite_signs(self):
 
@@ -3023,6 +3041,32 @@ class SwitchedShunt:
                  'diagnostics': {
                      'i': self.i,
                      'b8': self.b8}})
+
+    def check_bmin_le_binit(self):
+
+        if min(self.b1, self.b2) > self.binit:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails bmin <= binit. Please ensure that bmin <= binit, where bmin = min(b1,b2).',
+                 'diagnostics': {
+                     'i': self.i,
+                     'bmin': min(self.b1, self.b2),
+                     'binit': self.binit,
+                     'b1': self.b1,
+                     'b2': self.b2}})
+
+    def check_binit_le_bmax(self):
+
+        if self.binit > max(self.b1, self.b2):
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails binit <= bmax. Please ensure that binit <= bmax, where bmax = max(b1,b2).',
+                 'diagnostics': {
+                     'i': self.i,
+                     'bmax': max(self.b1, self.b2),
+                     'binit': self.binit,
+                     'b1': self.b1,
+                     'b2': self.b2}})
 
     def read_from_row(self, row):
 
