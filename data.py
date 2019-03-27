@@ -3394,6 +3394,7 @@ class Contingency:
         self.check_at_most_one_branch_out_event()
         self.check_at_most_one_generator_out_event()
         self.check_at_most_one_branch_or_generator_out_event()
+        self.check_at_least_one_branch_or_generator_out_event()
         # need to check that each outaged component is active in the base case
 
     def clean_label(self):
@@ -3443,6 +3444,16 @@ class Contingency:
             alert(
                 {'data_type': 'Contingency',
                  'error_message': 'fails at most 1 branch or generator out event. Please ensure that each contingency has at most 1 branch or generator out event.',
+                 'diagnostics':{
+                     'label': self.label,
+                     'num branch out events + num generator out events': len(self.branch_out_events) + len(self.generator_out_events)}})
+
+    def check_at_least_one_branch_or_generator_out_event(self):
+
+        if len(self.branch_out_events) + len(self.generator_out_events) < 1:
+            alert(
+                {'data_type': 'Contingency',
+                 'error_message': 'fails at least 1 branch or generator out event. Please ensure that each contingency has at least 1 branch or generator out event.',
                  'diagnostics':{
                      'label': self.label,
                      'num branch out events + num generator out events': len(self.branch_out_events) + len(self.generator_out_events)}})
