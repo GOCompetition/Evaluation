@@ -56,7 +56,8 @@ base_case_penalty_weight = 0.5 # dimensionless. corresponds to delta in the form
 
 # tolerance on hard constraints
 #hard_constr_tol = 0.0
-hard_constr_tol = 1e-12
+#hard_constr_tol = 1e-12
+hard_constr_tol = 1e-4
 
 # pandas float precision for reading from solution files
 # None: ordinary converter, 'high', 'round_trip'
