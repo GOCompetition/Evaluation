@@ -175,6 +175,7 @@ class Data:
         '''modifies certain data elements to meet Grid Optimization Competition assumptions'''
 
         self.raw.switched_shunts_combine_blocks_steps()
+        self.rop.scrub()
 
     def convert_to_offline(self):
         '''converts the operating point to the offline starting point'''
@@ -1024,6 +1025,15 @@ class Rop:
         self.active_power_dispatch_records = {}
         self.piecewise_linear_cost_functions = {}
         
+    def scrub(self):
+
+        self.scrub_piecewise_linear_cost_functions()
+
+    def scrub_piecewise_linear_cost_functions(self):
+
+        for r in self.get_piecewise_linear_cost_functions():
+            r.scrub()
+
     def check(self):
 
         self.check_generator_dispatch_records()
@@ -2818,29 +2828,42 @@ class SwitchedShunt:
                 n2 = 0
                 b1 = 0.0
                 b2 = 0.0
+
+        ***********************************************
+        UPDATE
+        ***********************************************
+
+        given that we will add a 1e-4 tolerance on hard constraints,
+        we do not need to worry about most of this switched shunt stuff any more
         '''
 
-        self.check_b1_b2_opposite_signs()
-        self.check_n1_0_implies_b1_0_n2_0_b2_0()
-        self.check_b1_0_implies_n1_0_n2_0_b2_0()
+        #self.check_b1_b2_opposite_signs()
+        #self.check_n1_0_implies_b1_0_n2_0_b2_0()
+        #self.check_b1_0_implies_n1_0_n2_0_b2_0()
         self.check_n1_nonneg()
         self.check_n2_nonneg()
-        self.check_n1_le_1()
-        self.check_n2_le_1()
-        self.check_n3_zero()
-        self.check_n4_zero()
-        self.check_n5_zero()
-        self.check_n6_zero()
-        self.check_n7_zero()
-        self.check_n8_zero()
-        self.check_b3_zero()
-        self.check_b4_zero()
-        self.check_b5_zero()
-        self.check_b6_zero()
-        self.check_b7_zero()
-        self.check_b8_zero()
-        self.check_bmin_le_binit()
-        self.check_binit_le_bmax()
+        self.check_n3_nonneg()
+        self.check_n4_nonneg()
+        self.check_n5_nonneg()
+        self.check_n6_nonneg()
+        self.check_n7_nonneg()
+        self.check_n8_nonneg()
+        #self.check_n1_le_1()
+        #self.check_n2_le_1()
+        #self.check_n3_zero()
+        #self.check_n4_zero()
+        #self.check_n5_zero()
+        #self.check_n6_zero()
+        #self.check_n7_zero()
+        #self.check_n8_zero()
+        #self.check_b3_zero()
+        #self.check_b4_zero()
+        #self.check_b5_zero()
+        #self.check_b6_zero()
+        #self.check_b7_zero()
+        #self.check_b8_zero()
+        #self.check_bmin_le_binit()
+        #self.check_binit_le_bmax()
                                                 
     def check_b1_b2_opposite_signs(self):
 
@@ -2900,6 +2923,66 @@ class SwitchedShunt:
                  'diagnostics': {
                      'i': self.i,
                      'n2': self.n2}})
+    
+    def check_n3_nonneg(self):
+
+        if self.n3 < 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n3 nonnegativity. Please ensure that the n3 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n3': self.n3}})
+    
+    def check_n4_nonneg(self):
+
+        if self.n4 < 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n4 nonnegativity. Please ensure that the n4 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n4': self.n4}})
+    
+    def check_n5_nonneg(self):
+
+        if self.n5 < 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n5 nonnegativity. Please ensure that the n5 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n5': self.n5}})
+    
+    def check_n6_nonneg(self):
+
+        if self.n6 < 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n6 nonnegativity. Please ensure that the n6 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n6': self.n6}})
+    
+    def check_n7_nonneg(self):
+
+        if self.n7 < 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n7 nonnegativity. Please ensure that the n7 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n7': self.n7}})
+    
+    def check_n8_nonneg(self):
+
+        if self.n8 < 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails n8 nonnegativity. Please ensure that the n8 field of every switched shunt is a nonnegative integer.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'n8': self.n8}})
     
     def check_n1_le_1(self):
 
@@ -3174,6 +3257,14 @@ class PiecewiseLinearCostFunction():
         self.label = ''
         self.npairs = None # no default value allowed
         self.points = [] # no default value allowed
+
+    def scrub(self):
+
+        self.scrub_label()
+
+    def scrub_label(self):
+
+        self.label = self.label.replace(',', '') # remove commas
 
     def check(self):
 
