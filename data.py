@@ -174,7 +174,7 @@ class Data:
     def scrub(self):
         '''modifies certain data elements to meet Grid Optimization Competition assumptions'''
 
-        self.raw.switched_shunts_combine_blocks_steps()
+        #self.raw.switched_shunts_combine_blocks_steps()
         self.rop.scrub()
 
     def convert_to_offline(self):
@@ -768,23 +768,9 @@ class Raw:
     def switched_shunts_combine_blocks_steps(self):
 
         for r in self.switched_shunts.values():
-            b_min = 0.0
-            b_max = 0.0
-            b1 = float(r.n1) * r.b1
-            b2 = float(r.n2) * r.b2
-            b3 = float(r.n3) * r.b3
-            b4 = float(r.n4) * r.b4
-            b5 = float(r.n5) * r.b5
-            b6 = float(r.n6) * r.b6
-            b7 = float(r.n7) * r.b7
-            b8 = float(r.n8) * r.b8
-            for b in [b1, b2, b3, b4, b5, b6, b7, b8]:
-                if b > 0.0:
-                    b_max += b
-                elif b < 0.0:
-                    b_min += b
-                else:
-                    break
+            b_min_max = r.compute_bmin_bmax()
+            b_min = b_min_max[0]
+            b_max = b_min_max[1]
             r.n1 = 0
             r.b1 = 0.0
             r.n2 = 0
@@ -2769,6 +2755,27 @@ class SwitchedShunt:
 
         self.rmidnt = ''
 
+    def compute_bmin_bmax(self):
+
+        b_min = 0.0
+        b_max = 0.0
+        b1 = float(self.n1) * self.b1
+        b2 = float(self.n2) * self.b2
+        b3 = float(self.n3) * self.b3
+        b4 = float(self.n4) * self.b4
+        b5 = float(self.n5) * self.b5
+        b6 = float(self.n6) * self.b6
+        b7 = float(self.n7) * self.b7
+        b8 = float(self.n8) * self.b8
+        for b in [b1, b2, b3, b4, b5, b6, b7, b8]:
+            if b > 0.0:
+                b_max += b
+            elif b < 0.0:
+                b_min += b
+            else:
+                break
+        return (b_min, b_max)
+
     def check(self):
         '''The Grid Optimization competition uses a continuous susceptance model
         of shunt switching. Therefore every switched shunt can be characterized by the following data:
@@ -2862,8 +2869,7 @@ class SwitchedShunt:
         #self.check_b6_zero()
         #self.check_b7_zero()
         #self.check_b8_zero()
-        #self.check_bmin_le_binit()
-        #self.check_binit_le_bmax()
+        self.check_bmin_le_binit_le_bmax()
                                                 
     def check_b1_b2_opposite_signs(self):
 
@@ -3125,31 +3131,59 @@ class SwitchedShunt:
                      'i': self.i,
                      'b8': self.b8}})
 
-    def check_bmin_le_binit(self):
+    def check_bmin_le_binit_le_bmax(self):
 
-        if min(self.b1, self.b2) > self.binit:
+        b_min_max = self.compute_bmin_bmax()
+        bmin = b_min_max[0]
+        bmax = b_min_max[1]
+        if bmin > self.binit:
             alert(
                 {'data_type': 'SwitchedShunt',
-                 'error_message': 'fails bmin <= binit. Please ensure that bmin <= binit, where bmin = min(b1,b2).',
+                 'error_message': 'fails bmin <= binit. Please ensure that bmin <= binit, where bmin is derived from b1, n1, ..., b8, n8 as described in the formulation.',
                  'diagnostics': {
                      'i': self.i,
-                     'bmin': min(self.b1, self.b2),
+                     'bmin': bmin,
                      'binit': self.binit,
                      'b1': self.b1,
-                     'b2': self.b2}})
-
-    def check_binit_le_bmax(self):
-
-        if self.binit > max(self.b1, self.b2):
+                     'n1': self.n1,
+                     'b2': self.b2,
+                     'n2': self.n2,
+                     'b3': self.b3,
+                     'n3': self.n3,
+                     'b4': self.b4,
+                     'n4': self.n4,
+                     'b5': self.b5,
+                     'n5': self.n5,
+                     'b6': self.b6,
+                     'n6': self.n6,
+                     'b7': self.b7,
+                     'n7': self.n7,
+                     'b8': self.b8,
+                     'n8': self.n8}})
+        if self.binit > bmax:
             alert(
                 {'data_type': 'SwitchedShunt',
-                 'error_message': 'fails binit <= bmax. Please ensure that binit <= bmax, where bmax = max(b1,b2).',
+                 'error_message': 'fails binit <= bmax. Please ensure that binit <= bmax, where bmin is derived from b1, n1, ..., b8, n8 as described in the formulation.',
                  'diagnostics': {
                      'i': self.i,
-                     'bmax': max(self.b1, self.b2),
+                     'bmax': bmax,
                      'binit': self.binit,
                      'b1': self.b1,
-                     'b2': self.b2}})
+                     'n1': self.n1,
+                     'b2': self.b2,
+                     'n2': self.n2,
+                     'b3': self.b3,
+                     'n3': self.n3,
+                     'b4': self.b4,
+                     'n4': self.n4,
+                     'b5': self.b5,
+                     'n5': self.n5,
+                     'b6': self.b6,
+                     'n6': self.n6,
+                     'b7': self.b7,
+                     'n7': self.n7,
+                     'b8': self.b8,
+                     'n8': self.n8}})
 
     def read_from_row(self, row):
 
