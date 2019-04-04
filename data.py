@@ -28,6 +28,7 @@ write_values_in_unused_fields = True
 gen_cost_dx_margin = 1.0e-6 # ensure that consecutive x points differ by at least this amount
 gen_cost_ddydx_margin = 1.0e-6 # ensure that consecutive slopes differ by at least this amount
 gen_cost_x_bounds_margin = 0.0e-6 # ensure that the pgen lower and upper bounds are covered by at least this amount
+gen_cost_default_marginal_cost = 1.0e2 # default marginal cost (usd/mw-h) used if a cost function has an error
 raise_extra_field = False # set to true to raise an exception if extra fields are encountered. This can be a problem if a comma appears in an end-of-line comment.
 raise_con_quote = False # set to true to raise an exception if the con file has quotes. might as well accept this since we are rewriting the files
 
@@ -175,12 +176,137 @@ class Data:
         '''modifies certain data elements to meet Grid Optimization Competition assumptions'''
 
         #self.raw.switched_shunts_combine_blocks_steps()
+        self.raw.scrub()
         self.rop.scrub()
+        self.check_gen_cost_revise()
+        self.remove_contingencies_with_offline_generators()
+        self.remove_contingencies_with_offline_lines()
+        self.remove_contingencies_with_offline_transformers()
 
     def convert_to_offline(self):
         '''converts the operating point to the offline starting point'''
 
         self.raw.set_operating_point_to_offline_solution()
+
+    def check_gen_cost_revise(self):
+
+        for g in self.raw.get_generators():
+            g_i = g.i
+            g_id = g.id
+            g_pt = g.pt
+            g_pb = g.pb
+            gdr = self.rop.generator_dispatch_records[(g_i, g_id)]
+            apdr = self.rop.active_power_dispatch_records[gdr.dsptbl]
+            plcf = self.rop.piecewise_linear_cost_functions[apdr.ctbl]
+            np = len(plcf.points)
+            if np != plcf.npairs:
+                alert(
+                    {'data_type':
+                     'Data',
+                     'error_message':
+                     'revising generator piecewise linear cost function, np!=npairs',
+                     'diagnostics':
+                     {'gen i': g_i,
+                      'gen id': g_id,
+                      'gen pt': g_pt,
+                      'gen pb': g_pb,
+                      'np': np,
+                      'npairs': plcf.npairs}})
+                plcf.revise(g_pb, g_pt)
+                continue
+            if np < 2:
+                alert(
+                    {'data_type':
+                     'Data',
+                     'error_message':
+                     'revising generator piecewise linear cost function, np<2',
+                     'diagnostics':
+                     {'gen i': g_i,
+                      'gen id': g_id,
+                      'gen pt': g_pt,
+                      'gen pb': g_pb,
+                      'np': np,
+                      'npairs': plcf.npairs}})
+                plcf.revise(g_pb, g_pt)
+                continue
+            x = [p.x for p in plcf.points]
+            xmin = min(x)
+            if xmin > g_pb - gen_cost_x_bounds_margin:
+                alert(
+                    {'data_type':
+                     'Data',
+                     'error_message':
+                     'revising generator piecewise linear cost function, xmin > pmin - margin',
+                     'diagnostics':
+                     {'gen i': g_i,
+                      'gen id': g_id,
+                      'gen pt': g_pt,
+                      'gen pb': g_pb,
+                      'np': np,
+                      'npairs': plcf.npairs,
+                      'x': x}})
+                plcf.revise(g_pb, g_pt)
+                continue
+            xmax = max(x)
+            if xmax < g_pt + gen_cost_x_bounds_margin:
+                alert(
+                    {'data_type':
+                     'Data',
+                     'error_message':
+                     'revising generator piecewise linear cost function, xmax < pmax + margin',
+                     'diagnostics':
+                     {'gen i': g_i,
+                      'gen id': g_id,
+                      'gen pt': g_pt,
+                      'gen pb': g_pb,
+                      'np': np,
+                      'npairs': plcf.npairs,
+                      'x': x}})
+                plcf.revise(g_pb, g_pt)
+                continue
+            dx = [x[i + 1] - x[i] for i in range(np - 1)]
+            if any([dxi < gen_cost_dx_margin for dxi in dx]):
+                alert(
+                    {'data_type':
+                     'Data',
+                     'error_message':
+                     'revising generator piecewise linear cost function, dx < margin',
+                     'diagnostics':
+                     {'gen i': g_i,
+                      'gen id': g_id,
+                      'gen pt': g_pt,
+                      'gen pb': g_pb,
+                      'np': np,
+                      'npairs': plcf.npairs,
+                      'x': x,
+                      'dx': dx}})
+                plcf.revise(g_pb, g_pt)
+                continue
+            if np > 2:
+                y = [p.y for p in plcf.points]
+                dy = [y[i + 1] - y[i] for i in range(np - 1)]
+                dydx = [dy[i] / dx[i] for i in range(np - 1)]
+                ddydx = [dydx[i + 1] - dydx[i] for i in range(np - 2)]
+                if any([ddydxi < gen_cost_ddydx_margin for ddydxi in ddydx]):
+                    alert(
+                        {'data_type':
+                         'Data',
+                         'error_message':
+                         'revising generator piecewise linear cost function, ddydx < margin',
+                         'diagnostics':
+                         {'gen i': g_i,
+                          'gen id': g_id,
+                          'gen pt': g_pt,
+                          'gen pb': g_pb,
+                          'np': np,
+                          'npairs': plcf.npairs,
+                          'x': x,
+                          'dx': dx,
+                          'dy': dy,
+                          'dydx': dydx,
+                          'ddydx': ddydx}})
+                    plcf.revise(g_pb, g_pt)
+                    continue
 
     def check_gen_cost_x_margin(self):
 
@@ -226,6 +352,35 @@ class Data:
                   'ctg gen event i': ctg.generator_out_events[0].i,
                   'ctg gen event id': ctg.generator_out_events[0].id}})
 
+    def remove_contingencies_with_offline_generators(self):
+        '''remove any contingencies where a generator that is offline in
+        the base case is going out of service'''
+
+        ctgs_label_to_remove = []
+        gens = self.raw.get_generators()
+        offline_gen_keys = [(g.i, g.id) for g in gens if not (g.stat > 0)]
+        ctgs = self.con.get_contingencies()
+        gen_ctgs = [c for c in ctgs if len(c.generator_out_events) > 0]
+        gen_ctg_out_event_map = {
+            c:c.generator_out_events[0]
+            for c in gen_ctgs}
+        gen_ctg_gen_key_ctg_map = {
+            (v.i, v.id):k
+            for k, v in gen_ctg_out_event_map.items()}
+        offline_gens_outaged_in_ctgs_keys = set(offline_gen_keys) & set(gen_ctg_gen_key_ctg_map.keys())
+        ctgs_label_to_remove = list(set(
+            [gen_ctg_gen_key_ctg_map[g].label
+             for g in offline_gens_outaged_in_ctgs_keys]))
+        for k in ctgs_label_to_remove:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'removing generator contingency where the generator is out of service in the base case',
+                 'diagnostics':
+                 {'ctg label': k}})
+            del self.con.contingencies[k]
+
     def check_no_offline_lines_in_contingencies(self):
         '''check that no lines (nontranformer branches) that are offline in the base case
         are going out of service in a contingency'''
@@ -258,6 +413,35 @@ class Data:
                   'ctg branch event i': ctg.branch_out_events[0].i,
                   'ctg branch event j': ctg.branch_out_events[0].j,
                   'ctg branch event ckt': ctg.branch_out_events[0].ckt}})
+
+    def remove_contingencies_with_offline_lines(self):
+        '''remove any contingencies where a line that is offline in
+        the base case is going out of service'''
+
+        ctgs_label_to_remove = []
+        lines = self.raw.get_nontransformer_branches()
+        offline_line_keys = [(g.i, g.j, g.ckt) for g in lines if not (g.st > 0)]
+        ctgs = self.con.get_contingencies()
+        branch_ctgs = [c for c in ctgs if len(c.branch_out_events) > 0]
+        branch_ctg_out_event_map = {
+            c:c.branch_out_events[0]
+            for c in branch_ctgs}
+        branch_ctg_branch_key_ctg_map = {
+            (v.i, v.j, v.ckt):k
+            for k, v in branch_ctg_out_event_map.items()}
+        offline_lines_outaged_in_ctgs_keys = set(offline_line_keys) & set(branch_ctg_branch_key_ctg_map.keys())
+        ctgs_label_to_remove = list(set(
+            [branch_ctg_branch_key_ctg_map[g].label
+             for g in offline_lines_outaged_in_ctgs_keys]))
+        for k in ctgs_label_to_remove:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'removing line contingency where the line is out of service in the base case',
+                 'diagnostics':
+                 {'ctg label': k}})
+            del self.con.contingencies[k]
 
     def check_no_offline_transformers_in_contingencies(self):
         '''check that no branches that are offline in the base case
@@ -292,6 +476,35 @@ class Data:
                   'ctg branch event j': ctg.branch_out_events[0].j,
                   'ctg branch event ckt': ctg.branch_out_events[0].ckt}})
 
+    def remove_contingencies_with_offline_transformers(self):
+        '''remove any contingencies where a transformer that is offline in
+        the base case is going out of service'''
+
+        ctgs_label_to_remove = []
+        transformers = self.raw.get_transformers()
+        offline_transformer_keys = [(g.i, g.j, g.ckt) for g in transformers if not (g.stat > 0)]
+        ctgs = self.con.get_contingencies()
+        branch_ctgs = [c for c in ctgs if len(c.branch_out_events) > 0]
+        branch_ctg_out_event_map = {
+            c:c.branch_out_events[0]
+            for c in branch_ctgs}
+        branch_ctg_branch_key_ctg_map = {
+            (v.i, v.j, v.ckt):k
+            for k, v in branch_ctg_out_event_map.items()}
+        offline_transformers_outaged_in_ctgs_keys = set(offline_transformer_keys) & set(branch_ctg_branch_key_ctg_map.keys())
+        ctgs_label_to_remove = list(set(
+            [branch_ctg_branch_key_ctg_map[g].label
+             for g in offline_transformers_outaged_in_ctgs_keys]))
+        for k in ctgs_label_to_remove:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'removing transformer contingency where the transformer is out of service in the base case',
+                 'diagnostics':
+                 {'ctg label': k}})
+            del self.con.contingencies[k]
+
 class Raw:
     '''In physical units, i.e. data convention, i.e. input and output data files'''
 
@@ -307,6 +520,11 @@ class Raw:
         self.areas = {}
         self.switched_shunts = {}
 
+    def scrub(self):
+
+        self.scrub_nontransformer_branches()
+        self.scrub_transformers()
+
     def check(self):
 
         self.check_case_identification()
@@ -318,6 +536,16 @@ class Raw:
         self.check_transformers()
         self.check_areas()
         self.check_switched_shunts()
+
+    def scrub_nontransformer_branches(self):
+
+        for r in self.get_nontransformer_branches():
+            r.scrub()
+
+    def scrub_transformers(self):
+
+        for r in self.get_transformers():
+            r.scrub()
 
     def check_case_identification(self):
         
@@ -2171,6 +2399,30 @@ class NontransformerBranch:
         self.o4 = 0
         self.f4 = 1.0
 
+    def scrub(self):
+
+        if self.ratea <= 0.0:
+            alert(
+                {'data_type': 'NontransformerBranch',
+                 'error_message': 'adjusting ratea to 1.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'ckt': self.ckt,
+                     'ratea': self.ratea}})
+            self.ratea = 1.0
+        if self.ratec < self.ratea:
+            alert(
+                {'data_type': 'NontransformerBranch',
+                 'error_message': 'adjusting ratec to ratea',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'ckt': self.ckt,
+                     'ratea': self.ratea,
+                     'ratec': self.ratec}})
+            self.ratec = self.ratea
+
     def check(self):
 
         self.check_ckt_len_1_or_2()
@@ -2318,6 +2570,32 @@ class Transformer:
         self.cnxa1 = 0.0
         self.windv2 = 1.0
         self.nomv2 = 0.0
+
+    def scrub(self):
+
+        if self.rata1 <= 0.0:
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'adjusting rata1 to 1.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'rata1': self.rata1}})
+            self.rata1 = 1.0
+        if self.ratc1 < self.rata1:
+            alert(
+                {'data_type': 'Transformer',
+                 'error_message': 'adjusting ratc1 to rata1',
+                 'diagnostics': {
+                     'i': self.i,
+                     'j': self.j,
+                     'k': self.k,
+                     'ckt': self.ckt,
+                     'rata1': self.rata1,
+                     'ratc1': self.ratc1}})
+            self.ratc1 = self.rata1
 
     def check(self):
 
@@ -3291,6 +3569,19 @@ class PiecewiseLinearCostFunction():
         self.label = ''
         self.npairs = None # no default value allowed
         self.points = [] # no default value allowed
+
+    def revise(self, pmin, pmax):
+
+        self.label = ''
+        self.npairs = 2
+        x = [p.x for p in self.points]
+        xmin = min(x + [pmin, pmax]) - gen_cost_x_bounds_margin - 1.0
+        xmax = max(x + [pmin, pmax]) + gen_cost_x_bounds_margin + 1.0
+        self.points = [Point(), Point()]
+        self.points[0].x = xmin
+        self.points[1].x = xmax
+        for p in self.points:
+            p.y = gen_cost_default_marginal_cost * p.x
 
     def scrub(self):
 
