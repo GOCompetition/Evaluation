@@ -178,6 +178,7 @@ class Data:
         #self.raw.switched_shunts_combine_blocks_steps()
         self.raw.scrub()
         self.rop.scrub()
+        self.inl.scrub()
         self.check_gen_cost_revise()
         self.remove_contingencies_with_offline_generators()
         self.remove_contingencies_with_offline_lines()
@@ -1669,6 +1670,43 @@ class Inl:
 
         for r in self.get_generator_inl_records():
             r.check()
+
+    def scrub(self):
+
+        #self.normalize_participation_factors()
+        pass
+
+    def normalize_participation_factors(self):
+        '''How do we want to do this?
+        generally, divide all participation factors by a constant C
+        what should the value of C be?
+        let alpha-init[g] denote the pre-normalization values of alpha
+        and alpha[g] denote the post-normalization values
+        options:
+         1. C = sum_g alpha-init[g]
+            this yields sum_g alpha[g] = 1
+         2. require alpha[g] > some minimum value?
+         3. require alpha[g] < some maximum value?
+        '''
+        
+        normalization_constant = sum(
+            [0.0] +
+            [r.r
+             for r in self.get_generator_inl_records()])
+        if normalization_constant == 0.0:
+            alert(
+                {'data_type': 'Inl',
+                 'error_message': 'sum of INL participation factors (field R) is 0.0, setting all to 1.0',
+                 'diagnostics': {}})
+            for r in self.get_generator_inl_records():
+                r.r = 1.0
+        else:
+            alert(
+                {'data_type': 'Inl',
+                 'error_message': 'normalizing INL participation factors (field R) so that sum=1.0',
+                 'diagnostics': {'prior sum of INL R': normalization_constant}})
+            for r in self.get_generator_inl_records():
+                r.r /= normalization_constant
 
     # TODO
     def read_from_phase_0(self, file_name):
