@@ -31,6 +31,8 @@ gen_cost_x_bounds_margin = 0.0e-6 # ensure that the pgen lower and upper bounds 
 gen_cost_default_marginal_cost = 1.0e2 # default marginal cost (usd/mw-h) used if a cost function has an error
 raise_extra_field = False # set to true to raise an exception if extra fields are encountered. This can be a problem if a comma appears in an end-of-line comment.
 raise_con_quote = False # set to true to raise an exception if the con file has quotes. might as well accept this since we are rewriting the files
+gen_cost_revise = False # set to true to revise generator cost functions in the event of a problem, e.g. nonconvexity, not covering pmin, pmax, etc.
+normalize_participation_factors = False # set to true to normalize the participation factors so they sum to 1
 
 def alert(alert_dict):
     print(alert_dict)
@@ -179,7 +181,8 @@ class Data:
         self.raw.scrub()
         self.rop.scrub()
         self.inl.scrub()
-        self.check_gen_cost_revise()
+        if gen_cost_revise:
+            self.check_gen_cost_revise()
         self.remove_contingencies_with_offline_generators()
         self.remove_contingencies_with_offline_lines()
         self.remove_contingencies_with_offline_transformers()
@@ -1673,10 +1676,10 @@ class Inl:
 
     def scrub(self):
 
-        #self.normalize_participation_factors()
-        pass
+        if normalize_participation_factors:
+            self.inl_normalize_participation_factors()
 
-    def normalize_participation_factors(self):
+    def inl_normalize_participation_factors(self):
         '''How do we want to do this?
         generally, divide all participation factors by a constant C
         what should the value of C be?
