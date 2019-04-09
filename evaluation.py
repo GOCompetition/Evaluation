@@ -749,26 +749,23 @@ class Evaluation:
         self.swsh_bus = [self.bus_map[self.swsh_i[i]] for i in range(self.num_swsh)]
         self.swsh_map = {self.swsh_i[i]:i for i in range(self.num_swsh)}
         self.swsh_status = np.array([r.stat for r in swshs])
-        self.swsh_adm_imag_max = np.array([
-            (max(0.0, r.n1 * r.b1) +
-             max(0.0, r.n2 * r.b2) +
-             max(0.0, r.n3 * r.b3) +
-             max(0.0, r.n4 * r.b4) +
-             max(0.0, r.n5 * r.b5) +
-             max(0.0, r.n6 * r.b6) +
-             max(0.0, r.n7 * r.b7) +
-             max(0.0, r.n8 * r.b8)) / self.base_mva
-            for r in swshs]) * self.swsh_status
-        self.swsh_adm_imag_min = np.array([
-            (min(0.0, r.n1 * r.b1) +
-             min(0.0, r.n2 * r.b2) +
-             min(0.0, r.n3 * r.b3) +
-             min(0.0, r.n4 * r.b4) +
-             min(0.0, r.n5 * r.b5) +
-             min(0.0, r.n6 * r.b6) +
-             min(0.0, r.n7 * r.b7) +
-             min(0.0, r.n8 * r.b8)) / self.base_mva
-            for r in swshs]) * self.swsh_status
+        self.swsh_adm_imag_max = np.array([0.0 for r in swshs])
+        self.swsh_adm_imag_min = np.array([0.0 for r in swshs])
+        for i in range(self.num_swsh):
+            r = swshs[i]
+            if r.stat > 0:
+                rn = [r.n1, r.n2, r.n3, r.n4, r.n5, r.n6, r.n7, r.n8]
+                rb = [r.b1, r.b2, r.b3, r.b4, r.b5, r.b6, r.b7, r.b8]
+                for j in range(8):
+                    if rn[j] > 0:
+                        if rb[j] < 0.0:
+                            self.swsh_adm_imag_min[i] += float(rn[j]) * rb[j] / self.base_mva
+                        elif rb[j] > 0.0:
+                            self.swsh_adm_imag_max[i] += float(rn[j]) * rb[j] / self.base_mva
+                        else:
+                            break
+                    else:
+                        break
         self.bus_swsh_matrix = sp.csc_matrix(
             ([1.0 for i in range(self.num_swsh)],
              (self.swsh_bus, list(range(self.num_swsh)))),
