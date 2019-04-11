@@ -27,12 +27,15 @@ write_defaults_in_unused_fields = False
 write_values_in_unused_fields = True
 gen_cost_dx_margin = 1.0e-6 # ensure that consecutive x points differ by at least this amount
 gen_cost_ddydx_margin = 1.0e-6 # ensure that consecutive slopes differ by at least this amount
-gen_cost_x_bounds_margin = 0.0e-6 # ensure that the pgen lower and upper bounds are covered by at least this amount
+gen_cost_x_bounds_margin = 1.0e-2 # ensure that the pgen lower and upper bounds are covered by at least this amount
 gen_cost_default_marginal_cost = 1.0e2 # default marginal cost (usd/mw-h) used if a cost function has an error
 raise_extra_field = False # set to true to raise an exception if extra fields are encountered. This can be a problem if a comma appears in an end-of-line comment.
 raise_con_quote = False # set to true to raise an exception if the con file has quotes. might as well accept this since we are rewriting the files
-gen_cost_revise = False # set to true to revise generator cost functions in the event of a problem, e.g. nonconvexity, not covering pmin, pmax, etc.
+#gen_cost_revise = False # set to true to revise generator cost functions in the event of a problem, e.g. nonconvexity, not covering pmin, pmax, etc.
 normalize_participation_factors = False # set to true to normalize the participation factors so they sum to 1
+extend_cost_functions_to_p_min_max = True # set to true to extend the first cost function segment through pmin - 1 and the last one through pmax + 1
+remove_inner_cost_function_points_nondistinct = True # set to true to remove the inner points in a cost function if they are too close
+remove_inner_cost_function_points_nonconvex = True # set to true to remove the inner points in a cost function if they violate convexity
 
 def alert(alert_dict):
     print(alert_dict)
@@ -181,8 +184,9 @@ class Data:
         self.raw.scrub()
         self.rop.scrub()
         self.inl.scrub()
-        if gen_cost_revise:
-            self.check_gen_cost_revise()
+        #if gen_cost_revise:
+        #    self.check_gen_cost_revise()
+        self.scrub_gen_costs()
         self.remove_contingencies_with_offline_generators()
         self.remove_contingencies_with_offline_lines()
         self.remove_contingencies_with_offline_transformers()
@@ -192,6 +196,21 @@ class Data:
 
         self.raw.set_operating_point_to_offline_solution()
 
+
+    def scrub_gen_costs(self):
+
+        for g in self.raw.get_generators():
+            g_i = g.i
+            g_id = g.id
+            g_pt = g.pt
+            g_pb = g.pb
+            gdr = self.rop.generator_dispatch_records[(g_i, g_id)]
+            apdr = self.rop.active_power_dispatch_records[gdr.dsptbl]
+            plcf = self.rop.piecewise_linear_cost_functions[apdr.ctbl]
+            np = len(plcf.points)
+            plcf.scrub(g_pb, g_pt)
+
+    """
     def check_gen_cost_revise(self):
 
         for g in self.raw.get_generators():
@@ -311,6 +330,7 @@ class Data:
                           'ddydx': ddydx}})
                     plcf.revise(g_pb, g_pt)
                     continue
+    """
 
     def check_gen_cost_x_margin(self):
 
@@ -1244,13 +1264,16 @@ class Rop:
         self.piecewise_linear_cost_functions = {}
         
     def scrub(self):
+        
+        pass
+        #self.scrub_piecewise_linear_cost_functions()
 
-        self.scrub_piecewise_linear_cost_functions()
-
+    """
     def scrub_piecewise_linear_cost_functions(self):
 
         for r in self.get_piecewise_linear_cost_functions():
             r.scrub()
+    """
 
     def check(self):
 
@@ -3611,10 +3634,8 @@ class PiecewiseLinearCostFunction():
         self.npairs = None # no default value allowed
         self.points = [] # no default value allowed
 
-    def revise(self, pmin, pmax):
+    def discard_cost_data(self, pmin, pmax):
 
-        self.label = ''
-        self.npairs = 2
         x = [p.x for p in self.points]
         xmin = min(x + [pmin, pmax]) - gen_cost_x_bounds_margin - 1.0
         xmax = max(x + [pmin, pmax]) + gen_cost_x_bounds_margin + 1.0
@@ -3623,10 +3644,121 @@ class PiecewiseLinearCostFunction():
         self.points[1].x = xmax
         for p in self.points:
             p.y = gen_cost_default_marginal_cost * p.x
+        self.npairs = 2
 
-    def scrub(self):
+    def scrub(self, pmin, pmax):
 
         self.scrub_label()
+        self.sort_points_by_x()
+        self.remove_near_duplicate_points_by_x()
+        self.remove_nonconvex_points()
+        self.extend_x_to_p_min_max(pmin, pmax)
+        self.update_npairs()
+
+    def update_npairs(self):
+
+        self.npairs = len(self.points)
+
+    def sort_points_by_x(self):
+
+        self.points = sorted(self.points, key=(lambda p: p.x))
+
+    def remove_near_duplicate_points_by_x(self):
+
+        num_points = len(self.points)
+        points_to_remove = []
+        x = [p.x for p in self.points]
+        for i in range(1, num_points - 1):
+            if x[i] < x[i - 1] + gen_cost_dx_margin:
+                alert(
+                    {'data_type': 'PiecewiseLinearCostFunction',
+                     'error_message': 'fails dx margin (sufficient increase in x). removing point i',
+                     'diagnostics': {
+                         'ltbl': self.ltbl,
+                         'i': i,
+                         'x[i - 1]': x[i - 1],
+                         'x[i]': x[i],
+                         'x[i] - x[i - 1]': x[i] - x[i - 1]}})
+                points_to_remove.append(i)
+        for i in range(num_points - 2, num_points - 1):
+            if x[i + 1] < x[i] + gen_cost_dx_margin:
+                alert(
+                    {'data_type': 'PiecewiseLinearCostFunction',
+                     'error_message': 'fails dx margin (sufficient increase in x). removing point i',
+                     'diagnostics': {
+                         'ltbl': self.ltbl,
+                         'i': i,
+                         'x[i + 1]': x[i + 1],
+                         'x[i]': x[i],
+                         'x[i + 1] - x[i]': x[i + 1] - x[i]}})
+                points_to_remove.append(i)
+        points_to_keep = sorted(list(set(range(num_points)) - set(points_to_remove)))
+        self.points = [self.points[i] for i in points_to_keep]
+        self.npairs = len(self.points)
+
+    def remove_nonconvex_points(self):
+
+        num_points = len(self.points)
+        done = False
+        while num_points > 2 and not done:
+            self.remove_nonconvex_points_local()
+            num_points_old = num_points
+            num_points = len(self.points)
+            if num_points == num_points_old:
+                done = True
+
+    def remove_nonconvex_points_local(self):
+
+        num_points = len(self.points)
+        points_to_remove = []
+        x = [p.x for p in self.points]
+        y = [p.y for p in self.points]
+        if num_points > 1:
+            dx = [x[i + 1] - x[i] for i in range(num_points - 1)]
+            dy = [y[i + 1] - y[i] for i in range(num_points - 1)]
+            dydx = [dy[i] / dx[i] for i in range(num_points - 1)]
+            for i in range(1, num_points - 1):
+                if dydx[i] < dydx[i - 1] + gen_cost_ddydx_margin:
+                    alert(
+                        {'data_type': 'PiecewiseLinearCostFunction',
+                         'error_message': 'fails ddydx margin (sufficient convexity). removing point i',
+                         'diagnostics': {
+                             'ltbl': self.ltbl,
+                             'i': i,
+                             'x[i - 1]': x[i - 1],
+                             'x[i]': x[i],
+                             'x[i + 1]': x[i + 1],
+                             'y[i - 1]': y[i - 1],
+                             'y[i]': y[i],
+                             'y[i + 1]': y[i + 1],
+                             'dydx[i, i + 1] - dydx[i - 1, i]': dydx[i] - dydx[i - 1]}})
+                    points_to_remove.append(i)
+                    #break # only remove the first 1?
+            points_to_keep = sorted(list(set(range(num_points)) - set(points_to_remove)))
+            self.points = [self.points[i] for i in points_to_keep]
+            self.npairs = len(self.points)
+
+    def extend_x_to_p_min_max(self, pmin, pmax):
+
+        num_points = len(self.points)
+        if num_points < 2:
+            self.discard_cost_data(pmin, pmax)
+        else:
+            x = [p.x for p in self.points]
+            y = [p.y for p in self.points]
+            dx = [x[i + 1] - x[i] for i in range(num_points - 1)]
+            dy = [y[i + 1] - y[i] for i in range(num_points - 1)]
+            dydx = [dy[i] / dx[i] for i in range(num_points - 1)]
+            xb = min(x + [pmin, pmax]) - gen_cost_x_bounds_margin - 1.0
+            xt = max(x + [pmin, pmax]) + gen_cost_x_bounds_margin + 1.0
+            # y = y0 + dydx * (x - x0)
+            yb = y[0] + dydx[0] * (xb - x[0])
+            yt = y[num_points - 1] + dydx[num_points - 2] * (xt - x[num_points - 1])
+            self.points[0].x = xb
+            self.points[0].y = yb
+            self.points[num_points - 1].x = xt
+            self.points[num_points - 1].y = yt
+        self.npairs = len(self.points)
 
     def scrub_label(self):
 
