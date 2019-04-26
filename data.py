@@ -2047,8 +2047,10 @@ class CaseIdentification:
         if read_unused_fields:
             self.ic = parse_token(row[0], int, 0)
             self.rev = parse_token(row[2], int, 33)
-            self.xfrrat = parse_token(row[3], int, 0)
-            self.nxfrat = parse_token(row[4], int, 1)
+            self.xfrrat = (1 if (parse_token(row[3], float, 0.0) > 0.0) else 0)
+            self.nxfrat = (1 if (parse_token(row[4], float, 1.0) > 0.0) else 0)
+            #self.xfrrat = parse_token(row[3], int, 0)
+            #self.nxfrat = parse_token(row[4], int, 1)
             self.basfrq = parse_token(row[5], float, 60.0) # need to remove end of line comment
 
     def read_from_rows(self, rows):
