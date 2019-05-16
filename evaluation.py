@@ -3029,7 +3029,7 @@ def trans_old(raw_name, rop_name, con_name, inl_nsame,filename):
         p.con.write(filename+".con")
         p.inl.write(filename+".inl",p.raw,p.rop)
     
-def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_name=None, detail_name=None):
+def run(raw_name, rop_name, con_name, inl_name, sol1_name=None, sol2_name=None, summary_name=None, detail_name=None):
 
     # start timer
     start_time_all = time.time()
@@ -3059,10 +3059,17 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     print("piecewise linear cost functions: %u" % len(p.rop.piecewise_linear_cost_functions))
     print('contingencies: %u' % len(p.con.contingencies))
     
+    print('done reading data')
+
+    if sol1_name is None:
+        return True
+
     # set up evaluation
     e = Evaluation()
     e.set_data(p)
     e.set_params()
+
+    print('done setting evaluation data')
     
     # base case solution evaluation
     start_time = time.time()
@@ -3074,6 +3081,11 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     e.write_base(detail_name)
     end_time = time.time()
     print("total base case time: %f" % (end_time - start_time))
+
+    print('done evaluating base case - solution 1')
+
+    if sol2_name is None:
+        return True
 
     # ctg solution evaluation - loop over ctg to save memory
     # get ctg structure in sol
@@ -3134,5 +3146,8 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name, sol2_name, summary_na
     print("max_obj_viol: %f" % e.max_obj_viol)
     print("max_nonobj_viol: %f" % e.max_nonobj_viol)
     print("infeas: %u" % e.infeas)
+
+    print('done evaluating contingencies - solution 2')
+    print('done evaluating solution')
     
     return (e.obj, e.cost, e.obj - e.cost, e.max_obj_viol, e.max_nonobj_viol, e.infeas)
