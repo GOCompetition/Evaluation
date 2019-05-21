@@ -106,7 +106,122 @@ def clean_string(s):
     t = s.replace("'","").replace('"','').replace(' ','')
     #t = str(s).replace("'","").replace('"','').replace(' ','')
     return t
+
+def count_lines(file_name):
+
+    #return simplecount(file_name)
+    #return file_len(file_name)
+    return rawgencount(file_name)
+
+def simplecount(filename):
+    lines = 0
+    with open(filename) as f:
+        for line in f:
+            lines += 1
+    return lines
+
+def file_len(fname):
+    start_time = time.time()
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    end_time = time.time()
+    print('file_len time: %f' % (end_time - start_time))
+    return i + 1
+
+def _make_gen(reader):
+    b = reader(1024 * 1024)
+    while b:
+        yield b
+        b = reader(1024*1024)
+
+def rawgencount(filename):
+    start_time = time.time()
+    f = open(filename, 'rb')
+    f_gen = _make_gen(f.read) # py2
+    #f_gen = _make_gen(f.raw.read) # py3
+    count = sum( buf.count(b'\n') for buf in f_gen )
+    f.close()
+    end_time = time.time()
+    print('rawgencount time: %f' % (end_time - start_time))
+    return count
+
+def get_ctg_block_size(num_bus, num_gen):
         
+    return(num_bus + num_gen + 10)
+
+def get_sol2_num_lines_expected(num_bus, num_gen, num_ctg):
+
+    return(num_ctg * get_ctg_block_size(num_bus, num_gen))
+
+def check_sol2_num_lines(sol2_name, num_bus, num_gen, num_ctg):
+
+    expected = get_sol2_num_lines_expected(num_bus, num_gen, num_ctg)
+    found = count_lines(sol2_name)
+    print('sol2 num lines expected: %u' % expected)
+    print('sol2 num lines found: %u' % found)
+    if found < expected:
+        print('sol2 num lines error')
+        raise Exception('sol2 num lines error. expected: %u, found: %u' % (expected, found))
+    else:
+        print('sol2 num lines ok')
+
+def get_sol2_ctg_labels(sol2_name, num_bus, num_gen, num_ctg):
+
+    start_time = time.time()
+    ctg_labels = []
+    if num_ctg > 0:
+        ctg_block_size = get_ctg_block_size(num_bus, num_gen)
+        line_nums_to_find = [ctg_block_size * k + 2 for k in range(num_ctg)]
+        num_ctgs_found = 0
+        line_num_to_find = line_nums_to_find[num_ctgs_found]
+        line_num_current = 0
+        f = open(sol2_name)
+        #f = open(sol2_name, 'rb', 1024*1024)
+        for line in f:
+            if line_num_current == line_num_to_find:
+                ctg_labels.append(clean_string(line.strip())) # put back
+                num_ctgs_found += 1
+                if num_ctgs_found == num_ctg:
+                    break
+                else:
+                    line_num_to_find = line_nums_to_find[num_ctgs_found]
+            line_num_current += 1
+        f.close()
+    end_time = time.time()
+    print('get_sol2_ctg_labels time: %f' % (end_time - start_time))
+    return ctg_labels
+
+def check_sol2_ctg_labels(sol2_name, num_bus, num_gen, ctg_labels_data_list):
+
+    print('checking contingency labels sol vs data')
+    num_ctg = len(ctg_labels_data_list)
+    ctg_labels_sol_list = get_sol2_ctg_labels(sol2_name, num_bus, num_gen, num_ctg)
+    #ctg_labels_sol_list = ctg_labels_data_list
+    ctg_labels_data = set(ctg_labels_data_list)
+    ctg_labels_sol = set(ctg_labels_sol_list)
+    ctg_labels_data_minus_sol = ctg_labels_data - ctg_labels_sol
+    ctg_labels_sol_minus_data = ctg_labels_sol - ctg_labels_data
+    message = (
+        'sol2 num ctgs data (list): %u, sol (list): %u, data: %u, sol: %u data - sol: %u, sol - data: %u' % (
+            len(ctg_labels_data_list),
+            len(ctg_labels_sol_list),
+            len(ctg_labels_data),
+            len(ctg_labels_sol),
+            len(ctg_labels_data_minus_sol),
+            len(ctg_labels_sol_minus_data)))
+    print(message)
+    if(len(ctg_labels_data_list) != len(ctg_labels_data)):
+        raise Exception('repeated contingency label in data. %s' % message)
+    elif (len(ctg_labels_sol_list) != len(ctg_labels_sol)):
+        raise Exception('repeated contingency label in sol. %s' % message)
+    elif (len(ctg_labels_data_minus_sol) != 0):
+        raise Exception('contingency label in data not in sol. %s. labels[0]: %s' % (message, list(ctg_labels_data_minus_sol)[0]))
+    elif (len(ctg_labels_sol_minus_data) != 0):
+        raise Exception('contingency label in sol not in data. %s. labels[0]: %s' % (message, list(ctg_labels_sol_minus_data)[0]))
+    else:
+        print('sol2 ctg labels ok')
+
 class Result:
 
     def __init__(self, ctgs):
@@ -2887,10 +3002,22 @@ class Solution2:
         print(self.gen_pow_imag)
         print("pow_real_change:")
         print(self.pow_real_change)
-        
+
+    def get_all_ctg_label_lines(self, in_file, num_bus, num_gen):
+
+        return []
+
+    def get_all_gen_start_lines(self, in_file, num_bus, num_gen):
+
+        return []
+
+    def get_all_bus_start_lines(self, in_file, num_bus, num_gen):
+
+        return []
+
     def read_next_ctg(self, in_file, num_bus, num_gen):
 
-        ctg_block_size = num_bus + num_gen + 10
+        ctg_block_size = get_ctg_block_size(num_bus, num_gen)
 
         ctg_start = 0
         ctg_end = ctg_start + 2 + 1
@@ -3091,6 +3218,8 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name=None, sol2_name=None, 
     # get ctg structure in sol
     # need to check that every contingency is found in the sol file
     start_time = time.time()
+    ok = check_sol2_num_lines(sol2_name, e.num_bus, e.num_gen, e.num_ctg)
+    ok = check_sol2_ctg_labels(sol2_name, e.num_bus, e.num_gen, e.ctg_label)
     s2 = Solution2()
     ctgs_reported = []
     print('start ctg eval')
