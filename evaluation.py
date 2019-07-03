@@ -1626,7 +1626,7 @@ class Evaluation:
             print("xfmrs dest: %s" % str([(k, self.xfmr_status[k], self.xfmr_pow_dest_real[k]) for k in self.bus_xfmr_dest[i]]))
 
         start_time = time.time()
-        self.bus_pow_balance_real_viol = (
+        self.bus_pow_balance_real_viol = np.abs(
             self.bus_gen_matrix.dot(self.gen_pow_real) -
             self.bus_load_pow_real -
             self.bus_fxsh_pow_real -
@@ -1634,7 +1634,7 @@ class Evaluation:
             self.bus_line_dest_matrix.dot(self.line_pow_dest_real) -
             self.bus_xfmr_orig_matrix.dot(self.xfmr_pow_orig_real) -
             self.bus_xfmr_dest_matrix.dot(self.xfmr_pow_dest_real))
-        self.bus_pow_balance_imag_viol = (
+        self.bus_pow_balance_imag_viol = np.abs(
             self.bus_gen_matrix.dot(self.gen_pow_imag) -
             self.bus_load_pow_imag -
             self.bus_fxsh_pow_imag -
