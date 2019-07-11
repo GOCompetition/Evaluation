@@ -2362,6 +2362,7 @@ class Generator:
     def check(self):
 
         self.check_id_len_1_or_2()
+        self.check_pb_nonnegative()
         self.check_qt_qb_consistent()
         self.check_pt_pb_consistent()
         # check pg, qg within bounds?
@@ -2401,6 +2402,17 @@ class Generator:
                      'id': self.id,
                      'pt - pb': (self.pt - self.pb),
                      'pt': self.pt,
+                     'pb': self.pb}})
+
+    def check_pb_nonnegative(self):
+
+        if self.pb < 0.0:
+            alert(
+                {'data_type': 'Generator',
+                 'error_message': 'fails pb nonnegativity. Please ensure that the pb fields of every generator satisfies: pb >= 0.0',
+                 'diagnostics': {
+                     'i': self.i,
+                     'id': self.id,
                      'pb': self.pb}})
 
     def read_from_row(self, row):
