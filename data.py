@@ -36,6 +36,10 @@ normalize_participation_factors = False # set to true to normalize the participa
 #extend_cost_functions_to_p_min_max = True # set to true to extend the first cost function segment through pmin - 1 and the last one through pmax + 1
 #remove_inner_cost_function_points_nondistinct = True # set to true to remove the inner points in a cost function if they are too close
 #remove_inner_cost_function_points_nonconvex = True # set to true to remove the inner points in a cost function if they violate convexity
+id_str_ok_chars = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 def alert(alert_dict):
     print(alert_dict)
@@ -98,6 +102,53 @@ def check_row_missing_fields(row, row_len_expected):
     except Exception as e:
         traceback.print_exc()
         raise e
+
+def check_two_char_id_str(x):
+
+    char_ok_alert_dict = {
+        'data_type':
+        'IdStr',
+        'error_message':
+        'id string has nonallowable characters - each character must be in ["%s"]' % (','.join(id_str_ok_chars)),
+        'diagnostics':
+        {'id': x}}
+    if len(x) > 2:
+        alert(
+            {'data_type':
+             'IdStr2Char',
+             'error_message':
+             'id string too long - must be 1 or 2 characters',
+             'diagnostics':
+             {'id': x}})
+    if len(x) <= 0:
+        alert(
+            {'data_type':
+             'IdStr2Char',
+             'error_message':
+             'id string too short - must be 1 or 2 characters',
+             'diagnostics':
+             {'id': x}})
+    if len(x) == 2:
+        x0 = x[0]
+        x1 = x[1]
+        isok = check_id_str_single_char_ok(x0)
+        if not isok:
+            alert(char_ok_alert_dict)
+        isok = check_id_str_single_char_ok(x1)
+        if not isok:
+            alert(char_ok_alert_dict)
+    if len(x) == 1:
+        x0 = x[0]
+        isok = check_id_str_single_char_ok(x0)
+        if not isok:
+            alert(char_ok_alert_dict)
+
+def check_id_str_single_char_ok(x):
+
+    isok = False
+    if x in id_str_ok_chars:
+        isok = True
+    return isok
 
 def remove_end_of_line_comment_from_row_first_occurence(row, end_of_line_str):
 
@@ -2361,6 +2412,7 @@ class Generator:
 
     def check(self):
 
+        check_two_char_id_str(self.id)
         self.check_id_len_1_or_2()
         self.check_pb_nonnegative()
         self.check_qt_qb_consistent()
@@ -2503,6 +2555,7 @@ class NontransformerBranch:
 
     def check(self):
 
+        check_two_char_id_str(self.ckt)
         self.check_ckt_len_1_or_2()
         self.check_r_x_nonzero()
         self.check_ratea_pos()
@@ -2677,6 +2730,7 @@ class Transformer:
 
     def check(self):
 
+        check_two_char_id_str(self.ckt)
         self.check_ckt_len_1_or_2()
         self.check_r12_x12_nonzero()
         self.check_rata1_pos()
