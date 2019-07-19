@@ -109,7 +109,7 @@ def check_two_char_id_str(x):
         'data_type':
         'IdStr',
         'error_message':
-        'id string has nonallowable characters - each character must be in ["%s"]' % (','.join(id_str_ok_chars)),
+        'id string has nonallowable characters - each character must be in ["%s"]' % ('","'.join(id_str_ok_chars)),
         'diagnostics':
         {'id': x}}
     if len(x) > 2:
@@ -597,6 +597,7 @@ class Raw:
 
     def scrub(self):
 
+        self.scrub_switched_shunts()
         self.scrub_nontransformer_branches()
         self.scrub_transformers()
 
@@ -611,6 +612,11 @@ class Raw:
         self.check_transformers()
         self.check_areas()
         self.check_switched_shunts()
+
+    def scrub_switched_shunts(self):
+
+        for r in self.get_switched_shunts():
+            r.scrub()
 
     def scrub_nontransformer_branches(self):
 
@@ -3161,6 +3167,14 @@ class SwitchedShunt:
         self.n8 = 0
         self.b8 = 0.0
 
+    def scrub(self):
+
+        self.scrub_swrem()
+
+    def scrub_swrem(self):
+
+        self.swrem = 0
+
     def clean_rmidnt(self):
 
         self.rmidnt = ''
@@ -3280,7 +3294,18 @@ class SwitchedShunt:
         #self.check_b7_zero()
         #self.check_b8_zero()
         self.check_bmin_le_binit_le_bmax()
-                                                
+        self.check_swrem_zero()
+
+    def check_swrem_zero(self):
+
+        if self.swrem != 0:
+            alert(
+                {'data_type': 'SwitchedShunt',
+                 'error_message': 'fails swrem==0. For each switched shunt, please ensure that the swrem field contains the value 0.',
+                 'diagnostics': {
+                     'i': self.i,
+                     'swrem': self.swrem}})
+
     def check_b1_b2_opposite_signs(self):
 
         if (((self.b1 < 0.0) and (self.b2 < 0.0)) or ((self.b1 > 0.0) and (self.b2 > 0.0))):
