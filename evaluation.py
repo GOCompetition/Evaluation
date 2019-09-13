@@ -1259,6 +1259,13 @@ class Evaluation:
                  self.max_xfmr_pow_dest_mag_max_viol[1],
                  ])
 
+    def print_base(self):
+        """print out summary info on the base case"""
+
+        print(
+            "base case summary info: {infeasibility: %s, penalty: %s, cost: %s, objective: %s}" % (
+                self.infeas, self.penalty, self.cost, self.obj))        
+
     def write_ctg(self, det_name):
         """write detail of ctg evaluation"""        
 
@@ -3206,6 +3213,7 @@ def run(raw_name, rop_name, con_name, inl_name, sol1_name=None, sol2_name=None, 
     e.eval_base()
     e.write_header(detail_name)
     e.write_base(detail_name)
+    e.print_base()
     end_time = time.time()
     print("total base case time: %f" % (end_time - start_time))
 
