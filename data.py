@@ -4,6 +4,7 @@ Author: Jesse Holzer, jesse.holzer@pnnl.gov
 
 Date: 2018-04-05
 
+str(hex(x))[2:].upper()
 """
 # data.py
 # module for input and output data
@@ -40,6 +41,14 @@ id_str_ok_chars = [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
     'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+default_branch_limit = 9999.0
+do_check_pb_nonnegative = False # cannot fix this
+do_check_id_str_ok = False # difficult fix
+do_check_rate_pos = True # fixed in scrubber
+do_check_swrem_zero = True # fixed by scrubber
+do_check_bmin_le_binit_le_bmax = True # fixed by scrubber - with extra scrubber options below
+do_combine_switched_shunt_blocks_steps = True # generally want this to be false
+do_fix_binit = True # generally want this to be false
 
 def alert(alert_dict):
     print(alert_dict)
@@ -145,8 +154,11 @@ def check_two_char_id_str(x):
 
 def check_id_str_single_char_ok(x):
 
-    isok = False
-    if x in id_str_ok_chars:
+    if do_check_id_str_ok:
+        isok = False
+        if x in id_str_ok_chars:
+            isok = True
+    else:
         isok = True
     return isok
 
@@ -223,6 +235,8 @@ class Data:
         self.rop.check()
         self.inl.check()
         self.con.check()
+        self.check_gen_implies_cost_gen()
+        self.check_cost_gen_implies_gen()
         self.check_gen_cost_x_margin()
         self.check_no_offline_generators_in_contingencies()
         self.check_no_offline_lines_in_contingencies()
@@ -231,7 +245,8 @@ class Data:
     def scrub(self):
         '''modifies certain data elements to meet Grid Optimization Competition assumptions'''
 
-        #self.raw.switched_shunts_combine_blocks_steps()
+        if do_combine_switched_shunt_blocks_steps:
+            self.raw.switched_shunts_combine_blocks_steps()
         self.raw.scrub()
         self.rop.scrub()
         self.inl.scrub()
@@ -247,6 +262,39 @@ class Data:
 
         self.raw.set_operating_point_to_offline_solution()
 
+    def check_gen_implies_cost_gen(self):
+
+        gen_set = set([(g.i, g.id) for g in self.raw.get_generators()])
+        cost_gen_set = set(self.rop.generator_dispatch_records.keys())
+        gen_not_cost_gen = gen_set.difference(cost_gen_set)
+        if len(gen_not_cost_gen) > 0:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'fails no generators in RAW file not in ROP file. Please ensure that every generator in the RAW file is also in the ROP file.',
+                 'diagnostics':
+                 {'num gens': len(gen_not_cost_gen),
+                  'gens': [
+                      {'gen i': g[0], 'gen id': g[1]}
+                      for g in gen_not_cost_gen]}})
+
+    def check_cost_gen_implies_gen(self):
+
+        gen_set = set([(g.i, g.id) for g in self.raw.get_generators()])
+        cost_gen_set = set(self.rop.generator_dispatch_records.keys())
+        cost_gen_not_gen = cost_gen_set.difference(gen_set)
+        if len(cost_gen_not_gen) > 0:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'fails no generators in ROP file not in RAW file. Please ensure that every generator in the ROP file is also in the RAW file.',
+                 'diagnostics':
+                 {'num gens': len(cost_gen_not_gen),
+                  'gens': [
+                      {'gen i': g[0], 'gen id': g[1]}
+                      for g in cost_gen_not_gen]}})
 
     def scrub_gen_costs(self):
 
@@ -2420,7 +2468,8 @@ class Generator:
 
         check_two_char_id_str(self.id)
         self.check_id_len_1_or_2()
-        self.check_pb_nonnegative()
+        if do_check_pb_nonnegative:
+            self.check_pb_nonnegative()
         self.check_qt_qb_consistent()
         self.check_pt_pb_consistent()
         # check pg, qg within bounds?
@@ -2540,13 +2589,13 @@ class NontransformerBranch:
         if self.ratea <= 0.0:
             alert(
                 {'data_type': 'NontransformerBranch',
-                 'error_message': 'adjusting ratea to 1.0',
+                 'error_message': 'adjusting ratea to %f' % default_branch_limit,
                  'diagnostics': {
                      'i': self.i,
                      'j': self.j,
                      'ckt': self.ckt,
                      'ratea': self.ratea}})
-            self.ratea = 1.0
+            self.ratea = default_branch_limit
         if self.ratec < self.ratea:
             alert(
                 {'data_type': 'NontransformerBranch',
@@ -2564,8 +2613,9 @@ class NontransformerBranch:
         check_two_char_id_str(self.ckt)
         self.check_ckt_len_1_or_2()
         self.check_r_x_nonzero()
-        self.check_ratea_pos()
-        self.check_ratec_pos()
+        if do_check_rate_pos:
+            self.check_ratea_pos()
+            self.check_ratec_pos()
         self.check_ratec_ratea_consistent()
         # need to check i, j in buses
 
@@ -2739,8 +2789,9 @@ class Transformer:
         check_two_char_id_str(self.ckt)
         self.check_ckt_len_1_or_2()
         self.check_r12_x12_nonzero()
-        self.check_rata1_pos()
-        self.check_ratc1_pos()
+        if do_check_rate_pos:
+            self.check_rata1_pos()
+            self.check_ratc1_pos()
         self.check_ratc1_rata1_consistent()
         self.check_windv1_pos()
         self.check_windv2_pos()
@@ -3170,6 +3221,18 @@ class SwitchedShunt:
     def scrub(self):
 
         self.scrub_swrem()
+        if do_fix_binit:
+            self.scrub_binit()
+
+    def scrub_binit(self):
+
+        b_min_max = self.compute_bmin_bmax()
+        bmin = b_min_max[0]
+        bmax = b_min_max[1]
+        if self.binit < bmin:
+            self.binit = bmin
+        elif self.binit > bmax:
+            self.binit = bmax
 
     def scrub_swrem(self):
 
@@ -3293,8 +3356,10 @@ class SwitchedShunt:
         #self.check_b6_zero()
         #self.check_b7_zero()
         #self.check_b8_zero()
-        self.check_bmin_le_binit_le_bmax()
-        self.check_swrem_zero()
+        if do_check_bmin_le_binit_le_bmax:
+            self.check_bmin_le_binit_le_bmax()
+        if do_check_swrem_zero:
+            self.check_swrem_zero()
 
     def check_swrem_zero(self):
 
@@ -3928,6 +3993,7 @@ class PiecewiseLinearCostFunction():
         x = [self.points[i].x for i in range(num_points)]
         y = [self.points[i].y for i in range(num_points)]
         dx = [x[i + 1] - x[i] for i in range(num_points - 1)]
+        dx = [(d if abs(d) > 0 else 1.0) for d in dx]
         dy = [y[i + 1] - y[i] for i in range(num_points - 1)]
         dydx = [dy[i] / dx[i] for i in range(num_points - 1)]
         ddydx = [dydx[i + 1] - dydx[i] for i in range(num_points - 2)]
