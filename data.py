@@ -241,6 +241,8 @@ class Data:
         self.check_no_offline_generators_in_contingencies()
         self.check_no_offline_lines_in_contingencies()
         self.check_no_offline_transformers_in_contingencies()
+        self.check_no_generators_in_con_not_in_raw()
+        self.check_no_branches_in_con_not_in_raw()
 
     def scrub(self):
         '''modifies certain data elements to meet Grid Optimization Competition assumptions'''
@@ -444,6 +446,47 @@ class Data:
             plcf.check_x_max_margin(g_pt)
             plcf.check_x_min_margin(g_pb)
 
+    def check_no_generators_in_con_not_in_raw(self):
+        '''check that no generators in the contingencies are not in the raw file.'''
+
+        ctgs = self.con.get_contingencies()
+        raw_gens = self.raw.get_generators()
+        raw_gens_id = sorted(list(set([(g.i, g.id) for g in raw_gens])))
+        gen_ctgs = [c for c in ctgs if len(c.generator_out_events) > 0]
+        gen_ctgs_event = [c.generator_out_events[0] for c in gen_ctgs]
+        con_gens_id = sorted(list(set([(g.i, g.id) for g in gen_ctgs_event])))
+        con_gens_not_raw_gens = sorted(list(set(con_gens_id) - set(raw_gens_id)))
+        for g in con_gens_not_raw_gens:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'fails no generators mentioned in contingencies that do not exist in RAW file.',
+                 'diagnostics':
+                 {'gen i': g[0],
+                  'gen id': g[1]}})
+
+    def check_no_branches_in_con_not_in_raw(self):
+        '''check that no branches in the contingencies are not in the raw file.'''
+
+        ctgs = self.con.get_contingencies()
+        raw_branches = self.raw.get_nontransformer_branches() + self.raw.get_transformers()
+        raw_branches_id = sorted(list(set([(b.i, b.j, b.ckt) for b in raw_branches])))
+        branch_ctgs = [c for c in ctgs if len(c.branch_out_events) > 0]
+        branch_ctgs_event = [c.branch_out_events[0] for c in branch_ctgs]
+        con_branches_id = sorted(list(set([(b.i, b.j, b.ckt) for b in branch_ctgs_event])))
+        con_branches_not_raw_branches = sorted(list(set(con_branches_id) - set(raw_branches_id)))
+        for b in con_branches_not_raw_branches:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'fails no branches mentioned in contingencies that do not exist in RAW file.',
+                 'diagnostics':
+                 {'branch i': b[0],
+                  'branch j': b[1],
+                  'branch ckt': b[2]}})
+
     def check_no_offline_generators_in_contingencies(self):
         '''check that no generators that are offline in the base case
         are going out of service in a contingency'''
@@ -571,7 +614,7 @@ class Data:
         are going out of service in a contingency'''
 
         transformers = self.raw.get_transformers()
-        offline_transformer_keys = [(g.i, g.j, g.k) for g in transformers if not (g.stat > 0)]
+        offline_transformer_keys = [(g.i, g.j, g.ckt) for g in transformers if not (g.stat > 0)]
         ctgs = self.con.get_contingencies()
         branch_ctgs = [c for c in ctgs if len(c.branch_out_events) > 0]
         branch_ctg_out_event_map = {
