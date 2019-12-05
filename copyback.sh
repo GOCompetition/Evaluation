@@ -4,21 +4,21 @@
 # requires sudo
 
 # choose network - r (real-time) and offline
-r_network=Network_40R-004
-o_network=Network_40O-004
+r_network=Network_42R-004
+o_network=Network_42O-004
 
 # choose scenario
 #scenario=1
-scenario=2
+#scenario=2
 #scenario=3
-#scenario=4
+scenario=4
 
 # directories
 eval_dir='/home/holz501/gocomp/Evaluation/'
 data_dir='/home/smb_share/GOComp/'
 work_dir=$eval_dir'work/'
-case_dir=$data_dir$r_network'/scenario_'$scenario'/'
-o_case_dir=$data_dir$o_network'/scenario_'$scenario'/'
+case_dir=$data_dir'Challenge_1_Final_Real-Time/'$r_network'/scenario_'$scenario'/'
+o_case_dir=$data_dir'Challenge_1_Final_Offline/'$o_network'/scenario_'$scenario'/'
 
 echo "COPY BACK TO ORIGINAL LOCATION" >> $work_dir'process.out'
 sudo cp $work_dir'case.raw' $case_dir'case_pre_scrub.raw'

@@ -23,8 +23,8 @@ scenario=2
 eval_dir='/home/holz501/gocomp/Evaluation/'
 data_dir='/home/smb_share/GOComp/'
 work_dir=$eval_dir'work/'
-case_dir=$data_dir$r_network'/scenario_'$scenario'/'
-o_case_dir=$data_dir$o_network'/scenario_'$scenario'/'
+case_dir=$data_dir'Challenge_1_Final_Real-Time/'$r_network'/scenario_'$scenario'/'
+o_case_dir=$data_dir'Challenge_1_Final_Offline/'$o_network'/scenario_'$scenario'/'
 
 export PYTHONPATH=$eval_dir:$PYTHONPATH
 
@@ -59,6 +59,9 @@ else
     cp $case_dir'case.inl' $work_dir'case.inl'
 
 fi
+
+echo "CHECK PRE-SCRUBBED DATA" >> $work_dir'process.out'
+python check_data.py $work_dir'case.raw' $work_dir'case.rop' $work_dir'case.con' $work_dir'case.inl' >> $work_dir'process.out'
     
 echo "SCRUB DATA" >> $work_dir'process.out'
 python scrub_data.py $work_dir'case.raw' $work_dir'case.rop' $work_dir'case.con' $work_dir'case.inl' $work_dir'case_clean.raw' $work_dir'case_clean.rop' $work_dir'case_clean.con' $work_dir'case_clean.inl' >> $work_dir'process.out'
