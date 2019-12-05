@@ -258,6 +258,8 @@ class Data:
         self.remove_contingencies_with_offline_generators()
         self.remove_contingencies_with_offline_lines()
         self.remove_contingencies_with_offline_transformers()
+        self.remove_contingencies_with_generators_not_in_raw()
+        self.remove_contingencies_with_branches_not_in_raw()
 
     def convert_to_offline(self):
         '''converts the operating point to the offline starting point'''
@@ -518,6 +520,69 @@ class Data:
                   'ctg gen event i': ctg.generator_out_events[0].i,
                   'ctg gen event id': ctg.generator_out_events[0].id}})
 
+    def remove_contingencies_with_generators_not_in_raw(self):
+        '''remove any contingencies where a generator that is not
+        present in the RAW file is going out of service'''
+
+        ctgs_label_to_remove = []
+        gens = self.raw.get_generators()
+        gens_key = [(g.i, g.id) for g in gens]
+        ctgs = self.con.get_contingencies()
+        gen_ctgs = [c for c in ctgs if len(c.generator_out_events) > 0]
+        gen_ctg_gen_key_map = {
+            c:(c.generator_out_events[0].i, c.generator_out_events[0].id)
+            for c in gen_ctgs}
+        gen_ctg_gens_key = list(set(gen_ctg_gen_key_map.values()))
+        gens_key_missing = list(set(gen_ctg_gens_key).difference(set(gens_key)))
+        num_gens = len(gens_key)
+        num_gens_missing = len(gens_key_missing)
+        gens_dict = {gens_key[i]:i for i in range(num_gens)}
+        gens_missing_dict = {gens_key_missing[i]:(num_gens + i) for i in range(num_gens_missing)}
+        gens_dict.update(gens_missing_dict)      
+        ctgs_to_remove = [c for c in gen_ctgs if gens_dict[gen_ctg_gen_key_map[c]] >= num_gens]
+        ctgs_label_to_remove = [c.label for c in ctgs_to_remove]
+        for k in ctgs_label_to_remove:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'removing generator contingency where the generator does not exist in the RAW file',
+                 'diagnostics':
+                 {'ctg label': k}})
+            del self.con.contingencies[k]
+
+    def remove_contingencies_with_branches_not_in_raw(self):
+        '''remove any contingencies where a branch that is not
+        present in the RAW file is going out of service'''
+
+        ctgs_label_to_remove = []
+        lines = self.raw.get_nontransformer_branches()
+        transformers = self.raw.get_transformers()
+        branches_key = [(l.i, l.j, l.ckt) for l in (lines + transformers)]
+        ctgs = self.con.get_contingencies()
+        branch_ctgs = [c for c in ctgs if len(c.branch_out_events) > 0]
+        branch_ctg_branch_key_map = {
+            c:(c.branch_out_events[0].i, c.branch_out_events[0].j, c.branch_out_events[0].ckt)
+            for c in branch_ctgs}
+        branch_ctg_branches_key = list(set(branch_ctg_branch_key_map.values()))
+        branches_key_missing = list(set(branch_ctg_branches_key).difference(set(branches_key)))
+        num_branches = len(branches_key)
+        num_branches_missing = len(branches_key_missing)
+        branches_dict = {branches_key[i]:i for i in range(num_branches)}
+        branches_missing_dict = {branches_key_missing[i]:(num_branches + i) for i in range(num_branches_missing)}
+        branches_dict.update(branches_missing_dict)      
+        ctgs_to_remove = [c for c in branch_ctgs if branches_dict[branch_ctg_branch_key_map[c]] >= num_branches]
+        ctgs_label_to_remove = [c.label for c in ctgs_to_remove]
+        for k in ctgs_label_to_remove:
+            alert(
+                {'data_type':
+                 'Data',
+                 'error_message':
+                 'removing branch contingency where the branch does not exist in the RAW file',
+                 'diagnostics':
+                 {'ctg label': k}})
+            del self.con.contingencies[k]
+            
     def remove_contingencies_with_offline_generators(self):
         '''remove any contingencies where a generator that is offline in
         the base case is going out of service'''
