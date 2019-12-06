@@ -3,15 +3,19 @@
 # copy output of process.sh back to original file location
 # requires sudo
 
-# choose network - r (real-time) and offline
-r_network=Network_42R-004
-o_network=Network_42O-004
+# choose network
+# 40 = approach 3 - reduced network
+# 41 = approach 2 - full network, convert external generators to loads
+# 42 = approach 1 - full network, synthetic realistic cost functions as needed
+network=40
 
 # choose scenario
-#scenario=1
-#scenario=2
-#scenario=3
+# 1, 2, 3, 4
 scenario=4
+
+# choose network - r (real-time) and offline
+r_network='Network_'$network'R-004'
+o_network='Network_'$network'O-004'
 
 # directories
 eval_dir='/home/holz501/gocomp/Evaluation/'
