@@ -27,6 +27,8 @@ read_unused_fields = True
 write_defaults_in_unused_fields = False
 write_values_in_unused_fields = True
 gen_cost_dx_margin = 1.0e-6 # ensure that consecutive x points differ by at least this amount
+gen_cost_dydx_min = 1.0e-6 # ensure that the marginal cost (i.e. cost function slope) never goes below this value ???
+gen_cost_y_min = 1.0e-6 # ensure that the cost never goes below this value ???
 gen_cost_ddydx_margin = 1.0e-6 # ensure that consecutive slopes differ by at least this amount
 gen_cost_x_bounds_margin = 1.0e-2 # ensure that the pgen lower and upper bounds are covered by at least this amount
 gen_cost_default_marginal_cost = 1.0e2 # default marginal cost (usd/mw-h) used if a cost function has an error
@@ -1672,21 +1674,21 @@ class Rop:
                 for r in self.get_piecewise_linear_cost_functions()
                 for row in (
                         [[r.ltbl, "'%s'" % r.label, r.npairs]] +
-                        [[p.x, p.y] for p in r.points])]
+                        [["%0.10f" % p.x, "%0.10f" % p.y] for p in r.points])]
         elif write_defaults_in_unused_fields:
             rows = [
                 row
                 for r in self.get_piecewise_linear_cost_functions()
                 for row in (
                         [[r.ltbl, "''", r.npairs]] +
-                        [[p.x, p.y] for p in r.points])]
+                        [["%0.10f" % p.x, "%0.10f" % p.y] for p in r.points])]
         else:
             rows = [
                 row
                 for r in self.get_piecewise_linear_cost_functions()
                 for row in (
                         [[r.ltbl, None, r.npairs]] +
-                        [[p.x, p.y] for p in r.points])]
+                        [["%0.10f" % p.x, "%0.10f" % p.y] for p in r.points])]
         writer.writerows(rows)
         writer = csv.writer(out_str, quoting=csv.QUOTE_NONE)
         writer.writerows([['0 / END OF PIECE-WISE LINEAR COST TABLES BEGIN PIECEWISE QUADRATIC COST TABLES']])
@@ -3920,6 +3922,7 @@ class PiecewiseLinearCostFunction():
         self.remove_nonconvex_points()
         self.extend_x_to_p_min_max(pmin, pmax)
         self.update_npairs()
+        self.shift_marginal_cost()
 
     def update_npairs(self):
 
@@ -4043,6 +4046,97 @@ class PiecewiseLinearCostFunction():
         self.check_at_least_two_points()
         self.check_dx_margin()
         self.check_ddydx_margin()
+        self.check_marginal_cost()
+
+    def check_marginal_cost(self):
+
+        x = [p.x for p in self.points]
+        y = [p.y for p in self.points]
+        n = len(self.points)
+        if (n < 2):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fails at least 2 points.',
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+            return
+        min_y = min(y)
+        if (min_y < gen_cost_y_min):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fails y >= min, min = %f' % gen_cost_y_min,
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+            return
+        dx = [x[i + 1] - x[i] for i in range(n - 1)]
+        min_dx = min(dx)
+        if (min_dx < gen_cost_dx_margin):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fails dx >= tol, tol = %f' % gen_cost_dx_margin,
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+            return
+        dy = [y[i + 1] - y[i] for i in range(n - 1)]
+        dydx = [(dy[i] / dx[i]) for i in range(n - 1)]
+        min_dydx = min(dydx)
+        if (min_dydx < gen_cost_dydx_min):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fails dydx >= min, min = %f' % gen_cost_dydx_min,
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+            return
+            
+    def shift_marginal_cost(self):
+
+        x = [p.x for p in self.points]
+        y = [p.y for p in self.points]
+        n = len(self.points)
+        if (n < 2):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fails at least 2 points.',
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+            return
+        min_y = min(y)
+        if (min_y < gen_cost_y_min):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fixing y >= min, min = %f' % gen_cost_y_min,
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+            for p in self.points:
+                p.y += gen_cost_y_min - min_y + 1.0e-6
+            y = [p.y for p in self.points]
+        dx = [x[i + 1] - x[i] for i in range(n - 1)]
+        min_dx = min(dx)
+        if (min_dx < gen_cost_dx_margin):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fails dx >= tol, tol = %f' % gen_cost_dx_margin,
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+            return
+        dy = [y[i + 1] - y[i] for i in range(n - 1)]
+        dydx = [(dy[i] / dx[i]) for i in range(n - 1)]
+        min_dydx = min(dydx)
+        if (min_dydx < gen_cost_dydx_min):
+            alert(
+                {'data_type': 'PiecewiseLinearCostFunction',
+                 'error_message': 'fixing dydx >= min, min = %f' % gen_cost_dydx_min,
+                 'diagnostics': {
+                     'ltbl': self.ltbl}})
+            dydx_fixed = [dydx[i] + gen_cost_dydx_min - min_dydx + 1.0e-6 for i in range(n - 1)]
+            y_fixed = [0.0 for i in range(n)]
+            y_fixed[0] = y[0]
+            for i in range(n - 1):
+                y_new = y_fixed[i] + dydx_fixed[i] * dx[i]
+                y_fixed[i + 1] = y_new
+            for i in range(n):
+                self.points[i].y = y_fixed[i]
+        # aim for week of Jan 6
 
     def check_ltbl_pos(self):
 
