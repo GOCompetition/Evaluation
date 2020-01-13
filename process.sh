@@ -9,6 +9,9 @@
 #
 # then use copyback.sh (requires sudo) to copy files back to original locations
 
+# do solution?
+do_sol=1
+
 # choose network
 # 40 = approach 3 - reduced network
 # 41 = approach 2 - full network, convert external generators to loads
@@ -16,8 +19,25 @@
 network=40
 
 # choose scenario
-# 1, 2, 3, 4
-scenario=4
+# 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+# note: 5-8 are produced from 1-4 by copying the pre_scrub data
+# and then running a stricter scrubber.
+# the stricter scrubber modifies the cost functions by ensuring
+# cost >= 0 and marginal_cost >= 0 by
+# applying a uniform shift value to cost and a different uniform shift value to marginal cost
+# in other words, each cost function is shifted up so that its lowest point just hits 0
+# and each cost function is then skewed up so that its lowest slope just hits 0
+# If a cost function already meets these criteria then it is not shifted further
+# to switch the scrubber between these different behaviors, one must edit parameters
+# at the top of data.py
+# 9-12 are produced from 5-8 similarly
+# the issue with 5-8 is that some of the cost function floating point numbers
+# appear in scientific notation, rather than a standard decimal
+# to fix this we just rerun the scrubber.
+# there is no need to rerun the worst case solver and the solution evaluator
+# as the cost values are numerically the same.
+# therefore those portions of the script are commented out
+scenario=5
 
 # choose network - r (real-time) and offline
 r_network='Network_'$network'R-004'
@@ -73,22 +93,25 @@ python scrub_data.py $work_dir'case.raw' $work_dir'case.rop' $work_dir'case.con'
 echo "CHECK SCRUBBED DATA" >> $work_dir'process.out'
 python check_data.py $work_dir'case_clean.raw' $work_dir'case_clean.rop' $work_dir'case_clean.con' $work_dir'case_clean.inl' >> $work_dir'process.out'
 
-echo "GENERATE WORST CASE SOLUTION" >> $work_dir'process.out'
-cd '../WorstCase'
-tlim1=600
-tlim2=2700
-smeth=0
-nmod='case2'
-python MyPython1.py $work_dir'case_clean.con' $work_dir'case_clean.inl' $work_dir'case_clean.raw' $work_dir'case_clean.rop' $tlim1 $smeth $nmod >> $work_dir'process.out'
-cp "solution1.txt" $work_dir"worst_case_sol1.txt"
-python MyPython2.py $work_dir'case_clean.con' $work_dir'case_clean.inl' $work_dir'case_clean.raw' $work_dir'case_clean.rop' $tlim2 $smeth $nmod >> $work_dir'process.out'
-cp "solution2.txt" $work_dir"worst_case_sol2.txt"
-rm "solution1.txt"
-rm "solution2.txt"
-cd $eval_dir
+if [ $do_sol -gt 0 ]; then
 
-echo "EVALUATE WORST CASE SOLUTION" >> $work_dir'process.out'
-python test.py $work_dir'case_clean.raw' $work_dir'case_clean.rop' $work_dir'case_clean.con' $work_dir'case_clean.inl' $work_dir'worst_case_sol1.txt' $work_dir'worst_case_sol2.txt' $work_dir'worst_case_summary.csv' $work_dir'worst_case_detail.csv' >> $work_dir'process.out'
+    echo "GENERATE WORST CASE SOLUTION" >> $work_dir'process.out'
+    cd '../WorstCase'
+    tlim1=600
+    tlim2=2700
+    smeth=0
+    nmod='case2'
+    python MyPython1.py $work_dir'case_clean.con' $work_dir'case_clean.inl' $work_dir'case_clean.raw' $work_dir'case_clean.rop' $tlim1 $smeth $nmod >> $work_dir'process.out'
+    cp "solution1.txt" $work_dir"worst_case_sol1.txt"
+    python MyPython2.py $work_dir'case_clean.con' $work_dir'case_clean.inl' $work_dir'case_clean.raw' $work_dir'case_clean.rop' $tlim2 $smeth $nmod >> $work_dir'process.out'
+    mv "solution2.txt" $work_dir"worst_case_sol2.txt"
+    rm "solution1.txt"
+    #rm "solution2.txt"
+    cd $eval_dir
+
+    echo "EVALUATE WORST CASE SOLUTION" >> $work_dir'process.out'
+    python test.py $work_dir'case_clean.raw' $work_dir'case_clean.rop' $work_dir'case_clean.con' $work_dir'case_clean.inl' $work_dir'worst_case_sol1.txt' $work_dir'worst_case_sol2.txt' $work_dir'worst_case_summary.csv' $work_dir'worst_case_detail.csv' >> $work_dir'process.out'
+fi
 
 echo "CREATE OFFLINE VERSION" >> $work_dir'process.out'
 python write_offline.py $work_dir'case_clean.raw' $work_dir'case_clean.rop' $work_dir'case_clean.con' $work_dir'case_clean.inl' $work_dir'case_offline.raw' $work_dir'case_offline.rop' $work_dir'case_offline.con' $work_dir'case_offline.inl' >> $work_dir'process.out'
