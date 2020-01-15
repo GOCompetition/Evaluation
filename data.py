@@ -1254,15 +1254,15 @@ class Raw:
             r.b7 = 0.0
             r.n8 = 0
             r.b8 = 0.0
-            if b_max > 0.0:
-                r.n1 = 1
-                r.b1 = b_max
-                if b_min < 0.0:
-                    r.n2 = 1
-                    r.b2 = b_min
-            elif b_min < 0.0:
+            if b_min < 0.0:
                 r.n1 = 1
                 r.b1 = b_min
+                if b_max > 0.0:
+                    r.n2 = 1
+                    r.b2 = b_max
+            elif b_max > 0.0:
+                r.n1 = 1
+                r.b1 = b_max
         
     def set_operating_point_to_offline_solution(self):
 
