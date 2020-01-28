@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import traceback
 from scipy import sparse as sp
+import sys
 #from io import open
 #import StringIO
 #import cStringIO
@@ -162,6 +163,7 @@ def check_sol2_num_lines(sol2_name, num_bus, num_gen, num_ctg):
     print('sol2 num lines found: %u' % found)
     if found < expected:
         print('sol2 num lines error')
+        #sys.exit()
         raise Exception('sol2 num lines error. expected: %u, found: %u' % (expected, found))
     else:
         print('sol2 num lines ok')

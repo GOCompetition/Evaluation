@@ -8,6 +8,10 @@
 # create offline data
 #
 # then use copyback.sh (requires sudo) to copy files back to original locations
+# . process.sh 40 1
+# generates the files for network 40 scenario 1
+# . process.sh 40 51
+# generates the files for network 40 scenario 51
 
 # do solution?
 do_sol=1
@@ -16,7 +20,7 @@ do_sol=1
 # 40 = approach 3 - reduced network
 # 41 = approach 2 - full network, convert external generators to loads
 # 42 = approach 1 - full network, synthetic realistic cost functions as needed
-network=40
+network=$1 # 40
 
 # choose scenario
 # 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
@@ -37,7 +41,7 @@ network=40
 # there is no need to rerun the worst case solver and the solution evaluator
 # as the cost values are numerically the same.
 # therefore those portions of the script are commented out
-scenario=5
+scenario=$2 # 51
 
 # choose network - r (real-time) and offline
 r_network='Network_'$network'R-004'

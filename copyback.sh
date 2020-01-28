@@ -2,16 +2,20 @@
 
 # copy output of process.sh back to original file location
 # requires sudo
+# . copyback.sh 40 1
+# copies back the files for network 40 scenario 1
+# . copyback.sh 40 51
+# copies back the files for network 40 scenario 51
 
 # choose network
 # 40 = approach 3 - reduced network
 # 41 = approach 2 - full network, convert external generators to loads
 # 42 = approach 1 - full network, synthetic realistic cost functions as needed
-network=40
+network=$1 # 40
 
 # choose scenario
 # 1, 2, 3, 4
-scenario=5
+scenario=$2 # 51
 
 # choose network - r (real-time) and offline
 r_network='Network_'$network'R-004'
