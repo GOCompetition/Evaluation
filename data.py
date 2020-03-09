@@ -51,6 +51,8 @@ do_check_swrem_zero = True # fixed by scrubber
 do_check_bmin_le_binit_le_bmax = True # fixed by scrubber - with extra scrubber options below
 do_combine_switched_shunt_blocks_steps = True # generally want this to be false
 do_fix_binit = True # generally want this to be false
+EMERGENCY_CAPACITY_FACTOR = 0.1
+EMERGENCY_MARGINAL_COST_FACTOR = 5.0
 
 def alert(alert_dict):
     print(alert_dict)
@@ -263,10 +265,21 @@ class Data:
         self.remove_contingencies_with_generators_not_in_raw()
         self.remove_contingencies_with_branches_not_in_raw()
 
+    def convert(self):
+        '''converts for study 1'''
+
+        self.add_gen_emergency_capacity_and_cost_point()
+        #self.add_load_gens()
+
     def convert_to_offline(self):
         '''converts the operating point to the offline starting point'''
 
         self.raw.set_operating_point_to_offline_solution()
+
+    def add_gen_emergency_capacity_and_cost_point(self):
+
+        self.raw.add_gen_emergency_capacity()
+        self.rop.add_gen_emergency_cost_point()
 
     def check_gen_implies_cost_gen(self):
 
@@ -770,6 +783,14 @@ class Raw:
         self.check_transformers()
         self.check_areas()
         self.check_switched_shunts()
+
+    def add_gen_emergency_capacity(self):
+        '''Add emergency capacity to each generator.
+        for study 1.
+        increase pmax by a fixed fraction = EMERGENCY_CAPACITY_FACTOR'''
+
+        for r in self.get_generators():
+            r.add_emergency_capacity()
 
     def scrub_switched_shunts(self):
 
@@ -1478,6 +1499,17 @@ class Rop:
         self.active_power_dispatch_records = {}
         self.piecewise_linear_cost_functions = {}
         
+    def add_gen_emergency_cost_point(self):
+        '''
+        for study 1
+        add a final cost function point,
+        so that the last segment has MC = 5x the MC of the second to last segment,
+        which originally was the last segment
+        '''
+
+        for r in self.get_piecewise_linear_cost_functions():
+            r.add_emergency_cost_point()
+
     def scrub(self):
         
         pass
@@ -2584,6 +2616,13 @@ class Generator:
         self.check_pt_pb_consistent()
         # check pg, qg within bounds?
         # need to check i in buses
+
+    def add_emergency_capacity(self):
+        '''add emergency capacity
+        for study 1
+        increase pmax by a given factor = EMERGENCY_CAPACITY_FACTOR'''
+
+        self.pt += EMERGENCY_CAPACITY_FACTOR * abs(self.pt)
 
     def check_id_len_1_or_2(self):
 
@@ -3901,6 +3940,30 @@ class PiecewiseLinearCostFunction():
         self.label = ''
         self.npairs = None # no default value allowed
         self.points = [] # no default value allowed
+
+    def add_emergency_cost_point(self):
+        '''add one more cost point
+        for study 1
+        add one more cost point
+        so that the last segment has MC = 5x the MC of the second to last segment
+        which originally was the last segment'''
+
+        n = self.npairs
+        xy_n = self.points[n - 1]
+        xy_n_minus = self.points[n - 2]
+        x_n = xy_n.x
+        y_n = xy_n.y
+        x_n_minus = xy_n_minus.x
+        y_n_minus = xy_n_minus.y
+        mc_n = (y_n - y_n_minus)/(x_n - x_n_minus)
+        mc_n_plus = EMERGENCY_MARGINAL_COST_FACTOR * abs(mc_n)
+        x_n_plus = x_n + EMERGENCY_CAPACITY_FACTOR * abs(x_n)
+        y_n_plus = y_n + mc_n_plus * (x_n_plus - x_n)
+        xy_n_plus = Point()
+        xy_n_plus.x = x_n_plus
+        xy_n_plus.y = y_n_plus
+        self.npairs += 1
+        self.points.append(xy_n_plus)
 
     def discard_cost_data(self, pmin, pmax):
 
